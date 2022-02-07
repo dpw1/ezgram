@@ -1,0 +1,20 @@
+$slider-width: 300px;
+
+.Unfollow {
+  &-slider {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    flex-direction: row;
+  }
+
+  &-slider > * {
+    max-width: $slider-width;
+    margin-right: 15px;
+  }
+
+  .range-slider__wrap {
+    max-width: $slider-width;
+    width: 100%;
+  }
+}
