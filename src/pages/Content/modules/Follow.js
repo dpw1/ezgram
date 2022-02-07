@@ -32,20 +32,25 @@ import {
 } from './utils';
 
 import { useDatabase } from '../store/databaseStore';
+import { resolveConfig } from 'prettier';
 
 const Follow = () => {
-  const [isRefreshingPage, setIsRefreshingPage] = useStickyState(
-    '@isRefreshingPage',
-    false
+  /* Redirects the user to the user to be scraped. */
+  const [isRefreshingPage, setIsRefreshingPage] = useState(false);
+
+  const [interactingWithUser, setInteractingWithUser] = useStickyState(
+    '@interactingWithUser',
+    ''
   );
 
-  const [isOnNewUserPage, setIsOnNewUserPage] = useStickyState(
-    '@isOnNewUserPage',
-    false
-  );
+  const [tabId, setTabId] = useStickyState(`@tabId`, '');
 
   const [username, setUsername] = useState('user1');
-  const limit = 10;
+
+  /* Settings */
+  const limit = 5;
+  const DELAY_BETWEEN_USERS = randomIntFromInterval(10000, 11000);
+  const DELAY_WHILE_INTERACTING = randomIntFromInterval(800, 1200);
 
   function redirectToUsernamePage() {
     if (isRefreshingPage) {
@@ -89,48 +94,118 @@ const Follow = () => {
 
         updateLog(`Opening <b>${user}</b> page...`);
 
-        setIsOnNewUserPage(true);
+        setInteractingWithUser(user);
 
-        openInNewTab(url);
+        window.localStorage.setItem(
+          LOCAL_STORAGE.interactingWithUserInNewTab,
+          'waiting...'
+        );
 
-        while (isOnNewUserPage) {
-          await _sleep(2000);
-          updateLog(`Interacting with user...`);
+        chrome.runtime.sendMessage(
+          {
+            type: 'openNewTab',
+            message: url,
+          },
+          function (data) {
+            console.log('messages', data);
+
+            if (!data) {
+              window.localStorage.removeItem(
+                LOCAL_STORAGE.interactingWithUserInNewTab
+              );
+            }
+
+            if (data.type === 'openNewTab') {
+              setTabId(data.message);
+              window.localStorage.setItem(
+                LOCAL_STORAGE.interactingWithUserInNewTab,
+                data.message
+              );
+            }
+          }
+        );
+
+        updateLog(`Interacting with ${user}.`);
+
+        while (
+          window.localStorage.getItem(LOCAL_STORAGE.interactingWithUserInNewTab)
+        ) {
+          await _sleep(DELAY_WHILE_INTERACTING);
         }
 
-        await _sleep(10000);
+        updateLog(`moving on... awaitng delay time.`);
+
+        await _sleep(DELAY_BETWEEN_USERS);
+
+        // console.log('res', res);
       } catch (err) {
         updateLog(`Something went wrong.`);
       }
     }
+
+    updateLog(`Completed!`);
+  }
+
+  function isInteractingWithUser() {
+    if (interactingWithUser === '') {
+      return false;
+    }
+
+    const user = window.location.pathname.replaceAll(`/`, '');
+
+    if (interactingWithUser === user) {
+      return true;
+    }
+
+    return false;
   }
 
   async function start() {
-    chrome.runtime.sendMessage({ closeThis: true });
-
-    if (!isOnNewUserPage) {
-      redirectToUsernamePage();
-    }
+    updateLog(`starting...`);
 
     if (isRefreshingPage) {
       updateLog(`<b>${username}</b> page found.`);
-    }
-
-    if (isOnNewUserPage) {
-      await _sleep(1000);
-      updateLog(`liking pictures and stories...`);
-      await _sleep(1000);
-
-      // setIsOnNewUserPage(false);
-      return;
     }
 
     await openFollowersPage(username);
     clickOnEachUser();
   }
 
+  async function startInteractingWithUser() {
+    if (isInteractingWithUser()) {
+      await _sleep(1000);
+      updateLog(`Interacting with <b>${interactingWithUser}</b>.`);
+      updateLog(
+        `<span style="font-size: 25px;">Please don't change tabs.</span>`
+      );
+
+      await _sleep(1000);
+
+      setInteractingWithUser('');
+
+      chrome.runtime.sendMessage(
+        {
+          type: 'closeTab',
+          message: tabId,
+        },
+        function (data) {
+          if (data.type === 'closeTab') {
+            console.log('closed!', data);
+            window.localStorage.removeItem(
+              LOCAL_STORAGE.interactingWithUserInNewTab
+            );
+          }
+        }
+      );
+
+      await _sleep(1000);
+
+      return;
+    }
+  }
+
   useEffect(() => {
-    // start();
+    startInteractingWithUser();
   }, []);
 
   return (
@@ -139,6 +214,22 @@ const Follow = () => {
 
       <Button
         onClick={() => {
+          // chrome.runtime.sendMessage('hello', async function (res) {
+          //   console.log('res: ', res);
+          // });
+
+          // chrome.runtime.onMessage.addListener(function (message) {
+          //   console.log('message recevede', message);
+          // });
+
+          // chrome.runtime.onMessage.addListener(function (
+          //   request,
+          //   sender,
+          //   sendResponse
+          // ) {
+          //   console.log(request);
+          // });
+
           start();
         }}
       >

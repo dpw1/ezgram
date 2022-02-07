@@ -1,7 +1,7 @@
 {
-  "name": "chrome-extension-boilerplate-react",
-  "version": "4.3.4",
-  "description": "A chrome extension boilerplate built with React 17, Webpack 5, and Webpack Dev Server 4",
+  "name": "ezgram-instagram-automation",
+  "version": "0.0.1",
+  "description": "Instagram automation tool to make your life easier.",
   "license": "MIT",
   "repository": {
     "type": "git",

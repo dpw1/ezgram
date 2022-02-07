@@ -15,7 +15,8 @@
   "permissions": [
     "storage",
     "unlimitedStorage",
-    "contextMenus"
+    
+    "tabs"
   ],
   "content_scripts": [
     {

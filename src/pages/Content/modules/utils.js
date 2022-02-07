@@ -22,6 +22,7 @@ export const CSS_SELECTORS = {
 
 export const LOCAL_STORAGE = {
   followersList: 'ezgram_followers_list',
+  interactingWithUserInNewTab: `ezgram_currently_interacting`,
 };
 
 /* Checks whether a button from a 'followers' list is a "following" or "follow". 
@@ -204,8 +205,6 @@ export function updateLog() {
   }
 
   const text = `${[...arguments].map((e) => `<span>${e}</span>`).join('')}`;
-
-  console.log(text);
 
   $log.innerHTML += text;
   $log.scrollTop = $log.scrollHeight - $log.clientHeight;
