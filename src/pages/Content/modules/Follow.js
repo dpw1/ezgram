@@ -49,7 +49,7 @@ const Follow = () => {
 
   /* Settings */
   const limit = 5;
-  const DELAY_BETWEEN_USERS = randomIntFromInterval(10000, 11000);
+  const DELAY_BETWEEN_USERS = randomIntFromInterval(4000, 5000);
   const DELAY_WHILE_INTERACTING = randomIntFromInterval(800, 1200);
 
   function redirectToUsernamePage() {
@@ -83,7 +83,8 @@ const Follow = () => {
         );
 
         if (!isFollowButton($button)) {
-          updateLog(`You're already following this user.`);
+          updateLog(`You're already following this user. Skipping...`);
+          ignored++;
           continue;
         }
 
@@ -146,7 +147,7 @@ const Follow = () => {
     updateLog(`Completed!`);
   }
 
-  function isInteractingWithUser() {
+  function isInteractingWithUserInNewTab() {
     if (interactingWithUser === '') {
       return false;
     }
@@ -171,8 +172,8 @@ const Follow = () => {
     clickOnEachUser();
   }
 
-  async function startInteractingWithUser() {
-    if (isInteractingWithUser()) {
+  async function startInteractingWithUserInNewTab() {
+    if (isInteractingWithUserInNewTab()) {
       await _sleep(1000);
       updateLog(`Interacting with <b>${interactingWithUser}</b>.`);
       updateLog(
@@ -182,6 +183,17 @@ const Follow = () => {
       await _sleep(1000);
 
       setInteractingWithUser('');
+
+      const following = await getFollowingNumber();
+      updateLog(`Following: ${following}`);
+
+      await _sleep(1000);
+
+      /* Todo */
+
+      //likeRandomPictures()
+      //watchStories()
+      //followFromUserPage()
 
       chrome.runtime.sendMessage(
         {
@@ -205,7 +217,9 @@ const Follow = () => {
   }
 
   useEffect(() => {
-    startInteractingWithUser();
+    (async () => {
+      startInteractingWithUserInNewTab();
+    })();
   }, []);
 
   return (

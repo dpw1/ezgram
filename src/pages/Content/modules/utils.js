@@ -9,7 +9,6 @@ export const CSS_SELECTORS = {
   profileDropdownImage: "nav img[alt*='picture']",
   followingList: `[aria-label][role="dialog"] > div  > div > div:nth-child(3)`,
   followingListUnfollowButton: `div[role="presentation"] ul li button`,
-  followingNumber: `ul li [href*='following'] > *`,
   followingListUnfollowConfirmationButton: `[role="presentation"] + [role="presentation"] button:nth-child(1)`,
 
   followersList: `[role="presentation"] > div > div > div > div:nth-child(2)`,
@@ -17,6 +16,9 @@ export const CSS_SELECTORS = {
   followersListUsernames: `[role="presentation"] > div > div > div > div:nth-child(2) li a[href] > span`,
   followersListButton: `[role="presentation"] > div > div > div > div:nth-child(2) ul li button`,
 
+  userPagePostsNumber: `header section ul li:nth-child(1) >span >span`,
+  userPageFollowersNumber: `header section ul li:nth-child(2) >span >span, ul li [href*='followers'] > *`,
+  userPageFollowingNumber: `header section ul li:nth-child(3) >span >span, ul li [href*='following'] > *`,
   userPageFollowButton: `main header section [style] span span:nth-child(1) button`,
 };
 
@@ -76,27 +78,39 @@ export async function scrollDownFollowersList() {
   });
 }
 
-/* Gets how many people the user is currently following 
+/* Gets how many people the user is currently following. 
+
+To use it, make sure you're currently on the user's page. (instagram.com/user1)
 =========================== */
-export function getFollowingNumber() {
-  const $following = document.querySelector(CSS_SELECTORS.followingNumber);
+export async function getFollowingNumber() {
+  return new Promise(async (resolve, reject) => {
+    const $following = await _waitForElement(
+      CSS_SELECTORS.userPageFollowingNumber,
+      100,
+      20
+    );
 
-  if (!$following) {
-    return null;
-  }
+    if (!$following) {
+      return null;
+    }
 
-  const _following = $following.textContent
-    .toLowerCase()
-    .trim()
-    .replace('.', '')
-    .replace(',', '')
-    .replace('m', '000000');
+    const _following = $following.textContent
+      .toLowerCase()
+      .trim()
+      .replace('.', '')
+      .replace(',', '')
+      .replace('m', '000000');
 
-  const following = parseInt(_following);
+    const following = parseInt(_following);
 
-  return following;
+    resolve(following);
+  });
 }
 
+/* Gets how many followers the user has.
+
+To use it, make sure you're currently on the user's page. (instagram.com/user1)
+=========================== */
 export function getFollowersNumber() {
   const $followers = document.querySelector(CSS_SELECTORS.followersNumber);
 
