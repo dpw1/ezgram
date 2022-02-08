@@ -20,6 +20,11 @@ export const CSS_SELECTORS = {
   userPageFollowersNumber: `header section ul li:nth-child(2) >span >span, ul li [href*='followers'] > *`,
   userPageFollowingNumber: `header section ul li:nth-child(3) >span >span, ul li [href*='following'] > *`,
   userPageFollowButton: `main header section [style] span span:nth-child(1) button`,
+  userPagePosts: `main div >article a[href*='/p']`,
+
+  postPageLikeButton: `section > span:nth-child(1) > button`,
+  postPageCloseButton: `div[role="presentation"] > div > button[type]`,
+  postPageUnlikeButton: `section > span:nth-child(1) > button [color*='#ed4956'], section > span:nth-child(1) > button [aria-label*='Unlike']`,
 };
 
 export const LOCAL_STORAGE = {
@@ -137,6 +142,35 @@ export async function scrollDownFollowersList() {
     $list = document.querySelector(CSS_SELECTORS.followersList);
 
     $list.scrollTop = $list.scrollHeight - $list.clientHeight;
+
+    await _sleep(delay);
+
+    resolve(true);
+  });
+}
+
+export async function scrollDownUserPage() {
+  return new Promise(async (resolve, reject) => {
+    updateLog(`<br />Scrolling down...`);
+
+    let $list = document.querySelector(`html`);
+
+    await _sleep(50);
+
+    if ($list.scrollHeight - $list.scrollTop === $list.clientHeight) {
+      updateLog(`<br />Page is already fully scrolled.`);
+      resolve(true);
+    }
+
+    if (!$list) {
+      alert(`User page not found.`);
+    }
+
+    const delay = randomIntFromInterval(901, 2641);
+
+    await _sleep(randomIntFromInterval(200, 500));
+
+    $list = $list.scrollTop = $list.scrollHeight - $list.clientHeight;
 
     await _sleep(delay);
 
@@ -384,26 +418,31 @@ export function deleteChromeStorageData() {
   });
 }
 
-/* 
-By default all data is added to the current account. 
-
-Therefore, if you're on the "abby" account, your data will look like this:
-
-{"abby": 
-	{ 
-		"ignoredUsers": [
-			{"name":"ok"}
-		] 
-	}
+export async function convertImageToBase64(image) {
+  return new Promise(async (resolve, reject) => {
+    var canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+    var context = canvas.getContext('2d');
+    context.drawImage(image, 0, 0);
+    var s = canvas.toDataURL();
+    var base64 = s.substring(s.indexOf(','));
+    resolve(base64);
+  });
 }
 
-In this case: 
+/* Checks whether the user has a profile image.  */
+export async function doesUserHaveProfileImage($image) {
+  return new Promise(async (resolve, reject) => {
+    const base64 = await convertImageToBase64($image);
+    const defaultImage = `,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAAAXNSR0IArs4c6QAAAD9JREFUSEvt07ENADAIA0HYf2inT++kOQYA6fRsksyHWYdfqaN+JT2oUdcExFWjvRejRl0TEFeN1h+LS1w1gQOnRHencv/3nwAAAABJRU5ErkJggg==`;
+    if (base64 === defaultImage) {
+      resolve(false);
+    }
 
-key = "ignoredUsers" 
-data = {'name': 'ok'}
-================================ */
-
-export async function exportChromeStorage(data) {}
+    resolve(true);
+  });
+}
 
 /* Overwrites all data to import new one. */
 export async function importChromeStorage(data) {

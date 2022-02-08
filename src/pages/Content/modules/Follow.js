@@ -29,6 +29,8 @@ import {
   isFollowButton,
   scrollDownFollowersList,
   openInNewTab,
+  doesUserHaveProfileImage,
+  scrollDownUserPage,
 } from './utils';
 
 import { useDatabase } from '../store/databaseStore';
@@ -47,10 +49,35 @@ const Follow = () => {
 
   const [username, setUsername] = useState('user1');
 
-  /* Settings */
+  /* Settings 
+  ===================================== */
   const limit = 5;
-  const DELAY_BETWEEN_USERS = randomIntFromInterval(4000, 5000);
-  const DELAY_WHILE_INTERACTING = randomIntFromInterval(800, 1200);
+
+  const DELAY_BETWEEN_USERS_MIN = 4000;
+  const DELAY_BETWEEN_USERS_MAX = 5000;
+
+  const INTERACTION_DELAY_MIN = 800;
+  const INTERACTION_DELAY_MAX = 1200;
+
+  const SKIP_USER_WITHOUT_PROFILE_IMAGE = true;
+
+  const FOLLOWING_LIMIT = false;
+  const FOLLOWING_MAX = 100; //if user has more than this following number, ignore.
+  const FOLLOWING_MIN = 30; //if user has less than this following number, ignore.
+
+  const FOLLOWERS_LIMIT = true;
+  const FOLLOWERS_MAX = 5000; //if user has more than this followers, ignore.
+  const FOLLOWERS_MIN = 30; //if user has less than this followers, ignore.
+
+  const LIKING_POSTS_DELAY_MIN = 3000;
+  const LIKING_POSTS_DELAY_MAX = 5000;
+
+  const LIKING_POSTS_MIN = 2;
+  const LIKING_POSTS_MAX = 4;
+  const LIKING_POSTS_LIMIT = randomIntFromInterval(
+    LIKING_POSTS_MIN,
+    LIKING_POSTS_MAX
+  );
 
   function redirectToUsernamePage() {
     if (isRefreshingPage) {
@@ -71,6 +98,16 @@ const Follow = () => {
     let ignored = 0;
 
     for (let i = 1; i <= limit + ignored; i++) {
+      const DELAY_BETWEEN_USERS = randomIntFromInterval(
+        DELAY_BETWEEN_USERS_MIN,
+        DELAY_BETWEEN_USERS_MAX
+      );
+
+      const INTERACTION_DELAY = randomIntFromInterval(
+        INTERACTION_DELAY_MIN,
+        INTERACTION_DELAY_MAX
+      );
+
       try {
         await _sleep(randomIntFromInterval(40, 70));
 
@@ -92,8 +129,19 @@ const Follow = () => {
         const $user = $parent.querySelector(`a[title]`);
         const user = $user.getAttribute(`title`);
         const url = `https://instagram.com/${user}`;
+        const $image = $parent.querySelector(`img`);
 
-        updateLog(`Opening <b>${user}</b> page...`);
+        if (SKIP_USER_WITHOUT_PROFILE_IMAGE) {
+          const hasImage = await doesUserHaveProfileImage($image);
+
+          if (!hasImage) {
+            updateLog(
+              `<b>${user}</b> does not have a profile image. Skipping...`
+            );
+            ignored++;
+            continue;
+          }
+        }
 
         setInteractingWithUser(user);
 
@@ -102,6 +150,7 @@ const Follow = () => {
           'waiting...'
         );
 
+        updateLog(`Opening <b>${user}</b> page...`);
         chrome.runtime.sendMessage(
           {
             type: 'openNewTab',
@@ -126,15 +175,19 @@ const Follow = () => {
           }
         );
 
-        updateLog(`Interacting with ${user}.`);
+        updateLog(`Interacting with <b>${user}</b>.`);
 
         while (
           window.localStorage.getItem(LOCAL_STORAGE.interactingWithUserInNewTab)
         ) {
-          await _sleep(DELAY_WHILE_INTERACTING);
+          await _sleep(INTERACTION_DELAY);
         }
 
-        updateLog(`moving on... awaitng delay time.`);
+        updateLog(
+          `Interaction completed. Moving to next user. <b>${
+            i - ignored
+          } / ${limit}</b> <br /><br />`
+        );
 
         await _sleep(DELAY_BETWEEN_USERS);
 
@@ -161,6 +214,166 @@ const Follow = () => {
     return false;
   }
 
+  async function likeRandomPosts() {
+    return new Promise(async (resolve, reject) => {
+      updateLog(`Setting up to like ${LIKING_POSTS_LIMIT} posts...`);
+
+      const _$post = await _waitForElement(CSS_SELECTORS.userPagePosts, 50, 20);
+
+      if (!_$post) {
+        updateLog(`There are no posts.`);
+        resolve(true);
+      }
+
+      let ignored = 0;
+      let liked = 0;
+      var postY = 0;
+
+      /* The instagram posts are divided like 3 posts in 1 div. 
+
+      <div>
+        post
+        post
+        post
+      </div>
+
+      To properly go through each one of them individually, it's required to count it via postY and postX,
+      using mods of the current for loop index.
+      */
+
+      for (let i = 1; i <= LIKING_POSTS_LIMIT + ignored; i++) {
+        const index = i + ignored;
+
+        var postX = ((i - 1) % 3) + 1;
+
+        if (i % 3 === 1) {
+          postY += 1;
+        }
+
+        const LIKING_POSTS_DELAY = randomIntFromInterval(
+          LIKING_POSTS_DELAY_MIN,
+          LIKING_POSTS_DELAY_MAX
+        );
+
+        if (index >= 3 && i % 4 === 1) {
+          await scrollDownUserPage();
+        }
+
+        //
+        var $post = document.querySelector(
+          `main div >article > div > div > div:nth-child(${postY}) > div:nth-child(${postX}) a[href*='/p']`
+        );
+
+        await _sleep(randomIntFromInterval(900, 3000));
+
+        $post.click();
+
+        await _sleep(LIKING_POSTS_DELAY);
+
+        const $close = document.querySelector(
+          CSS_SELECTORS.postPageCloseButton
+        );
+
+        const $like = document.querySelector(CSS_SELECTORS.postPageLikeButton);
+        const $unlike = document.querySelector(
+          CSS_SELECTORS.postPageUnlikeButton
+        );
+
+        if (!$unlike) {
+          updateLog(`Post liked.`);
+          liked += 1;
+          $like.click();
+        } else {
+          ignored += 1;
+          updateLog(`This post has already been liked.`);
+          $close.click();
+          await _sleep(randomIntFromInterval(400, 1500));
+          updateLog(`Moving to next post.<br/><br/>`);
+
+          continue;
+        }
+
+        updateLog(`Waiting ${LIKING_POSTS_DELAY} seconds.`);
+
+        await _sleep(randomIntFromInterval(900, 3000));
+
+        $close.click();
+
+        updateLog(`Moving to the next post... <br /><br />`);
+        await _sleep(randomIntFromInterval(500, 800));
+      }
+
+      updateLog(`Completed!`);
+
+      updateLog(`Posts liked: <b>${liked}</b>`);
+      updateLog(`Posts ignored: <b>${ignored}</b>`);
+
+      resolve(true);
+    });
+  }
+
+  async function isFollowingEnough(following) {
+    return new Promise(async (resolve, reject) => {
+      if (!FOLLOWING_LIMIT) {
+        resolve(true);
+      }
+
+      if (following >= FOLLOWING_MAX) {
+        resolve(false);
+      }
+
+      if (following <= FOLLOWING_MIN) {
+        resolve(false);
+      }
+
+      resolve(true);
+    });
+  }
+
+  async function isFollowersEnough(followers) {
+    return new Promise(async (resolve, reject) => {
+      if (!FOLLOWERS_LIMIT) {
+        resolve(true);
+      }
+
+      if (followers >= FOLLOWERS_MAX) {
+        resolve(false);
+      }
+
+      if (followers <= FOLLOWERS_MIN) {
+        resolve(false);
+      }
+
+      resolve(true);
+    });
+  }
+
+  async function finishInteraction() {
+    return new Promise(async (resolve, reject) => {
+      updateLog(`Interaction completed. Closing tab.`);
+
+      setInteractingWithUser('');
+
+      await _sleep(1000);
+
+      chrome.runtime.sendMessage(
+        {
+          type: 'closeTab',
+          message: tabId,
+        },
+        function (data) {
+          if (data.type === 'closeTab') {
+            console.log('closed!', data);
+            resolve(true);
+            window.localStorage.removeItem(
+              LOCAL_STORAGE.interactingWithUserInNewTab
+            );
+          }
+        }
+      );
+    });
+  }
+
   async function start() {
     updateLog(`starting...`);
 
@@ -173,54 +386,54 @@ const Follow = () => {
   }
 
   async function startInteractingWithUserInNewTab() {
-    if (isInteractingWithUserInNewTab()) {
-      await _sleep(1000);
-      updateLog(`Interacting with <b>${interactingWithUser}</b>.`);
+    await _sleep(1000);
+    updateLog(`Interacting with <b>${interactingWithUser}</b>.`);
+    updateLog(
+      `<span style="font-size: 25px;">Please don't change tabs.</span>`
+    );
+
+    const followers = await getFollowersNumber();
+    const following = await getFollowingNumber();
+
+    if (!(await isFollowingEnough(following))) {
       updateLog(
-        `<span style="font-size: 25px;">Please don't change tabs.</span>`
+        `<b>${interactingWithUser}</b> is following <b>${following}</b> users, this is off your limits.`
       );
 
-      await _sleep(1000);
+      // await finishInteraction();
+      return;
+    }
 
-      setInteractingWithUser('');
+    if (!(await isFollowersEnough(followers))) {
+      updateLog(
+        `<b>${interactingWithUser}</b> has <b>${followers}</b> followers, this is off your limits.`
+      );
 
-      const following = await getFollowingNumber();
-      updateLog(`Following: ${following}`);
+      // await finishInteraction();
+      return;
+    }
 
-      await _sleep(1000);
+    await likeRandomPosts();
 
-      /* Todo */
+    await _sleep(5000);
 
-      //likeRandomPictures()
-      //watchStories()
+    /* Todo */
 
-      /* conditions to check:
+    //watchStories()
+
+    /* conditions to check:
        following number
        followers number
        posts number 
        has profile picture
        is private account
        */
-      //clickOnFollowButton()
+    //clickOnFollowButton()
 
-      chrome.runtime.sendMessage(
-        {
-          type: 'closeTab',
-          message: tabId,
-        },
-        function (data) {
-          if (data.type === 'closeTab') {
-            console.log('closed!', data);
-            window.localStorage.removeItem(
-              LOCAL_STORAGE.interactingWithUserInNewTab
-            );
-          }
-        }
-      );
+    await _sleep(1000);
 
-      await _sleep(1000);
-
-      return;
+    return;
+    if (isInteractingWithUserInNewTab()) {
     }
   }
 
@@ -236,26 +449,18 @@ const Follow = () => {
 
       <Button
         onClick={() => {
-          // chrome.runtime.sendMessage('hello', async function (res) {
-          //   console.log('res: ', res);
-          // });
-
-          // chrome.runtime.onMessage.addListener(function (message) {
-          //   console.log('message recevede', message);
-          // });
-
-          // chrome.runtime.onMessage.addListener(function (
-          //   request,
-          //   sender,
-          //   sendResponse
-          // ) {
-          //   console.log(request);
-          // });
-
           start();
         }}
       >
         start
+      </Button>
+
+      <Button
+        onClick={() => {
+          startInteractingWithUserInNewTab();
+        }}
+      >
+        Testing
       </Button>
     </div>
   );

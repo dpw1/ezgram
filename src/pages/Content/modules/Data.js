@@ -71,19 +71,42 @@ const Data = () => {
           }}
           className="Data-button"
         >
-          Export data
+          Export
         </Button>
+
+        <Button
+          className="Data-button"
+          onClick={() => {
+            const $button = document.querySelector(`#importFileDialog`);
+
+            $button.click();
+          }}
+        >
+          Import{' '}
+        </Button>
+
         <Form.Control
+          style={{ display: 'none' }}
+          id="importFileDialog"
+          accept=".json"
           onChange={async (e) => {
             const file = e.target.files[0];
 
+            debugger;
+            if (!file || !/json/.test(file.type)) {
+              updateLog(
+                `<span style="color:red;">Invalid type of file. Make sure it's a JSON. </span>`
+              );
+              return;
+            }
+
             const data = await readImportedFile(file);
 
-            const imported = await importChromeStorage(data);
-            console.log('imported data', imported);
-            debugger;
+            await importChromeStorage(data);
             actions.loadIgnoredUsers();
             setUsers(state.ignoredUsers);
+
+            updateLog(`Successfully imported data.`);
           }}
           type="file"
         />
