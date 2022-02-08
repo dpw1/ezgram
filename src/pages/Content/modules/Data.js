@@ -8,6 +8,9 @@ import {
   updateLog,
   getUserName,
   _sleep,
+  downloadFile,
+  readImportedFile,
+  importChromeStorage,
 } from './utils';
 
 import Unfollow from './Unfollow';
@@ -17,6 +20,7 @@ import Table from 'react-bootstrap/Table';
 import TimeAgo from 'javascript-time-ago';
 
 import en from 'javascript-time-ago/locale/en.json';
+import { Button, Form } from 'react-bootstrap';
 
 TimeAgo.addDefaultLocale(en);
 
@@ -45,8 +49,46 @@ const Data = () => {
     })();
   }, []);
 
+  useEffect(() => {
+    setUsers(state.ignoredUsers);
+  }, [state.ignoredUsers]);
+
   return (
     <div className="Data">
+      <div className="Data-actions">
+        <Button
+          disabled={!users || (users && users.length <= 0)}
+          onClick={async () => {
+            const data = await getChromeStorageData();
+
+            debugger;
+            downloadFile(
+              `ezgram_${new Date().toUTCString()}.json`,
+              JSON.stringify(data)
+            );
+
+            updateLog(`Exporting ignored users...`);
+          }}
+          className="Data-button"
+        >
+          Export data
+        </Button>
+        <Form.Control
+          onChange={async (e) => {
+            const file = e.target.files[0];
+
+            const data = await readImportedFile(file);
+
+            const imported = await importChromeStorage(data);
+            console.log('imported data', imported);
+            debugger;
+            actions.loadIgnoredUsers();
+            setUsers(state.ignoredUsers);
+          }}
+          type="file"
+        />
+      </div>
+
       {users && users.length > 0 ? (
         <Table striped bordered hover>
           <thead>

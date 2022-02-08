@@ -80,6 +80,23 @@ const Store = createStore({
           resolve(null);
         });
       },
+
+    /* Overwrites database to import new data */
+    importData:
+      (data) =>
+      async ({ setState, getState }) => {
+        if (!data.hasOwnProperty('user') || !data.hasOwnProperty('date')) {
+          throw new Error('Invalid data.');
+        }
+        const user = await addChromeStorageData('ignoredUsers', {
+          date: data.date,
+          user: data.user,
+        });
+
+        setState({
+          ignoredUsers: user,
+        });
+      },
   },
   // optional, mostly used for easy debugging
   name: 'database',

@@ -50,6 +50,67 @@ export function openInNewTab(href) {
   }).click();
 }
 
+export function downloadFile(filename, content) {
+  var element = document.createElement('a');
+  element.setAttribute(
+    'href',
+    'data:text/plain;charset=utf-8,' + encodeURIComponent(content)
+  );
+  element.setAttribute('download', filename);
+
+  element.style.display = 'none';
+  document.body.appendChild(element);
+
+  element.click();
+
+  document.body.removeChild(element);
+}
+
+export function readImportedFile(file) {
+  return new Promise(async (resolve, reject) => {
+    var reader = new FileReader();
+    reader.readAsText(file, 'UTF-8');
+    reader.onload = function (evt) {
+      const res = JSON.parse(evt.target.result);
+      resolve(res);
+    };
+    reader.onerror = function (evt) {
+      resolve(null);
+    };
+  });
+}
+
+export async function scrollDownFollowingList() {
+  return new Promise(async (resolve, reject) => {
+    updateLog(`<br />Scrolling down...`);
+
+    let $list = await _waitForElement(CSS_SELECTORS.followingList, 50, 10);
+
+    await _sleep(50);
+
+    if (!$list) {
+      alert(`"Following" list not found.`);
+    }
+
+    if ($list.scrollHeight - $list.scrollTop === $list.clientHeight) {
+      updateLog(`<br />List is already fully scrolled.`);
+      resolve(true);
+    }
+
+    const delay = randomIntFromInterval(901, 2641);
+
+    await _sleep(randomIntFromInterval(200, 500));
+
+    $list = document.querySelector(CSS_SELECTORS.followingList);
+
+    $list.scrollTop = $list.scrollHeight - $list.clientHeight;
+
+    await _sleep(delay);
+
+    resolve(true);
+  });
+}
+
 export async function scrollDownFollowersList() {
   return new Promise(async (resolve, reject) => {
     updateLog(`<br />Scrolling down...`);
@@ -57,6 +118,11 @@ export async function scrollDownFollowersList() {
     let $list = await _waitForElement(CSS_SELECTORS.followersList, 50, 10);
 
     await _sleep(50);
+
+    if ($list.scrollHeight - $list.scrollTop === $list.clientHeight) {
+      updateLog(`<br />List is already fully scrolled.`);
+      resolve(true);
+    }
 
     if (!$list) {
       alert(`"followers" list not found.`);
@@ -337,6 +403,24 @@ key = "ignoredUsers"
 data = {'name': 'ok'}
 ================================ */
 
+export async function exportChromeStorage(data) {}
+
+/* Overwrites all data to import new one. */
+export async function importChromeStorage(data) {
+  return new Promise(async (resolve, reject) => {
+    const user = await getUserName();
+
+    const obj = {
+      [user]: data,
+    };
+
+    debugger;
+    chrome.storage.local.set(obj, function () {
+      resolve(obj);
+    });
+  });
+}
+
 export async function addChromeStorageData(key, data) {
   const user = await getUserName();
   let _previous = await getChromeStorageData(key);
@@ -386,8 +470,6 @@ export async function getChromeStorageData(key) {
         }
 
         if (result[user] !== undefined) {
-          data = result[user];
-
           data = result[user];
         }
       });

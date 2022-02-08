@@ -1,2 +1,18 @@
 .Data {
+  &-actions {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+  }
+
+  &-button {
+    max-width: 150px;
+    width: 100%;
+    margin-left: 10px;
+
+    &:not(:last-of-type) {
+      margin-right: 15px !important;
+    }
+  }
 }

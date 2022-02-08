@@ -15,6 +15,7 @@ import {
   getUserName,
   _waitForElement,
   CSS_SELECTORS,
+  downloadFile,
 } from './utils';
 import Unfollow from './Unfollow';
 import useStore from './../store/store';
@@ -66,7 +67,7 @@ const Homepage = () => {
           alert('This user is in your ignore list');
         });
       } catch (err) {
-        console.log('no follow button found');
+        console.log('No follow button found.');
       }
     }
 
@@ -127,13 +128,13 @@ const Homepage = () => {
             className="Homepage-tabs"
             onSelect={(index, label) => console.log(label + ' selected')}
           >
-            <Tab className="Homepage-tab" label="Follow">
+            <Tab eventKey={0} className="Homepage-tab" label="Follow">
               <Follow></Follow>
             </Tab>
-            <Tab className="Homepage-tab" label="Unfollow">
+            <Tab eventKey={1} className="Homepage-tab" label="Unfollow">
               <Unfollow></Unfollow>
             </Tab>
-            <Tab className="Homepage-tab" label="Testing">
+            <Tab eventKey={2} className="Homepage-tab" label="Testing">
               <input id="okok" type="text" />
 
               <button
@@ -155,7 +156,7 @@ const Homepage = () => {
               </button>
             </Tab>
 
-            <Tab sel className="Homepage-tab" label="Database">
+            <Tab eventKey={3} className="Homepage-tab" label="Database">
               <Data></Data>
             </Tab>
           </Tabs>

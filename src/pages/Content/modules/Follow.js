@@ -193,7 +193,15 @@ const Follow = () => {
 
       //likeRandomPictures()
       //watchStories()
-      //followFromUserPage()
+
+      /* conditions to check:
+       following number
+       followers number
+       posts number 
+       has profile picture
+       is private account
+       */
+      //clickOnFollowButton()
 
       chrome.runtime.sendMessage(
         {

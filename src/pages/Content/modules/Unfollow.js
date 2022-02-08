@@ -22,6 +22,8 @@ import {
   LOCAL_STORAGE,
   openFollowingPage,
   openFollowersPage,
+  scrollDownFollowersList,
+  scrollDownFollowingList,
 } from './utils';
 
 import { useDatabase } from '../store/databaseStore';
@@ -48,34 +50,7 @@ const Unfollow = () => {
 
   const [state, actions] = useDatabase();
 
-  async function scrollDownFollowingList() {
-    updateLog(`<br />Scrolling down...`);
-
-    const $list = await _waitForElement(CSS_SELECTORS.followingList, 50, 10);
-
-    await _sleep(50);
-
-    if (!$list) {
-      alert(`"Following" list not found.`);
-    }
-
-    return new Promise(async (resolve, reject) => {
-      const delay = randomIntFromInterval(901, 2641);
-
-      await _waitForElement(CSS_SELECTORS.followingList);
-
-      await _sleep(randomIntFromInterval(200, 500));
-
-      let $list = document.querySelector(CSS_SELECTORS.followingList);
-
-      $list.scrollTop = $list.scrollHeight - $list.clientHeight;
-
-      await _sleep(delay);
-
-      resolve(true);
-    });
-  }
-
+  /*
   async function scrollDownFollowersList() {
     return new Promise(async (resolve, reject) => {
       const followers = getFollowersNumber();
@@ -84,7 +59,7 @@ const Unfollow = () => {
         `"Followers" list found. You are following <b>${followers.toString()}</b> users.`
       );
 
-      const $list = await _waitForElement(CSS_SELECTORS.followersList, 50, 10);
+      let $list = await _waitForElement(CSS_SELECTORS.followersList, 50, 10);
 
       while (1) {
         $list.scrollTop = $list.scrollHeight - $list.clientHeight;
@@ -110,6 +85,7 @@ const Unfollow = () => {
       resolve(true);
     });
   }
+  */
 
   async function handleClickOnUnfollowButton() {
     await _waitForElement(CSS_SELECTORS.followingListUnfollowButton);
