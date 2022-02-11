@@ -26,10 +26,9 @@ import {
 } from './utils';
 
 import { useDatabase } from '../store/databaseStore';
+import { useLocalStore } from './../store/localStore';
 
 const Unfollow = () => {
-  const [isExecuting, setIsExecuting] = useState(false);
-
   const [unfollowLimit, setUnfollowLimit] = useStickyState(
     '@unfollowLimit',
     50
@@ -47,6 +46,7 @@ const Unfollow = () => {
     true
   );
 
+  const [localState, localActions] = useLocalStore();
   const [state, actions] = useDatabase();
 
   async function handleClickOnUnfollowButton() {
@@ -135,7 +135,7 @@ const Unfollow = () => {
           `<br /><b>Please press F5 to refresh the page before using this app again.</b>`
         );
 
-        setIsExecuting(false);
+        localActions.setIsExecuting(false);
         return;
       }
 
@@ -208,7 +208,7 @@ const Unfollow = () => {
               onChange={(e) => {
                 setUnfollowLimit(e.target.value);
               }}
-              placeholder="Stop following after reaching this number."
+              placeholder="Stop unfollowing after reaching this number."
             />
           </Form.Group>
 
@@ -248,18 +248,27 @@ const Unfollow = () => {
 
           <hr />
           <Button
+            disabled={localState.isExecuting}
             onClick={() => {
-              if (isExecuting) {
+              if (localState.isExecuting) {
                 updateLog(`<b style="font-size:30px;">Stopping...</b>`);
                 window.location.reload();
               } else {
-                setIsExecuting(true);
+                localActions.setIsExecuting(true);
                 start();
               }
             }}
             variant="primary"
           >
-            {isExecuting ? 'Stop' : 'Start'}
+            {localState.isExecuting ? 'Stop' : 'Start'}
+          </Button>
+
+          <Button
+            onClick={() => {
+              localActions.setIsExecuting(!localState);
+            }}
+          >
+            {localState.isExecuting ? 'executing' : 'naw'}
           </Button>
         </div>
       </div>

@@ -39,6 +39,7 @@ export const CSS_SELECTORS = {
 export const LOCAL_STORAGE = {
   followersList: 'ezgram_followers_list',
   interactingWithUserInNewTab: `ezgram_currently_interacting`,
+  interactionResult: `fail` /* used in conjunction with finishInteraction() */,
 };
 
 /* Checks what type of follow button the user page has. It retusn:
@@ -169,11 +170,11 @@ type = 'once' or 'all';
 */
 export async function scrollDownFollowersList(type = 'once') {
   return new Promise(async (resolve, reject) => {
-    updateLog(`<br />Scrolling down followers list... [${type}]`);
+    updateLog(`<br />Scrolling down followers list...`);
 
-    const limit = type === 'once' ? -1 : await getFollowersNumber();
+    const limit = type === 'once' ? 1 : await getFollowersNumber();
 
-    let $list = await _waitForElement(CSS_SELECTORS.followersList, 50, 10);
+    let $list = document.querySelector(CSS_SELECTORS.followersList);
 
     await _sleep(50);
 
@@ -184,15 +185,23 @@ export async function scrollDownFollowersList(type = 'once') {
 
     if (!$list) {
       resolve(null);
-      alert(`Followers list not found.`);
+      updateLog(`Error: followers list not found.`);
     }
 
     const delay = randomIntFromInterval(901, 2641);
 
+    let previousUserCount = 0;
+    let repeat = 0;
+
     for (let i = 0; i <= limit; i++) {
       $list.scrollTop = $list.scrollHeight - $list.clientHeight;
 
-      await _sleep(randomIntFromInterval(800, 1100));
+      if (repeat >= 5) {
+        updateLog(`Repeating...`);
+        break;
+      }
+
+      await _sleep(randomIntFromInterval(1000, 1250));
 
       let $users = document.querySelectorAll(
         CSS_SELECTORS.followersListUsernames
@@ -200,6 +209,12 @@ export async function scrollDownFollowersList(type = 'once') {
       let users = $users.length;
 
       updateLog(`Scrolling down. ${users} visible users.`);
+
+      if (users === previousUserCount) {
+        repeat += 1;
+      }
+
+      previousUserCount = users;
 
       if (users >= limit) {
         break;
@@ -324,7 +339,12 @@ export async function getFollowersNumber() {
 export async function getUserName() {
   return new Promise(async (resolve, reject) => {
     /* Trying to get username from window's script */
-    const $script = document.querySelector(CSS_SELECTORS.scriptTagWithUserData);
+
+    const $script = await _waitForElement(
+      CSS_SELECTORS.scriptTagWithUserData,
+      50,
+      4
+    );
 
     const script = $script.innerHTML.trim();
     const hasUsername = script.includes(`"username":`);
@@ -568,7 +588,8 @@ export async function doesUserHaveProfileImage($image) {
   return new Promise(async (resolve, reject) => {
     const base64 = await convertImageToBase64($image);
     const defaultImage = `,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAAAXNSR0IArs4c6QAAAD9JREFUSEvt07ENADAIA0HYf2inT++kOQYA6fRsksyHWYdfqaN+JT2oUdcExFWjvRejRl0TEFeN1h+LS1w1gQOnRHencv/3nwAAAABJRU5ErkJggg==`;
-    if (base64 === defaultImage) {
+
+    if (base64.includes(defaultImage)) {
       resolve(false);
     }
 
@@ -585,7 +606,6 @@ export async function importChromeStorage(data) {
       [user]: data,
     };
 
-    debugger;
     chrome.storage.local.set(obj, function () {
       resolve(obj);
     });

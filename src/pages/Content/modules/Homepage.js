@@ -50,11 +50,13 @@ const Homepage = () => {
           return;
         }
 
-        updateLog(`You have unfollowed <b>${user}</b> in the past.`);
+        updateLog(`<b>${user}</b> is in your ignore list.`);
 
         $follow.addEventListener('click', function (e) {
           e.preventDefault();
-          alert('This user is in your ignore list');
+          updateLog(
+            '<span style="color:red;">This user is in your ignore list because you have followed them in the past.</span>'
+          );
         });
       } catch (err) {
         console.log('No follow button found.');

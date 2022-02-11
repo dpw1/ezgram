@@ -36,13 +36,12 @@ const Store = createStore({
     addIgnoredUser:
       (data) =>
       async ({ setState, getState }) => {
-        if (!data.hasOwnProperty('user') || !data.hasOwnProperty('date')) {
-          throw new Error(
-            "Invalid data. It needs to have both 'user' and 'date' "
-          );
+        if (!data.hasOwnProperty('user')) {
+          throw new Error("Invalid data. It needs to have a 'user'.");
         }
+
         const user = await addChromeStorageData('ignoredUsers', {
-          date: data.date,
+          date: data.hasOwnProperty('date') ? data.date : new Date().getTime(),
           user: data.user,
         });
 

@@ -60,7 +60,6 @@ const Data = () => {
           onClick={async () => {
             const data = await getChromeStorageData();
 
-            debugger;
             downloadFile(
               `ezgram_${new Date().toUTCString()}.json`,
               JSON.stringify(data)
@@ -91,7 +90,6 @@ const Data = () => {
           onChange={async (e) => {
             const file = e.target.files[0];
 
-            debugger;
             if (!file || !/json/.test(file.type)) {
               updateLog(
                 `<span style="color:red;">Invalid type of file. Make sure it's a JSON. </span>`
