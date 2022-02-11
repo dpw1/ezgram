@@ -170,7 +170,7 @@ type = 'once' or 'all';
 */
 export async function scrollDownFollowersList(type = 'once') {
   return new Promise(async (resolve, reject) => {
-    updateLog(`<br />Scrolling down followers list...`);
+    updateLog(`Scrolling down followers list...`);
 
     const limit = type === 'once' ? 1 : await getFollowersNumber();
 
@@ -274,6 +274,32 @@ export async function isPrivateAccount() {
   });
 }
 
+export async function getPostsNumber() {
+  return new Promise(async (resolve, reject) => {
+    const $posts = await _waitForElement(
+      CSS_SELECTORS.userPagePostsNumber,
+      30,
+      10
+    );
+
+    if (!$posts) {
+      resolve(null);
+      return;
+    }
+
+    const _posts = $posts.textContent
+      .toLowerCase()
+      .trim()
+      .replace('.', '')
+      .replace(',', '')
+      .replace('m', '000000');
+
+    const posts = parseInt(_posts);
+
+    resolve(posts);
+  });
+}
+
 /* Gets how many people the user is currently following. 
 
 To use it, make sure you're currently on the user's page. (instagram.com/user1)
@@ -343,7 +369,7 @@ export async function getUserName() {
     const $script = await _waitForElement(
       CSS_SELECTORS.scriptTagWithUserData,
       50,
-      4
+      10
     );
 
     const script = $script.innerHTML.trim();
