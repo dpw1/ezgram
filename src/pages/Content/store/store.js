@@ -6,16 +6,15 @@ const setLocalStorage = (key, value) =>
   window.localStorage.setItem(key, JSON.stringify(value));
 
 const useStore = create((set, get) => ({
-  getIgnoredUsers: async () => {
-    const users = await getChromeStorageData('ignoredUsers');
-
-    console.log('checkxx', users);
-    set((_) => {
-      return {
-        getIgnoredUsers: users,
-      };
-    });
-  },
+  // getIgnoredUsers: async () => {
+  //   const users = await getChromeStorageData('ignoredUsers');
+  //   console.log('checkxx', users);
+  //   set((_) => {
+  //     return {
+  //       getIgnoredUsers: users,
+  //     };
+  //   });
+  // },
 }));
 
 export default useStore;

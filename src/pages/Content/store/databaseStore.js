@@ -1,17 +1,38 @@
 import { createStore, createHook } from 'react-sweet-state';
 import {
   addChromeStorageData,
+  CSS_SELECTORS,
   getChromeStorageData,
+  getUserName,
   removeChromeStorageData,
+  _waitForElement,
 } from '../modules/utils';
 
 const Store = createStore({
   // value of the store on initialisation
   initialState: {
     ignoredUsers: [],
+    username: '',
   },
   // actions that trigger store mutation
   actions: {
+    loadUsername:
+      (_) =>
+      async ({ setState, getState }) => {
+        return new Promise(async (resolve, reject) => {
+          if (getState().username !== '') {
+            resolve(getState().username);
+          }
+
+          const username = await getUserName();
+
+          resolve(username);
+
+          setState({
+            username,
+          });
+        });
+      },
     addIgnoredUser:
       (data) =>
       async ({ setState, getState }) => {
@@ -32,16 +53,26 @@ const Store = createStore({
     loadIgnoredUsers:
       () =>
       async ({ setState, getState }) => {
-        const _users = await getChromeStorageData('ignoredUsers');
+        return new Promise(async (resolve, reject) => {
+          const _users = await getChromeStorageData('ignoredUsers');
 
-        const users = _users.hasOwnProperty('ignoredUsers')
-          ? _users.ignoredUsers.sort((a, b) =>
-              a.date < b.date ? 1 : b.date < a.date ? -1 : 0
-            )
-          : [];
+          if (!_users) {
+            resolve(null);
+            return;
+          }
 
-        setState({
-          ignoredUsers: users,
+          const users = _users.hasOwnProperty('ignoredUsers')
+            ? _users.ignoredUsers.sort((a, b) =>
+                a.date < b.date ? 1 : b.date < a.date ? -1 : 0
+              )
+            : [];
+
+          const obj = {
+            ignoredUsers: users,
+          };
+
+          setState(obj);
+          resolve(obj);
         });
       },
     clearIgnoredUsers:

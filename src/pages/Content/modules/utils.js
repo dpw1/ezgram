@@ -1,12 +1,15 @@
 const replaceAll = require('string.prototype.replaceall');
 const striptags = require('striptags');
 
+/* ====================================== */
+
 export function randomIntFromInterval(min, max) {
   return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
 export const CSS_SELECTORS = {
-  profileDropdownImage: "nav img[alt*='picture']",
+  profileDropdownImage: 'nav div > div > div > div:nth-child(3) img[alt]',
+
   followingList: `[aria-label][role="dialog"] > div  > div > div:nth-child(3)`,
   followingListUnfollowButton: `div[role="presentation"] ul li button`,
   followingListUnfollowConfirmationButton: `[role="presentation"] + [role="presentation"] button:nth-child(1)`,
@@ -16,15 +19,21 @@ export const CSS_SELECTORS = {
   followersListUsernames: `[role="presentation"] > div > div > div > div:nth-child(2) li a[href] > span`,
   followersListButton: `[role="presentation"] > div > div > div > div:nth-child(2) ul li button`,
 
-  userPagePostsNumber: `header section ul li:nth-child(1) >span >span`,
-  userPageFollowersNumber: `header section ul li:nth-child(2) >span >span, ul li [href*='followers'] > *`,
-  userPageFollowingNumber: `header section ul li:nth-child(3) >span >span, ul li [href*='following'] > *`,
-  userPageFollowButton: `main header section [style] span span:nth-child(1) button`,
+  userPagePostsNumber: `header section ul li:nth-child(1) >span >span, header section ul li:nth-child(1) span`,
+  userPageFollowersNumber: `header section ul li:nth-child(2) >span >span, ul li [href*='followers'] > *,  header section ul li:nth-child(2) span`,
+  userPageFollowingNumber: `header section ul li:nth-child(3) >span >span, ul li [href*='following'] > *, header section ul li:nth-child(3) span`,
+  userPageFollowButton: `header section h2 + div:first-of-type  > div > div > button,
+  header section h2 + div:first-of-type > div > div > div > span:nth-child(1) > *:nth-child(1) button`,
+  userPageUnfollowButton: `header section h2 + div:first-of-type  > div > div:nth-child(2) > * > * > *:nth-child(1) > button`,
   userPagePosts: `main div >article a[href*='/p']`,
 
   postPageLikeButton: `section > span:nth-child(1) > button`,
   postPageCloseButton: `div[role="presentation"] > div > button[type]`,
   postPageUnlikeButton: `section > span:nth-child(1) > button [color*='#ed4956'], section > span:nth-child(1) > button [aria-label*='Unlike']`,
+
+  /* There are script tags containing the current user data in each page. 
+  This CSS selector finds all of them. */
+  scriptTagWithUserData: `body [src*='Feed'] + script[src] + script:not([src]), #react-root + link + link + script`,
 };
 
 export const LOCAL_STORAGE = {
@@ -32,13 +41,47 @@ export const LOCAL_STORAGE = {
   interactingWithUserInNewTab: `ezgram_currently_interacting`,
 };
 
+/* Checks what type of follow button the user page has. It retusn:
+
+follow = I don't follow the user yet.
+unfollow = I already follow the user
+private = private account.
+
+*/
+export async function getTypeOfFollowButtonOnUserPage() {
+  let $buttons;
+  return new Promise(async (resolve, reject) => {
+    /* Private */
+    $buttons = document.querySelectorAll(`header section h2 + div button`);
+
+    if ($buttons && $buttons.length <= 1) {
+      resolve('private');
+      return;
+    }
+
+    $buttons = document.querySelectorAll(CSS_SELECTORS.userPageFollowButton);
+
+    /* Follow */
+    if ($buttons && $buttons.length === 1) {
+      resolve('follow');
+      return;
+    }
+
+    /* unfollow */
+    if ($buttons && $buttons.length === 2) {
+      resolve('unfollow');
+      return;
+    }
+  });
+}
+
 /* Checks whether a button from a 'followers' list is a "following" or "follow". 
 
 Following = I'm already following this user
 Follow = I'm not following this user.
 
 */
-export function isFollowButton($button) {
+export function isFollowButtonOnFollowerList($button) {
   const color = window.getComputedStyle($button).backgroundColor;
 
   if (color !== 'rgba(0, 0, 0, 0)') {
@@ -116,9 +159,19 @@ export async function scrollDownFollowingList() {
   });
 }
 
-export async function scrollDownFollowersList() {
+/* Scrolls down the a user's followers list. 
+
+
+paramenters:
+
+type = 'once' or 'all';
+
+*/
+export async function scrollDownFollowersList(type = 'once') {
   return new Promise(async (resolve, reject) => {
-    updateLog(`<br />Scrolling down...`);
+    updateLog(`<br />Scrolling down followers list... [${type}]`);
+
+    const limit = type === 'once' ? -1 : await getFollowersNumber();
 
     let $list = await _waitForElement(CSS_SELECTORS.followersList, 50, 10);
 
@@ -130,18 +183,30 @@ export async function scrollDownFollowersList() {
     }
 
     if (!$list) {
-      alert(`"followers" list not found.`);
+      resolve(null);
+      alert(`Followers list not found.`);
     }
 
     const delay = randomIntFromInterval(901, 2641);
 
-    await _waitForElement(CSS_SELECTORS.followersList);
+    for (let i = 0; i <= limit; i++) {
+      $list.scrollTop = $list.scrollHeight - $list.clientHeight;
 
-    await _sleep(randomIntFromInterval(200, 500));
+      await _sleep(randomIntFromInterval(800, 1100));
+
+      let $users = document.querySelectorAll(
+        CSS_SELECTORS.followersListUsernames
+      );
+      let users = $users.length;
+
+      updateLog(`Scrolling down. ${users} visible users.`);
+
+      if (users >= limit) {
+        break;
+      }
+    }
 
     $list = document.querySelector(CSS_SELECTORS.followersList);
-
-    $list.scrollTop = $list.scrollHeight - $list.clientHeight;
 
     await _sleep(delay);
 
@@ -178,6 +243,22 @@ export async function scrollDownUserPage() {
   });
 }
 
+export async function isPrivateAccount() {
+  return new Promise(async (resolve, reject) => {
+    const $posts = await _waitForElement(
+      `main div >article a[href*='/p']`,
+      30,
+      10
+    );
+
+    if (!$posts) {
+      resolve(true);
+    }
+
+    resolve(false);
+  });
+}
+
 /* Gets how many people the user is currently following. 
 
 To use it, make sure you're currently on the user's page. (instagram.com/user1)
@@ -186,12 +267,13 @@ export async function getFollowingNumber() {
   return new Promise(async (resolve, reject) => {
     const $following = await _waitForElement(
       CSS_SELECTORS.userPageFollowingNumber,
-      100,
-      20
+      30,
+      10
     );
 
     if (!$following) {
-      return null;
+      resolve(null);
+      return;
     }
 
     const _following = $following.textContent
@@ -211,45 +293,89 @@ export async function getFollowingNumber() {
 
 To use it, make sure you're currently on the user's page. (instagram.com/user1)
 =========================== */
-export function getFollowersNumber() {
-  const $followers = document.querySelector(CSS_SELECTORS.followersNumber);
-
-  if (!$followers) {
-    return null;
-  }
-
-  const _followers = $followers.textContent
-    .toLowerCase()
-    .trim()
-    .replace('.', '')
-    .replace(',', '')
-    .replace('m', '000000');
-
-  const followers = parseInt(_followers);
-
-  return followers;
-}
-
-/* Gets the name of the currently logged user
-============================= */
-export function getUserName() {
+export async function getFollowersNumber() {
   return new Promise(async (resolve, reject) => {
-    const $picture = await _waitForElement(CSS_SELECTORS.profileDropdownImage);
+    const $followers = await _waitForElement(
+      CSS_SELECTORS.userPageFollowersNumber,
+      50,
+      20
+    );
 
-    if (!$picture) {
+    if (!$followers) {
       resolve(null);
       return;
     }
 
-    const alt = $picture.getAttribute('alt');
-    const username = alt.split(' ')[0].replace(`'s`, '').trim();
+    const _followers = $followers.textContent
+      .toLowerCase()
+      .trim()
+      .replace('.', '')
+      .replace(',', '')
+      .replace('m', '000000');
 
-    resolve(username);
+    const followers = parseInt(_followers);
+
+    resolve(followers);
+  });
+}
+
+/* Gets the name of the currently logged user
+============================= */
+export async function getUserName() {
+  return new Promise(async (resolve, reject) => {
+    /* Trying to get username from window's script */
+    const $script = document.querySelector(CSS_SELECTORS.scriptTagWithUserData);
+
+    const script = $script.innerHTML.trim();
+    const hasUsername = script.includes(`"username":`);
+
+    if (hasUsername) {
+      const regex = /\"username\"\:\"(.+?)"/gm;
+
+      let m;
+      while ((m = regex.exec(script)) !== null) {
+        if (m.index === regex.lastIndex) {
+          regex.lastIndex++;
+        }
+
+        const username = m[1];
+
+        /* Checking if the username found in the JSON is the same as the user's profile image ALT tag */
+        const $profile = document.querySelector(
+          CSS_SELECTORS.profileDropdownImage
+        );
+        const user = $profile.getAttribute('alt').trim();
+
+        console.log(username, user);
+
+        if (user.includes(username)) {
+          resolve(username);
+        } else {
+          resolve(null);
+        }
+
+        return;
+      }
+    }
+
+    resolve(null);
   });
 }
 
 export async function goToProfilePage(user) {
   return new Promise(async (resolve, reject) => {
+    if (!user) {
+      updateLog(`No user: ${user}`);
+      alert('no user');
+    }
+
+    if (window.location.pathname.includes(user)) {
+      updateLog(`You're already in the profile page.`);
+      resolve(true);
+      return;
+    }
+
+    updateLog(`Going to profile page...`);
     const $picture = document.querySelector(CSS_SELECTORS.profileDropdownImage);
 
     if (!$picture) {
@@ -279,22 +405,24 @@ export async function goToProfilePage(user) {
   });
 }
 
-export function _waitForElement(selector, delay = 50, tries = 250) {
+export function _waitForElement(selector, delay = 50, tries = 100) {
   const element = document.querySelector(selector);
 
   if (!window[`__${selector}`]) {
     window[`__${selector}`] = 0;
+    window[`__${selector}__delay`] = delay;
+    window[`__${selector}__tries`] = tries;
   }
 
   function _search() {
     return new Promise((resolve) => {
       window[`__${selector}`]++;
-      setTimeout(resolve, delay);
+      setTimeout(resolve, window[`__${selector}__delay`]);
     });
   }
 
   if (element === null) {
-    if (window[`__${selector}`] >= tries) {
+    if (window[`__${selector}`] >= window[`__${selector}__tries`]) {
       window[`__${selector}`] = 0;
       return Promise.resolve(null);
     }
@@ -338,15 +466,14 @@ export function refreshPage() {
   window.location.reload();
 }
 
-export async function openFollowersPage(user) {
+/* Opens the follower list of a given user. */
+export async function openFollowersList(username) {
   return new Promise(async (resolve, reject) => {
-    updateLog(`<br />Navigating to "followers" page...`);
+    updateLog(`<br />Opening followers list...`);
 
-    const username = user ? user : await getUserName();
-
-    if (!user) {
-      await _sleep(50);
-      await goToProfilePage();
+    if (!username) {
+      updateLog(`No username passed as parameter`);
+      return;
     }
 
     const css = `[href*='${username}'][href*="followers/"]`;
@@ -354,6 +481,8 @@ export async function openFollowersPage(user) {
     await _sleep(200);
 
     const $followers = await _waitForElement(css);
+
+    console.log('followers btn', $followers);
 
     $followers.click();
 
@@ -375,12 +504,15 @@ export async function openFollowersPage(user) {
   });
 }
 
-export async function openFollowingPage() {
+export async function openFollowingPage(username) {
   updateLog('Navigating to "following" page...');
 
-  const username = await getUserName();
+  if (!username || username === '') {
+    updateLog(`No username.`);
+    return;
+  }
 
-  await goToProfilePage();
+  await goToProfilePage(username);
 
   const css = `[href*='${username}'][href*="following/"]`;
 
@@ -494,33 +626,31 @@ export async function addChromeStorageData(key, data) {
 
 /* Gets the chrome storage data for the current user. */
 export async function getChromeStorageData(key) {
-  const user = await getUserName();
-
-  let data = null;
   return new Promise(async (resolve, reject) => {
-    while (data === null) {
-      chrome.storage.local.get(user, function (result) {
-        if (chrome.runtime.lastError) {
-          data = {};
-        }
+    const user = await getUserName();
 
-        if (!result[user]) {
-          data = {};
-        }
+    console.log('user is: ', user);
 
-        if (result[user] !== undefined) {
-          data = result[user];
-        }
-      });
-
-      await new Promise((res) => setTimeout(res, Math.random() * 25));
+    if (!user) {
+      resolve(null);
+      return;
     }
 
-    if (!data) {
-      resolve({});
-    }
+    chrome.storage.local.get(user, function (result) {
+      console.log('res', result);
+      if (chrome.runtime.lastError) {
+        reject(null);
+        updateLog('error getting data from Database.');
+      }
 
-    resolve(data);
+      if (!result[user]) {
+        resolve({});
+      }
+
+      if (result[user] !== undefined) {
+        resolve(result[user]);
+      }
+    });
   });
 }
 

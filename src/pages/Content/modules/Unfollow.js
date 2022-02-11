@@ -17,11 +17,10 @@ import {
   randomIntFromInterval,
   goToProfilePage,
   CSS_SELECTORS,
-  getUserName,
   getFollowersNumber,
   LOCAL_STORAGE,
   openFollowingPage,
-  openFollowersPage,
+  openFollowersList,
   scrollDownFollowersList,
   scrollDownFollowingList,
 } from './utils';
@@ -49,43 +48,6 @@ const Unfollow = () => {
   );
 
   const [state, actions] = useDatabase();
-
-  /*
-  async function scrollDownFollowersList() {
-    return new Promise(async (resolve, reject) => {
-      const followers = getFollowersNumber();
-
-      updateLog(
-        `"Followers" list found. You are following <b>${followers.toString()}</b> users.`
-      );
-
-      let $list = await _waitForElement(CSS_SELECTORS.followersList, 50, 10);
-
-      while (1) {
-        $list.scrollTop = $list.scrollHeight - $list.clientHeight;
-
-        let $buttons = document.querySelectorAll(
-          CSS_SELECTORS.followingListUnfollowButton
-        );
-        let buttons = parseInt($buttons.length);
-
-        updateLog(`Scrolling through followers... ${buttons} / ${followers}.`);
-
-        console.log(buttons >= followers);
-
-        if (buttons >= followers) {
-          break;
-        }
-
-        const delay = randomIntFromInterval(900, 3000);
-
-        await _sleep(delay);
-      }
-
-      resolve(true);
-    });
-  }
-  */
 
   async function handleClickOnUnfollowButton() {
     await _waitForElement(CSS_SELECTORS.followingListUnfollowButton);
@@ -216,13 +178,15 @@ const Unfollow = () => {
   }
 
   async function start() {
+    await goToProfilePage(state.username);
+
     if (unfollowNonFollowers) {
-      await openFollowersPage();
-      await scrollDownFollowersList();
+      await openFollowersList(state.username);
+      await scrollDownFollowersList('all');
       await getFollowersList();
     }
 
-    openFollowingPage();
+    openFollowingPage(state.username);
     // await scrollDownFollowingList();
     handleClickOnUnfollowButton();
   }

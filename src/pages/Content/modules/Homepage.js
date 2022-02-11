@@ -12,13 +12,11 @@ import {
   addChromeStorageData,
   clearLog,
   updateLog,
-  getUserName,
   _waitForElement,
   CSS_SELECTORS,
   downloadFile,
 } from './utils';
 import Unfollow from './Unfollow';
-import useStore from './../store/store';
 import { useDatabase } from '../store/databaseStore';
 import Data from './Data';
 import Follow from './Follow';
@@ -26,14 +24,13 @@ import Follow from './Follow';
 const Homepage = () => {
   const [isMinimized, setIsMinimized] = useStickyState('@isMinimized', false);
 
-  const [name, setName] = useState('');
-
   const [state, actions] = useDatabase();
 
   useEffect(() => {
-    (async () => {
+    async function initState() {
+      await actions.loadUsername();
       await actions.loadIgnoredUsers();
-    })();
+    }
 
     async function preventFollowingIgnoredUser() {
       let $follow;
@@ -42,15 +39,8 @@ const Homepage = () => {
         $follow = await _waitForElement(
           CSS_SELECTORS.userPageFollowButton,
           50,
-          50
+          20
         );
-
-        const $children = $follow.querySelector(`*`);
-
-        if ($children) {
-          console.log("you're already following this user");
-          return;
-        }
 
         const user = window.location.pathname.replaceAll(`/`, '');
 
@@ -90,9 +80,14 @@ const Homepage = () => {
       observer.observe(target, config);
     }
 
-    preventFollowingIgnoredUser();
+    initState();
     handleUrlChange();
+    preventFollowingIgnoredUser();
   }, []);
+
+  useEffect(() => {
+    console.log('my userrrrrrr', state.username);
+  }, [state.username]);
 
   return (
     <Draggable
@@ -105,7 +100,7 @@ const Homepage = () => {
 
         <header className="Homepage-header">
           <p>
-            <b>EZGram - Easy Instagram Automation</b>
+            <b>EZGram - Easy Instagram Automation | {state.username} </b>
           </p>
           <div className="Homepage-buttons">
             <button

@@ -6,7 +6,6 @@ import {
   deleteChromeStorageData,
   addChromeStorageData,
   updateLog,
-  getUserName,
   _sleep,
   downloadFile,
   readImportedFile,

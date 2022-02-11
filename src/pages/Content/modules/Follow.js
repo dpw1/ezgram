@@ -18,19 +18,20 @@ import {
   updateLog,
   _waitForElement,
   randomIntFromInterval,
-  goToProfilePage,
   CSS_SELECTORS,
-  getUserName,
   getFollowingNumber,
   getFollowersNumber,
   refreshPage,
   LOCAL_STORAGE,
-  openFollowersPage,
-  isFollowButton,
+  openFollowersList,
+  isFollowButtonOnFollowerList,
   scrollDownFollowersList,
   openInNewTab,
   doesUserHaveProfileImage,
   scrollDownUserPage,
+  isPrivateAccount,
+  goToProfilePage,
+  getTypeOfFollowButtonOnUserPage,
 } from './utils';
 
 import { useDatabase } from '../store/databaseStore';
@@ -38,7 +39,7 @@ import { resolveConfig } from 'prettier';
 
 const Follow = () => {
   /* Redirects the user to the user to be scraped. */
-  const [isRefreshingPage, setIsRefreshingPage] = useState(false);
+  const [isRefreshingPage, setIsRefreshingPage] = useStickyState(false);
 
   const [interactingWithUser, setInteractingWithUser] = useStickyState(
     '@interactingWithUser',
@@ -78,6 +79,9 @@ const Follow = () => {
     LIKING_POSTS_MIN,
     LIKING_POSTS_MAX
   );
+
+  const FOLLOW_EVEN_IF_THERE_ARE_NO_POSTS = false;
+  const SKIP_PRIVATE_ACCOUNT = false;
 
   function redirectToUsernamePage() {
     if (isRefreshingPage) {
@@ -119,7 +123,7 @@ const Follow = () => {
           `[role="presentation"] > div > div > div > div:nth-child(2) ul div li:nth-child(${i}) button`
         );
 
-        if (!isFollowButton($button)) {
+        if (!isFollowButtonOnFollowerList($button)) {
           updateLog(`You're already following this user. Skipping...`);
           ignored++;
           continue;
@@ -216,6 +220,14 @@ const Follow = () => {
 
   async function likeRandomPosts() {
     return new Promise(async (resolve, reject) => {
+      const type = await getTypeOfFollowButtonOnUserPage();
+
+      if (type === 'private') {
+        updateLog(`This is a private account.`);
+        reject(null);
+        return;
+      }
+
       updateLog(`Setting up to like ${LIKING_POSTS_LIMIT} posts...`);
 
       const _$post = await _waitForElement(CSS_SELECTORS.userPagePosts, 50, 20);
@@ -259,7 +271,6 @@ const Follow = () => {
           await scrollDownUserPage();
         }
 
-        //
         var $post = document.querySelector(
           `main div >article > div > div > div:nth-child(${postY}) > div:nth-child(${postX}) a[href*='/p']`
         );
@@ -267,6 +278,10 @@ const Follow = () => {
         await _sleep(randomIntFromInterval(900, 3000));
 
         $post.click();
+
+        updateLog(
+          `Post opened. Awaiting <b>${LIKING_POSTS_DELAY}</b> seconds.`
+        );
 
         await _sleep(LIKING_POSTS_DELAY);
 
@@ -377,23 +392,59 @@ const Follow = () => {
   async function start() {
     updateLog(`starting...`);
 
-    if (isRefreshingPage) {
-      updateLog(`<b>${username}</b> page found.`);
+    const currentUsername = window.location.pathname.replaceAll(`/`, '').trim();
+
+    if (!isRefreshingPage) {
+      redirectToUsernamePage();
     }
 
-    await openFollowersPage(username);
+    if (isRefreshingPage && currentUsername === username) {
+      updateLog(`Successfully navigated to ${username}.`);
+    }
+
+    await openFollowersList(username);
     clickOnEachUser();
   }
 
   async function startInteractingWithUserInNewTab() {
-    await _sleep(1000);
+    const currentUser = window.location.pathname.replaceAll('/', '');
+    if (
+      interactingWithUser !== currentUser ||
+      interactingWithUser === '' ||
+      !interactingWithUser
+    ) {
+      setInteractingWithUser('');
+      return;
+    }
+
+    await _sleep(randomIntFromInterval(500, 1000));
     updateLog(`Interacting with <b>${interactingWithUser}</b>.`);
     updateLog(
       `<span style="font-size: 25px;">Please don't change tabs.</span>`
     );
 
-    const followers = await getFollowersNumber();
+    /* 
+      TODO
+      Must check if you're following already.
+      Must check if it's ignored user.
+      Must check if there are enough posts to like.
+      */
+
+    console.log('isPrivate? ', await isPrivateAccount());
+    console.log('skip private? ', SKIP_PRIVATE_ACCOUNT);
+
+    if (SKIP_PRIVATE_ACCOUNT && (await isPrivateAccount())) {
+      updateLog(`This is a private account. Skipping...`);
+      await _sleep(100);
+      // await finishInteraction();
+    }
+
+    updateLog(`counting folowers`);
+
     const following = await getFollowingNumber();
+    const followers = await getFollowersNumber();
+
+    updateLog(`Checking posts, followers and following number...`);
 
     if (!(await isFollowingEnough(following))) {
       updateLog(
@@ -404,6 +455,8 @@ const Follow = () => {
       return;
     }
 
+    updateLog(`Checking followers...`);
+
     if (!(await isFollowersEnough(followers))) {
       updateLog(
         `<b>${interactingWithUser}</b> has <b>${followers}</b> followers, this is off your limits.`
@@ -413,7 +466,16 @@ const Follow = () => {
       return;
     }
 
-    await likeRandomPosts();
+    try {
+      await likeRandomPosts();
+    } catch (err) {
+      updateLog(`Ending...`);
+      // await finishInteraction();
+    }
+
+    try {
+      //clickOnFollowButton()
+    } catch (err) {}
 
     await _sleep(5000);
 
@@ -422,13 +484,9 @@ const Follow = () => {
     //watchStories()
 
     /* conditions to check:
-       following number
-       followers number
        posts number 
-       has profile picture
        is private account
        */
-    //clickOnFollowButton()
 
     await _sleep(1000);
 
@@ -453,14 +511,6 @@ const Follow = () => {
         }}
       >
         start
-      </Button>
-
-      <Button
-        onClick={() => {
-          startInteractingWithUserInNewTab();
-        }}
-      >
-        Testing
       </Button>
     </div>
   );
