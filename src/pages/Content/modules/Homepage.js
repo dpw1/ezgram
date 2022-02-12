@@ -15,21 +15,70 @@ import {
   _waitForElement,
   CSS_SELECTORS,
   downloadFile,
+  LOCAL_STORAGE,
 } from './utils';
 import Unfollow from './Unfollow';
 import { useDatabase } from '../store/databaseStore';
+
 import Data from './Data';
 import Follow from './Follow';
+import { useLocalStore } from './../store/localStore';
 
 const Homepage = () => {
   const [isMinimized, setIsMinimized] = useStickyState('@isMinimized', false);
 
+  const [interactingWithUser, setInteractingWithUser] = useStickyState(
+    '@interactingWithUser',
+    ''
+  );
+
+  const [originalTab, setOriginalTab] = useStickyState('@originalTab', '');
+
   const [state, actions] = useDatabase();
+  const [localState, localActions] = useLocalStore();
 
   useEffect(() => {
     async function initState() {
       await actions.loadUsername();
       await actions.loadIgnoredUsers();
+
+      if (
+        interactingWithUser !== window.location.pathname.replaceAll('/', '')
+      ) {
+        setInteractingWithUser('');
+      }
+
+      if (
+        interactingWithUser === '' ||
+        interactingWithUser !== window.location.pathname.replaceAll('/', '')
+      ) {
+        storeOriginalTabData();
+      }
+    }
+
+    function storeOriginalTabData() {
+      chrome.runtime.sendMessage(
+        {
+          type: 'getTab',
+          message: {},
+        },
+        function (data) {
+          if (!data) {
+            return;
+          }
+
+          if (data.type === 'getTab') {
+            const tab = data.message.tab;
+
+            updateLog(`storing tab data. ${tab.id}`);
+
+            window.localStorage.setItem(
+              LOCAL_STORAGE.originalTab,
+              JSON.stringify(tab)
+            );
+          }
+        }
+      );
     }
 
     async function preventFollowingIgnoredUser() {
@@ -83,13 +132,23 @@ const Homepage = () => {
     }
 
     initState();
+
     handleUrlChange();
     preventFollowingIgnoredUser();
   }, []);
 
   useEffect(() => {
+    console.log('tab: ', localState.tab);
+  }, [localState.tab]);
+
+  useEffect(() => {
     console.log('my userrrrrrr', state.username);
   }, [state.username]);
+
+  useEffect(() => {
+    if (interactingWithUser === '') {
+    }
+  }, [interactingWithUser]);
 
   return (
     <Draggable
@@ -102,7 +161,10 @@ const Homepage = () => {
 
         <header className="Homepage-header">
           <p>
-            <b>EZGram - Easy Instagram Automation | {state.username} </b>
+            <b>
+              EZGram - Easy Instagram Automation | {state.username} |{' '}
+              {localState.tab && localState.tab.id}
+            </b>
           </p>
           <div className="Homepage-buttons">
             <button

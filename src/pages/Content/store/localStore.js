@@ -10,11 +10,13 @@ const Store = createStore({
   // value of the store on initialisation
   initialState: {
     isExecuting: false,
+    tab: {},
+    openedTab: {},
   },
   // actions that trigger store mutation
   actions: {
     setIsExecuting:
-      (user) =>
+      (_) =>
       async ({ setState, getState }) => {
         const isExecuting = !getState().isExecuting;
 
@@ -23,6 +25,7 @@ const Store = createStore({
         });
       },
   },
+
   // optional, mostly used for easy debugging
   name: 'local_store',
 });

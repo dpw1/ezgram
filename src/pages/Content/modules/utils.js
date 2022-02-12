@@ -23,7 +23,7 @@ export const CSS_SELECTORS = {
   userPageFollowersNumber: `header section ul li:nth-child(2) >span >span, ul li [href*='followers'] > *,  header section ul li:nth-child(2) span`,
   userPageFollowingNumber: `header section ul li:nth-child(3) >span >span, ul li [href*='following'] > *, header section ul li:nth-child(3) span`,
   userPageFollowButton: `header section h2 + div:first-of-type  > div > div > button,
-  header section h2 + div:first-of-type > div > div > div > span:nth-child(1) > *:nth-child(1) button`,
+  header section h2 + div:first-of-type > div > div > div > span:nth-child(1) > *:nth-child(1) button, header section h1 + div:first-of-type  > div > div > button`,
   userPageUnfollowButton: `header section h2 + div:first-of-type  > div > div:nth-child(2) > * > * > *:nth-child(1) > button`,
   userPagePosts: `main div >article a[href*='/p']`,
 
@@ -40,6 +40,8 @@ export const LOCAL_STORAGE = {
   followersList: 'ezgram_followers_list',
   interactingWithUserInNewTab: `ezgram_currently_interacting`,
   interactionResult: `fail` /* used in conjunction with finishInteraction() */,
+  originalTab: 'ezgram_original_tab',
+  newTab: 'ezgram_new_tab',
 };
 
 /* Checks what type of follow button the user page has. It retusn:

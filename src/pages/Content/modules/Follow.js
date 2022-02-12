@@ -52,8 +52,6 @@ const Follow = () => {
     ''
   );
 
-  const [tabId, setTabId] = useStickyState(`@tabId`, '');
-
   const [localState, localActions] = useLocalStore();
   const [state, actions] = useDatabase();
   const [username, setUsername] = useState('');
@@ -67,7 +65,7 @@ const Follow = () => {
     4
   );
   const [delayBetweenUsersMax, setDelayBetweenUsersMax] = useStickyState(
-    '@delayBetweenUsersMin',
+    '@delayBetweenUsersMax',
     5
   );
 
@@ -85,11 +83,11 @@ const Follow = () => {
 
   const SKIP_USER_WITHOUT_PROFILE_IMAGE = true;
 
-  const FOLLOWING_LIMIT = false;
-  const FOLLOWING_MAX = 100; //if user has more than this following number, ignore.
-  const FOLLOWING_MIN = 30; //if user has less than this following number, ignore.
+  const FOLLOWING_LIMIT = true;
+  const FOLLOWING_MAX = 1000; //if user has more than this following number, ignore.
+  const FOLLOWING_MIN = 0; //if user has less than this following number, ignore.
 
-  const FOLLOWERS_LIMIT = true;
+  const FOLLOWERS_LIMIT = false;
   const FOLLOWERS_MAX = 5000; //if user has more than this followers, ignore.
   const FOLLOWERS_MIN = 30; //if user has less than this followers, ignore.
 
@@ -103,7 +101,7 @@ const Follow = () => {
     LIKING_POSTS_MAX
   );
 
-  const SKIP_ACCOUNTS_WITH_NO_POSTS = true;
+  const SKIP_ACCOUNTS_WITH_NO_POSTS = false;
   const SKIP_PRIVATE_ACCOUNT = false;
 
   const CLICK_ON_FOLLOW_DELAY_MIN = 3000;
@@ -193,12 +191,23 @@ const Follow = () => {
 
         updateLog(`Opening <b>${user}</b> page...`);
 
+        await _sleep(150);
+
+        const tab = JSON.parse(
+          window.localStorage.getItem(LOCAL_STORAGE.originalTab)
+        );
+
         chrome.runtime.sendMessage(
           {
             type: 'openNewTab',
-            message: url,
+            message: {
+              url,
+              tab,
+            },
           },
+
           function (data) {
+            console.log('new tab data', data);
             if (!data) {
               window.localStorage.removeItem(
                 LOCAL_STORAGE.interactingWithUserInNewTab
@@ -206,20 +215,30 @@ const Follow = () => {
             }
 
             if (data.type === 'openNewTab') {
-              setTabId(data.message);
+              updateLog(`Interacting with <b>${user}</b> in a new tab.<br />`);
+
+              console.log('xxx new tab: ', data.tab);
+
+              const newTab = JSON.stringify(data.tab);
+
               window.localStorage.setItem(
                 LOCAL_STORAGE.interactingWithUserInNewTab,
-                data.message
+                user
               );
+
+              window.localStorage.setItem(LOCAL_STORAGE.newTab, newTab);
             }
           }
         );
 
-        updateLog(`Interacting with <b>${user}</b> in a new tab.<br />`);
-
         while (
           window.localStorage.getItem(LOCAL_STORAGE.interactingWithUserInNewTab)
         ) {
+          console.log(
+            window.localStorage.getItem(
+              LOCAL_STORAGE.interactingWithUserInNewTab
+            )
+          );
           await _sleep(INTERACTION_DELAY);
         }
 
@@ -228,6 +247,7 @@ const Follow = () => {
           'fail'
         ) {
           updateLog(`<span style="color:green;">Successfully followed!</span>`);
+          window.localStorage.removeItem(LOCAL_STORAGE.interactionResult);
         } else {
           updateLog(
             `<b>${interactingWithUser}</b> was <b>not</b> followed, the user does not match your settings.`
@@ -235,9 +255,8 @@ const Follow = () => {
           ignored += 1;
         }
 
-        updateLog(
-          `<br /><b>Following: ${i - ignored} / ${limit}</b> <br /><br />`
-        );
+        updateLog(`<br /><b>Following: ${i - ignored} / ${limit}</b> <br />`);
+        updateLog(`<br /><b>Ignored: ${ignored}</b> <br /><br />`);
 
         updateLog(
           `<br />Waiting <b>${
@@ -258,22 +277,8 @@ const Follow = () => {
     updateLog(`Following completed.`);
 
     /* Todo 
-    Add more data here (how many followed, ignored, etc)
+    Add more data here (how many followed, ignored, requested, failed etc)
     */
-  }
-
-  function isInteractingWithUserInNewTab() {
-    if (interactingWithUser === '') {
-      return false;
-    }
-
-    const user = window.location.pathname.replaceAll(`/`, '');
-
-    if (interactingWithUser === user) {
-      return true;
-    }
-
-    return false;
   }
 
   async function likeRandomPosts() {
@@ -467,19 +472,30 @@ const Follow = () => {
 
       updateLog(`<br />Closing tab in <b>${delay / 1000}</b> seconds.`);
 
+      const originalTab = JSON.parse(
+        window.localStorage.getItem(LOCAL_STORAGE.originalTab)
+      );
+
+      const newTab = JSON.parse(
+        window.localStorage.getItem(LOCAL_STORAGE.newTab)
+      );
+
+      console.log('tab to remain open', originalTab);
+
+      window.localStorage.removeItem(LOCAL_STORAGE.interactingWithUserInNewTab);
+
       try {
         chrome.runtime.sendMessage(
           {
             type: 'closeTab',
-            message: tabId,
+            message: {
+              newTab,
+              originalTab,
+            },
           },
           function (data) {
             if (data.type === 'closeTab') {
-              console.log('closed!', data);
               resolve(true);
-              window.localStorage.removeItem(
-                LOCAL_STORAGE.interactingWithUserInNewTab
-              );
             }
           }
         );
@@ -542,7 +558,7 @@ const Follow = () => {
         resolve(true);
         return;
       }
-      updateLog(`Failed to follow this user.`);
+      // updateLog(`Failed to follow this user.`);
       resolve(null);
     });
   }
@@ -588,7 +604,9 @@ const Follow = () => {
       await finishInteraction('fail');
     }
 
-    if (SKIP_PRIVATE_ACCOUNT && (await isPrivateAccount())) {
+    const isPrivate = await isPrivateAccount();
+
+    if (SKIP_PRIVATE_ACCOUNT && isPrivate) {
       updateLog(`This is a private account. Skipping...`);
       await _sleep(100);
       await finishInteraction('fail');
@@ -631,12 +649,18 @@ const Follow = () => {
 
     updateLog(`<br /><br />`);
 
-    try {
-      await likeRandomPosts();
-    } catch (err) {
-      updateLog(`No posts found.`);
-      await finishInteraction('fail');
+    if (posts >= 1 && !isPrivate) {
+      try {
+        await likeRandomPosts();
+      } catch (err) {
+        updateLog(`No posts found.`);
+        await finishInteraction('fail');
+      }
     }
+
+    /*
+    TODO
+    Differentiate between requesting to follow & follow */
 
     updateLog(`Clicking on the "follow" button...`);
 
@@ -701,21 +725,21 @@ const Follow = () => {
         />
       </Form.Group>
 
-      <Form.Group className="Unfollow-option Unfollow-option--click-delay mb-3">
+      <Form.Group className="Follow-option Follow-option--click-delay mb-3">
         <Form.Label>
           Wait between <b>{delayBetweenUsersMin}</b> to{' '}
           <b>{delayBetweenUsersMax}</b> seconds before clicking on each user.
         </Form.Label>
-        <div className="Unfollow-slider">
+        <div className="Follow-slider">
           <RangeSlider
-            min={5}
-            max={60}
+            min={1}
+            max={200}
             value={delayBetweenUsersMin}
             onChange={(e) => setDelayBetweenUsersMin(e.target.value)}
           />
           <RangeSlider
-            min={10}
-            max={600}
+            min={1}
+            max={200}
             value={delayBetweenUsersMax}
             onChange={(e) => setDelayBetweenUsersMax(e.target.value)}
           />

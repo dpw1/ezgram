@@ -1,11 +1,9 @@
-console.log('hello 2024');
+console.log('hello 2025');
 
 chrome.runtime.onMessage.addListener(function (data, sender, sendResponse) {
-  console.log('Background message: ', data);
-
   let promise;
 
-  if (data.type === 'openNewTab') {
+  if (data.type === 'getTab') {
     promise = new Promise(async (resolve) => {
       let queryOptions = { active: true, currentWindow: true };
       let [tab] = await chrome.tabs.query(queryOptions);
@@ -14,36 +12,53 @@ chrome.runtime.onMessage.addListener(function (data, sender, sendResponse) {
     });
 
     promise.then((tab) => {
-      console.log('Completed', tab);
+      const res = { type: 'getTab', message: { tab } };
+      sendResponse(res);
+    });
+  }
 
-      const res = { type: 'openNewTab', message: tab.id };
+  if (data.type === 'openNewTab') {
+    promise = new Promise(async (resolve) => {
+      resolve(data.message.tab);
+    });
 
+    promise.then((tab) => {
       /* is on user page */
       if (/instagram\.com\/.{3}/.test(tab.url)) {
-        chrome.tabs.create({ url: data.message, index: tab.index + 1 });
+        chrome.tabs.create(
+          {
+            active: true,
+            url: data.message.url,
+            index: tab.index + 1,
+            windowId: tab.windowId,
+            openerTabId: tab.openerTabId,
+          },
+          function (newTab) {
+            sendResponse({ type: 'openNewTab', tab: newTab });
+          }
+        );
       }
-
-      sendResponse(res);
     });
   }
 
   if (data.type === 'closeTab') {
     promise = new Promise(async (resolve) => {
-      let queryOptions = { active: true, currentWindow: true };
-      let [tab] = await chrome.tabs.query(queryOptions);
+      console.log('this is data to close tab', data);
 
-      resolve(tab);
+      resolve({
+        originalTab: data.message.originalTab,
+        newTab: data.message.newTab,
+      });
     });
 
-    promise.then((tab) => {
-      console.log('Close tab data', tab);
+    promise.then((data) => {
+      const { newTab, originalTab } = data;
+      console.log('Close tab data', data);
 
-      const tabId = data.message;
-
-      chrome.tabs.remove(tab.id);
-      chrome.tabs.update(tabId, { highlighted: true });
-
-      sendResponse({ type: 'closeTab', message: 'closeTab' });
+      chrome.tabs.remove(newTab.id, function () {
+        chrome.tabs.update(originalTab.id, { highlighted: true });
+        sendResponse({ type: 'closeTab', message: 'closeTab' });
+      });
     });
   }
 
