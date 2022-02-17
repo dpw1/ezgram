@@ -23,9 +23,14 @@ export const CSS_SELECTORS = {
   userPageFollowersNumber: `header section ul li:nth-child(2) >span >span, ul li [href*='followers'] > *,  header section ul li:nth-child(2) span`,
   userPageFollowingNumber: `header section ul li:nth-child(3) >span >span, ul li [href*='following'] > *, header section ul li:nth-child(3) span`,
   userPageFollowButton: `header section h2 + div:first-of-type  > div > div > button,
-  header section h2 + div:first-of-type > div > div > div > span:nth-child(1) > *:nth-child(1) button, header section h1 + div:first-of-type  > div > div > button`,
+  header section h2 + div:first-of-type > div > div > div > span:nth-child(1) > *:nth-child(1) button, 
+  header section h1 + div:first-of-type  > div > div > button,
+  #react-root main header div+ section > div:nth-child(2)  > * > * > * > span > span:nth-child(1) button`,
   userPageUnfollowButton: `header section h2 + div:first-of-type  > div > div:nth-child(2) > * > * > *:nth-child(1) > button`,
   userPagePosts: `main div >article a[href*='/p']`,
+  userPageActionBlocked: `#fb-root + div > div > div > div > div  + div > button + button`,
+  userPagePrivateAccountMessage: `#react-root section main article > div > div > h2`,
+  userPageProfileImage: `main > div > header canvas + span > img[alt][src]`,
 
   postPageLikeButton: `section > span:nth-child(1) > button`,
   postPageCloseButton: `div[role="presentation"] > div > button[type]`,
@@ -55,9 +60,12 @@ export async function getTypeOfFollowButtonOnUserPage() {
   let $buttons;
   return new Promise(async (resolve, reject) => {
     /* Private */
+    const $message = document.querySelector(
+      CSS_SELECTORS.userPagePrivateAccountMessage
+    );
     $buttons = document.querySelectorAll(`header section h2 + div button`);
 
-    if ($buttons && $buttons.length <= 1) {
+    if ($message) {
       resolve('private');
       return;
     }
@@ -75,8 +83,13 @@ export async function getTypeOfFollowButtonOnUserPage() {
       resolve('unfollow');
       return;
     }
+
+    resolve(null);
+    return;
   });
 }
+
+/* TODO is user ignored */
 
 /* Checks whether a button from a 'followers' list is a "following" or "follow". 
 
@@ -162,6 +175,12 @@ export async function scrollDownFollowingList() {
   });
 }
 
+export function stopExecuting() {
+  updateLog(`<b style="font-size:30px;">Stopping...</b>`);
+  window.location.reload();
+  return;
+}
+
 /* Scrolls down the a user's followers list. 
 
 
@@ -192,28 +211,31 @@ export async function scrollDownFollowersList(type = 'once') {
 
     const delay = randomIntFromInterval(901, 2641);
 
+    const repeatLimit = 10;
+
     let previousUserCount = 0;
     let repeat = 0;
 
     for (let i = 0; i <= limit; i++) {
       $list.scrollTop = $list.scrollHeight - $list.clientHeight;
 
-      if (repeat >= 5) {
+      if (repeat >= repeatLimit) {
         updateLog(`Repeating...`);
         break;
       }
 
-      await _sleep(randomIntFromInterval(1000, 1250));
+      await _sleep(randomIntFromInterval(200, 450));
 
       let $users = document.querySelectorAll(
         CSS_SELECTORS.followersListUsernames
       );
       let users = $users.length;
 
-      updateLog(`Scrolling down. ${users} visible users.`);
-
       if (users === previousUserCount) {
         repeat += 1;
+      } else {
+        updateLog(`Scrolling down. ${users} visible users.`);
+        repeat = 0;
       }
 
       previousUserCount = users;
@@ -262,17 +284,18 @@ export async function scrollDownUserPage() {
 
 export async function isPrivateAccount() {
   return new Promise(async (resolve, reject) => {
-    const $posts = await _waitForElement(
-      `main div >article a[href*='/p']`,
-      30,
+    const $title = await _waitForElement(
+      CSS_SELECTORS.userPagePrivateAccountMessage,
+      50,
       10
     );
 
-    if (!$posts) {
+    if ($title) {
       resolve(true);
+      return;
+    } else {
+      resolve(false);
     }
-
-    resolve(false);
   });
 }
 

@@ -16,6 +16,7 @@ import {
   CSS_SELECTORS,
   downloadFile,
   LOCAL_STORAGE,
+  _sleep,
 } from './utils';
 import Unfollow from './Unfollow';
 import { useDatabase } from '../store/databaseStore';
@@ -31,8 +32,6 @@ const Homepage = () => {
     '@interactingWithUser',
     ''
   );
-
-  const [originalTab, setOriginalTab] = useStickyState('@originalTab', '');
 
   const [state, actions] = useDatabase();
   const [localState, localActions] = useLocalStore();
@@ -70,7 +69,9 @@ const Homepage = () => {
           if (data.type === 'getTab') {
             const tab = data.message.tab;
 
-            updateLog(`storing tab data. ${tab.id}`);
+            updateLog(
+              `<b style="color:green;">EZgram loaded successfully. ID: ${tab.id}</b>`
+            );
 
             window.localStorage.setItem(
               LOCAL_STORAGE.originalTab,
@@ -162,8 +163,7 @@ const Homepage = () => {
         <header className="Homepage-header">
           <p>
             <b>
-              EZGram - Easy Instagram Automation | {state.username} |{' '}
-              {localState.tab && localState.tab.id}
+              EZGram - Easy Instagram Automation | Welcome, {state.username}.
             </b>
           </p>
           <div className="Homepage-buttons">
@@ -187,13 +187,28 @@ const Homepage = () => {
             className="Homepage-tabs"
             onSelect={(index, label) => console.log(label + ' selected')}
           >
-            <Tab eventKey={0} className="Homepage-tab" label="Follow">
+            <Tab
+              disabled={localState.isExecuting}
+              eventKey={0}
+              className="Homepage-tab"
+              label="Follow"
+            >
               <Follow></Follow>
             </Tab>
-            <Tab eventKey={1} className="Homepage-tab" label="Unfollow">
+            <Tab
+              disabled={localState.isExecuting}
+              eventKey={1}
+              className="Homepage-tab"
+              label="Unfollow"
+            >
               <Unfollow></Unfollow>
             </Tab>
-            <Tab eventKey={2} className="Homepage-tab" label="Testing">
+            <Tab
+              disabled={localState.isExecuting}
+              eventKey={2}
+              className="Homepage-tab"
+              label="Testing"
+            >
               <input id="okok" type="text" />
 
               <button
@@ -218,6 +233,18 @@ const Homepage = () => {
             <Tab eventKey={3} className="Homepage-tab" label="Database">
               <Data></Data>
             </Tab>
+
+            <Tab eventKey={3} className="Homepage-tab" label="Cache">
+              <Button
+                onClick={async () => {
+                  setInteractingWithUser('');
+                  await _sleep(100);
+                  window.location.reload();
+                }}
+              >
+                Refresh
+              </Button>
+            </Tab>
           </Tabs>
 
           <div className="Homepage-debug">
@@ -225,15 +252,7 @@ const Homepage = () => {
             <div className="Homepage-database" id="ezgramDatabase">
               <div className="Homepage-stats Homepage-stats--ignored-users">
                 <p>Ignored users:</p>
-                <span>
-                  {state.ignoredUsers &&
-                    state.ignoredUsers.hasOwnProperty('ignoredUsers') &&
-                    state.ignoredUsers['ignoredUsers'].length}
-                </span>
-
-                <div style={{ overflowY: 'scroll' }}>
-                  {JSON.stringify(state.ignoredUsers)}
-                </div>
+                <span>{state.ignoredUsers && state.ignoredUsers.length}</span>
               </div>
             </div>
           </div>

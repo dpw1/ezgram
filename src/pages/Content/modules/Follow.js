@@ -35,6 +35,7 @@ import {
   goToProfilePage,
   getTypeOfFollowButtonOnUserPage,
   getPostsNumber,
+  stopExecuting,
 } from './utils';
 
 import { resolveConfig } from 'prettier';
@@ -78,29 +79,42 @@ const Follow = () => {
     4
   );
 
+  /* Following limit 
+  ==================================== */
+  const [followingLimit, setFollowingLimit] = useStickyState(
+    '@followingLimit',
+    false
+  );
+  const [followingMin, setFollowingMin] = useStickyState('@followingMin', 0); //if user has less than this following number, ignore.
+
+  const [followingMax, setFollowingMax] = useStickyState('@followingMax', 3000); //if user has more than this following number, ignore.
+
+  /* Followers limit 
+  ==================================== */
+  const [followersLimit, setFollowersLimit] = useStickyState(
+    '@followersLimit',
+    false
+  );
+  const [followersMin, setFollowersMin] = useStickyState('@followersMin', 30); //if user has less than this followers, ignore.
+
+  const [followersMax, setFollowersMax] = useStickyState('@followersMax', 5000); //if user has more than this followers, ignore.
+
+  /* === */
   const INTERACTION_DELAY_MIN = 800;
   const INTERACTION_DELAY_MAX = 1200;
-
-  const SKIP_USER_WITHOUT_PROFILE_IMAGE = true;
-
-  const FOLLOWING_LIMIT = true;
-  const FOLLOWING_MAX = 1000; //if user has more than this following number, ignore.
-  const FOLLOWING_MIN = 0; //if user has less than this following number, ignore.
-
-  const FOLLOWERS_LIMIT = false;
-  const FOLLOWERS_MAX = 5000; //if user has more than this followers, ignore.
-  const FOLLOWERS_MIN = 30; //if user has less than this followers, ignore.
 
   const LIKING_POSTS_DELAY_MIN = 3000;
   const LIKING_POSTS_DELAY_MAX = 5000;
 
-  const LIKING_POSTS_MIN = 2;
-  const LIKING_POSTS_MAX = 3;
+  const LIKING_POSTS_MIN = 1;
+  const LIKING_POSTS_MAX = 2;
+
   const LIKING_POSTS_LIMIT = randomIntFromInterval(
     LIKING_POSTS_MIN,
     LIKING_POSTS_MAX
   );
 
+  const SKIP_USER_WITHOUT_PROFILE_IMAGE = false;
   const SKIP_ACCOUNTS_WITH_NO_POSTS = false;
   const SKIP_PRIVATE_ACCOUNT = false;
 
@@ -164,6 +178,8 @@ const Follow = () => {
           updateLog(`Button not found ${i}`);
         }
 
+        /* Check if user is in ignore list */
+
         if (!isFollowButtonOnFollowerList($button)) {
           updateLog(`You're already following this user. Skipping...`);
           ignored++;
@@ -217,8 +233,6 @@ const Follow = () => {
             if (data.type === 'openNewTab') {
               updateLog(`Interacting with <b>${user}</b> in a new tab.<br />`);
 
-              console.log('xxx new tab: ', data.tab);
-
               const newTab = JSON.stringify(data.tab);
 
               window.localStorage.setItem(
@@ -255,6 +269,10 @@ const Follow = () => {
           ignored += 1;
         }
 
+        if (i - ignored >= limit) {
+          break;
+        }
+
         updateLog(`<br /><b>Following: ${i - ignored} / ${limit}</b> <br />`);
         updateLog(`<br /><b>Ignored: ${ignored}</b> <br /><br />`);
 
@@ -274,13 +292,14 @@ const Follow = () => {
       }
     }
 
-    updateLog(`Following completed.`);
+    updateLog(`<br />Following completed.`);
 
     /* Todo 
     Add more data here (how many followed, ignored, requested, failed etc)
     */
   }
 
+  /* Currently not working with randomization. It will like each individual post, one by one.*/
   async function likeRandomPosts() {
     return new Promise(async (resolve, reject) => {
       const type = await getTypeOfFollowButtonOnUserPage();
@@ -364,7 +383,11 @@ const Follow = () => {
           CSS_SELECTORS.postPageCloseButton
         );
 
-        const $like = document.querySelector(CSS_SELECTORS.postPageLikeButton);
+        const $like = await _waitForElement(
+          CSS_SELECTORS.postPageLikeButton,
+          100,
+          5
+        );
         const $unlike = await _waitForElement(
           CSS_SELECTORS.postPageUnlikeButton,
           100,
@@ -416,15 +439,15 @@ const Follow = () => {
 
   async function isFollowingEnough(following) {
     return new Promise(async (resolve, reject) => {
-      if (!FOLLOWING_LIMIT) {
+      if (!followingLimit) {
         resolve(true);
       }
 
-      if (following >= FOLLOWING_MAX) {
+      if (following >= followingMax) {
         resolve(false);
       }
 
-      if (following <= FOLLOWING_MIN) {
+      if (following <= followingMin) {
         resolve(false);
       }
 
@@ -434,15 +457,15 @@ const Follow = () => {
 
   async function isFollowersEnough(followers) {
     return new Promise(async (resolve, reject) => {
-      if (!FOLLOWERS_LIMIT) {
+      if (!followersLimit) {
         resolve(true);
       }
 
-      if (followers >= FOLLOWERS_MAX) {
+      if (followers >= followersMax) {
         resolve(false);
       }
 
-      if (followers <= FOLLOWERS_MIN) {
+      if (followers <= followersMin) {
         resolve(false);
       }
 
@@ -480,8 +503,6 @@ const Follow = () => {
         window.localStorage.getItem(LOCAL_STORAGE.newTab)
       );
 
-      console.log('tab to remain open', originalTab);
-
       window.localStorage.removeItem(LOCAL_STORAGE.interactingWithUserInNewTab);
 
       try {
@@ -518,14 +539,18 @@ const Follow = () => {
       updateLog(`Successfully navigated to ${username}.`);
     }
 
+    /* TODO
+    check if is not open already */
     await openFollowersList(username);
     clickOnEachUser();
   }
 
   async function clickOnFollowButton() {
     return new Promise(async (resolve, reject) => {
-      const $button = document.querySelector(
-        CSS_SELECTORS.userPageFollowButton
+      const $button = await _waitForElement(
+        CSS_SELECTORS.userPageFollowButton,
+        30,
+        10
       );
 
       if (!$button) {
@@ -575,7 +600,7 @@ const Follow = () => {
       return;
     }
 
-    await _sleep(randomIntFromInterval(500, 1000));
+    await _waitForElement(CSS_SELECTORS.userPageProfileImage, 100, 10);
 
     updateLog(
       `<span style="font-size: 25px;">Please don't change or close this tab.</span><br /><br />`
@@ -598,6 +623,10 @@ const Follow = () => {
 
     const followType = await getTypeOfFollowButtonOnUserPage();
 
+    if (!followType) {
+      updateLog('ERROR: Unable to identify type of follow button.');
+    }
+
     if (followType === 'unfollow') {
       updateLog(`You are already following this user.`);
       await _sleep(100);
@@ -606,10 +635,12 @@ const Follow = () => {
 
     const isPrivate = await isPrivateAccount();
 
-    if (SKIP_PRIVATE_ACCOUNT && isPrivate) {
-      updateLog(`This is a private account. Skipping...`);
-      await _sleep(100);
-      await finishInteraction('fail');
+    if (SKIP_PRIVATE_ACCOUNT) {
+      if (isPrivate) {
+        updateLog(`This is a private account. Skipping...`);
+        await _sleep(100);
+        await finishInteraction('fail');
+      }
     }
 
     const posts = await getPostsNumber();
@@ -695,10 +726,11 @@ const Follow = () => {
 
   return (
     <div className="Follow">
-      <h3>Follow user's followers</h3>
+      <h4 className="h6">Follow user's followers</h4>
+      <hr />
 
       <InputGroup className="mb-3">
-        <Form.Label>User:</Form.Label>
+        <Form.Label style={{ display: 'block' }}>User:</Form.Label>
         <InputGroup.Text id="basic-addon1">@</InputGroup.Text>
         <FormControl
           value={username}
@@ -711,7 +743,7 @@ const Follow = () => {
         />
       </InputGroup>
 
-      <Form.Group className="Unfollow-option mb-3">
+      <Form.Group className="Follow-option mb-3">
         <Form.Label>Follow limit:</Form.Label>
         <Form.Control
           type="number"
@@ -733,12 +765,16 @@ const Follow = () => {
         <div className="Follow-slider">
           <RangeSlider
             min={1}
-            max={200}
+            max={delayBetweenUsersMax}
             value={delayBetweenUsersMin}
             onChange={(e) => setDelayBetweenUsersMin(e.target.value)}
           />
           <RangeSlider
-            min={1}
+            min={
+              delayBetweenUsersMin && delayBetweenUsersMin > 1
+                ? delayBetweenUsersMin
+                : 2
+            }
             max={200}
             value={delayBetweenUsersMax}
             onChange={(e) => setDelayBetweenUsersMax(e.target.value)}
@@ -746,11 +782,94 @@ const Follow = () => {
         </div>
       </Form.Group>
 
+      <div className="Follow-options Follow-options--following">
+        <Form.Group className="Follow-group mb-3">
+          <Form.Check
+            type="switch"
+            id="followingLimitInput"
+            checked={followingLimit}
+            onChange={(e) => {
+              setFollowingLimit(e.target.checked);
+            }}
+            label={`"following" limit`}
+          />
+
+          <div style={{ display: followingLimit ? 'block' : 'none' }}>
+            <Form.Label>
+              Skip user if they are following less than{' '}
+              <b>{followingMin || 'X'}</b> or more than{' '}
+              <b>{followingMax || 'X'}</b> users.
+            </Form.Label>
+
+            <div className="Follow-inputs">
+              <Form.Control
+                type="number"
+                value={followingMin}
+                onChange={(e) => {
+                  setFollowingMin(e.target.value);
+                }}
+                placeholder={'Minimum'}
+              />
+              <Form.Control
+                type="number"
+                value={followingMax}
+                onChange={(e) => {
+                  setFollowingMax(e.target.value);
+                }}
+                placeholder={'Maximum'}
+              />
+            </div>
+          </div>
+        </Form.Group>
+
+        <Form.Group className="Follow-group mb-3">
+          <Form.Check
+            type="switch"
+            id="followersLimitInput"
+            checked={followersLimit}
+            onChange={(e) => {
+              setFollowersLimit(e.target.checked);
+            }}
+            label={`"followers" limit`}
+          />
+
+          <div style={{ display: followersLimit ? 'block' : 'none' }}>
+            <Form.Label>
+              Skip user if they have less than <b>{followersMin || 'X'}</b> or
+              more than <b>{followersMax || 'X'}</b> followers.
+            </Form.Label>
+
+            <div className="Follow-inputs">
+              <Form.Control
+                type="number"
+                value={followersMin}
+                onChange={(e) => {
+                  setFollowersMin(e.target.value);
+                }}
+                placeholder={'Minimum'}
+              />
+              <Form.Control
+                type="number"
+                value={followersMax}
+                onChange={(e) => {
+                  setFollowersMax(e.target.value);
+                }}
+                placeholder={'Maximum'}
+              />
+            </div>
+          </div>
+        </Form.Group>
+      </div>
+
+      <hr />
       <Button
-        disabled={localState.isExecuting}
         onClick={() => {
-          localActions.setIsExecuting(true);
-          start();
+          if (localState.isExecuting) {
+            stopExecuting();
+          } else {
+            localActions.setIsExecuting(true);
+            start();
+          }
         }}
       >
         {localState.isExecuting ? 'Stop' : 'Start'}

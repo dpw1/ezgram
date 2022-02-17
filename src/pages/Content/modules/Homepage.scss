@@ -76,7 +76,21 @@ $log-height: 210px;
 
   &-stats {
     max-height: $log-height;
-    overflow-y: scroll;
+    max-width: 100%;
+    width: 100%;
+    flex: 50%;
+    text-align: center;
+    border: 1px solid #dee2e6;
+    padding-top: 10px;
+
+    & > p {
+      font-size: 20px;
+    }
+
+    & > span {
+      font-weight: bold;
+      font-size: 15px;
+    }
   }
 
   &-tabs {
@@ -113,6 +127,8 @@ $log-height: 210px;
   &-database {
     max-width: 30%;
     width: 100%;
+    display: flex;
+    flex-direction: row;
   }
 
   & .nav-link {

@@ -122,40 +122,44 @@ const Data = () => {
             </tr>
           </thead>
           <tbody>
-            {users.map((item, i) => {
-              return (
-                <tr key={item + i}>
-                  {Object.values(item).map((val, index) => {
-                    const column = Object.keys(users[0])[index];
-                    let content = val;
+            {users
+              .sort((a, b) => (b.date > a.date ? 1 : a.date > b.date ? -1 : 0))
+              .map((item, i) => {
+                return (
+                  <tr key={item + i}>
+                    {Object.values(item).map((val, index) => {
+                      const column = Object.keys(users[0])[index];
+                      let content = val;
 
-                    if (column === 'date') {
-                      content = timeAgo.format(new Date(val), 'round-minute');
-                    }
+                      if (column === 'date') {
+                        content = timeAgo.format(new Date(val), 'round-minute');
+                      }
 
-                    if (column === 'user') {
-                      content = (
-                        <a
-                          target="_blank"
-                          rel="noreferrer"
-                          href={`https://www.instagram.com/${val}`}
-                        >
-                          {val}
-                        </a>
+                      if (column === 'user') {
+                        content = (
+                          <a
+                            target="_blank"
+                            rel="noreferrer"
+                            href={`https://www.instagram.com/${val}`}
+                          >
+                            {val}
+                          </a>
+                        );
+                      }
+
+                      return (
+                        <React.Fragment>
+                          {index === 0 && (
+                            <td key={val + index + 1}>{i + 1}</td>
+                          )}
+
+                          <td key={val + index + 2}>{content}</td>
+                        </React.Fragment>
                       );
-                    }
-
-                    return (
-                      <React.Fragment>
-                        {index === 0 && <td key={val + index + 1}>{i + 1}</td>}
-
-                        <td key={val + index + 2}>{content}</td>
-                      </React.Fragment>
-                    );
-                  })}
-                </tr>
-              );
-            })}
+                    })}
+                  </tr>
+                );
+              })}
           </tbody>
         </Table>
       ) : (

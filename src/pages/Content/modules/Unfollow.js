@@ -23,6 +23,7 @@ import {
   openFollowersList,
   scrollDownFollowersList,
   scrollDownFollowingList,
+  stopExecuting,
 } from './utils';
 
 import { useDatabase } from '../store/databaseStore';
@@ -111,12 +112,9 @@ const Unfollow = () => {
       await _sleep(unfollowDelay);
 
       $unfollow.click();
-
       count += 1;
 
-      updateLog(
-        `<span style="color:green;">Unfollowed <b>${user}</b> successfully. <b>${count} / ${unfollowLimit}</b></span>`
-      );
+      await _sleep(20);
 
       const date = new Date().getTime();
 
@@ -138,6 +136,10 @@ const Unfollow = () => {
         localActions.setIsExecuting(false);
         return;
       }
+
+      updateLog(
+        `<span style="color:green;">Unfollowed <b>${user}</b> successfully. <b>${count} / ${unfollowLimit}</b></span>`
+      );
 
       updateLog(
         `Awaiting ${
@@ -193,9 +195,11 @@ const Unfollow = () => {
 
   return (
     <div className="Unfollow">
-      <h3 className="Unfollow-title">
-        Unfollow people who you're currently following.
-      </h3>
+      <h3 className="Unfollow-title">Unfollow</h3>
+      <h4 className="h6">
+        Automatically unfollow people who you're currently following.
+      </h4>
+      <hr />
       <div className="Unfollow-options">
         <div>
           <Form.Group className="Unfollow-option mb-3">
@@ -214,19 +218,24 @@ const Unfollow = () => {
 
           <Form.Group className="Unfollow-option Unfollow-option--click-delay mb-3">
             <Form.Label>
-              Wait from <b>{delayBetweenUnfollowMin}</b> to{' '}
-              <b>{delayBetweenUnfollowMax}</b> seconds between each user.
+              Wait between <b>{delayBetweenUnfollowMin}</b> to{' '}
+              <b>{delayBetweenUnfollowMax}</b> seconds after unfollowing an
+              user.
             </Form.Label>
             <div className="Unfollow-slider">
               <RangeSlider
                 min={5}
-                max={60}
+                max={delayBetweenUnfollowMax}
                 value={delayBetweenUnfollowMin}
                 onChange={(e) => setDelayBetweenUnfollowMin(e.target.value)}
               />
               <RangeSlider
-                min={10}
-                max={600}
+                min={
+                  delayBetweenUnfollowMin && delayBetweenUnfollowMin >= 10
+                    ? delayBetweenUnfollowMin
+                    : 10
+                }
+                max={200}
                 value={delayBetweenUnfollowMax}
                 onChange={(e) => setDelayBetweenUnfollowMax(e.target.value)}
               />
@@ -248,11 +257,9 @@ const Unfollow = () => {
 
           <hr />
           <Button
-            disabled={localState.isExecuting}
             onClick={() => {
               if (localState.isExecuting) {
-                updateLog(`<b style="font-size:30px;">Stopping...</b>`);
-                window.location.reload();
+                stopExecuting();
               } else {
                 localActions.setIsExecuting(true);
                 start();
@@ -261,14 +268,6 @@ const Unfollow = () => {
             variant="primary"
           >
             {localState.isExecuting ? 'Stop' : 'Start'}
-          </Button>
-
-          <Button
-            onClick={() => {
-              localActions.setIsExecuting(!localState);
-            }}
-          >
-            {localState.isExecuting ? 'executing' : 'naw'}
           </Button>
         </div>
       </div>

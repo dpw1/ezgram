@@ -1,4 +1,56 @@
 $slider-width: 300px;
 
 .Follow {
+  .form-label {
+    width: 100%;
+  }
+
+  &-slider {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    flex-direction: row;
+  }
+
+  &-slider > * {
+    max-width: $slider-width;
+    margin-right: 15px;
+  }
+
+  .range-slider__wrap {
+    max-width: $slider-width;
+    width: 100%;
+  }
+
+  &-inputs {
+    display: flex;
+    flex-direction: row;
+
+    > * {
+      flex: 50%;
+      max-width: 90px;
+      margin-right: 10px !important;
+    }
+  }
+
+  &-options {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: row;
+
+    & > * {
+      flex: 50%;
+      width: 100%;
+      max-width: 100%;
+
+      &:not(:last-of-type) {
+        margin-right: 20px;
+      }
+    }
+
+    .Follow-inputs {
+      display: flex;
+      flex-direction: row;
+    }
+  }
 }
