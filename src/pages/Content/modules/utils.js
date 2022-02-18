@@ -19,18 +19,20 @@ export const CSS_SELECTORS = {
   followersListUsernames: `[role="presentation"] > div > div > div > div:nth-child(2) li a[href] > span`,
   followersListButton: `[role="presentation"] > div > div > div > div:nth-child(2) ul li button`,
 
-  userPagePostsNumber: `header section ul li:nth-child(1) >span >span, header section ul li:nth-child(1) span`,
-  userPageFollowersNumber: `header section ul li:nth-child(2) >span >span, ul li [href*='followers'] > *,  header section ul li:nth-child(2) span`,
-  userPageFollowingNumber: `header section ul li:nth-child(3) >span >span, ul li [href*='following'] > *, header section ul li:nth-child(3) span`,
+  userPagePostsNumber: `header section ul li:nth-child(1) >span >span, header section ul li:nth-child(1) span, main header + div + ul li:nth-child(1) > div > span, section > main > div > header + * + * + ul li:nth-child(1) > div > span`,
+  userPageFollowersNumber: `header section ul li:nth-child(2) >span >span, ul li [href*='followers'] > *,  header section ul li:nth-child(2) span, main header + div + ul li:nth-child(2) > * > span`,
+  userPageFollowingNumber: `header section ul li:nth-child(3) >span >span, ul li [href*='following'] > *, header section ul li:nth-child(3) span, main header + div + ul li:nth-child(3) > * > span`,
   userPageFollowButton: `header section h2 + div:first-of-type  > div > div > button,
   header section h2 + div:first-of-type > div > div > div > span:nth-child(1) > *:nth-child(1) button, 
   header section h1 + div:first-of-type  > div > div > button,
-  #react-root main header div+ section > div:nth-child(2)  > * > * > * > span > span:nth-child(1) button`,
+  main header div+ section > div:nth-child(2)  > * > * > * > span > span:nth-child(1) button,
+  section > main > div > header > section > div > div > div > button`,
   userPageUnfollowButton: `header section h2 + div:first-of-type  > div > div:nth-child(2) > * > * > *:nth-child(1) > button`,
   userPagePosts: `main div >article a[href*='/p']`,
   userPageActionBlocked: `#fb-root + div > div > div > div > div  + div > button + button`,
   userPagePrivateAccountMessage: `#react-root section main article > div > div > h2`,
   userPageProfileImage: `main > div > header canvas + span > img[alt][src]`,
+  userPageUsername: `main header section > * > h2, main header section > * > h1`,
 
   postPageLikeButton: `section > span:nth-child(1) > button`,
   postPageCloseButton: `div[role="presentation"] > div > button[type]`,
@@ -47,7 +49,20 @@ export const LOCAL_STORAGE = {
   interactionResult: `fail` /* used in conjunction with finishInteraction() */,
   originalTab: 'ezgram_original_tab',
   newTab: 'ezgram_new_tab',
+  restartFollow: 'ezgram_restart_follow',
 };
+
+export function randomUniqueIntegers(total, quantity) {
+  const numbers = Array(total)
+    .fill(null)
+    .map((_, i) => i + 1);
+
+  return numbers
+    .map((value) => ({ value, sort: Math.random() }))
+    .sort((a, b) => a.sort - b.sort)
+    .map(({ value }) => value)
+    .slice(0, quantity);
+}
 
 /* Checks what type of follow button the user page has. It retusn:
 
@@ -56,21 +71,21 @@ unfollow = I already follow the user
 private = private account.
 
 */
-export async function getTypeOfFollowButtonOnUserPage() {
+export async function getTypeOfFollowButtonOnUserPage($html) {
   let $buttons;
   return new Promise(async (resolve, reject) => {
     /* Private */
-    const $message = document.querySelector(
+    const $message = $html.querySelector(
       CSS_SELECTORS.userPagePrivateAccountMessage
     );
-    $buttons = document.querySelectorAll(`header section h2 + div button`);
+    $buttons = $html.querySelectorAll(`header section h2 + div button`);
 
     if ($message) {
       resolve('private');
       return;
     }
 
-    $buttons = document.querySelectorAll(CSS_SELECTORS.userPageFollowButton);
+    $buttons = $html.querySelectorAll(CSS_SELECTORS.userPageFollowButton);
 
     /* Follow */
     if ($buttons && $buttons.length === 1) {
@@ -253,11 +268,11 @@ export async function scrollDownFollowersList(type = 'once') {
   });
 }
 
-export async function scrollDownUserPage() {
+export async function scrollDownUserPage($html) {
   return new Promise(async (resolve, reject) => {
     updateLog(`<br />Scrolling down...`);
 
-    let $list = document.querySelector(`html`);
+    let $list = $html ? $html : document.querySelector(`html`);
 
     await _sleep(50);
 
@@ -282,9 +297,11 @@ export async function scrollDownUserPage() {
   });
 }
 
-export async function isPrivateAccount() {
+/* Detects within an iframe whether it's a private account or Not */
+export async function isPrivateAccount($html) {
   return new Promise(async (resolve, reject) => {
-    const $title = await _waitForElement(
+    const $title = await _waitForElementIframe(
+      $html,
       CSS_SELECTORS.userPagePrivateAccountMessage,
       50,
       10
@@ -299,11 +316,13 @@ export async function isPrivateAccount() {
   });
 }
 
-export async function getPostsNumber() {
+/* Checks within an iframe whether how many posts there are */
+export async function getPostsNumber($html) {
   return new Promise(async (resolve, reject) => {
-    const $posts = await _waitForElement(
+    const $posts = await _waitForElementIframe(
+      $html,
       CSS_SELECTORS.userPagePostsNumber,
-      30,
+      50,
       10
     );
 
@@ -329,9 +348,10 @@ export async function getPostsNumber() {
 
 To use it, make sure you're currently on the user's page. (instagram.com/user1)
 =========================== */
-export async function getFollowingNumber() {
+export async function getFollowingNumber($html) {
   return new Promise(async (resolve, reject) => {
-    const $following = await _waitForElement(
+    const $following = await _waitForElementIframe(
+      $html,
       CSS_SELECTORS.userPageFollowingNumber,
       30,
       10
@@ -362,6 +382,33 @@ To use it, make sure you're currently on the user's page. (instagram.com/user1)
 export async function getFollowersNumber() {
   return new Promise(async (resolve, reject) => {
     const $followers = await _waitForElement(
+      CSS_SELECTORS.userPageFollowersNumber,
+      50,
+      20
+    );
+
+    if (!$followers) {
+      resolve(null);
+      return;
+    }
+
+    const _followers = $followers.textContent
+      .toLowerCase()
+      .trim()
+      .replace('.', '')
+      .replace(',', '')
+      .replace('m', '000000');
+
+    const followers = parseInt(_followers);
+
+    resolve(followers);
+  });
+}
+
+export async function getFollowersNumberIframe($html) {
+  return new Promise(async (resolve, reject) => {
+    const $followers = await _waitForElementIframe(
+      $html,
       CSS_SELECTORS.userPageFollowersNumber,
       50,
       20
@@ -504,6 +551,50 @@ export function _waitForElement(selector, delay = 50, tries = 100) {
   }
 }
 
+/* Removes the iframe responsible to load the user page. */
+export function removeIframe() {
+  const $iframe = document.querySelector(`#ezgram-iframe`);
+
+  if (!$iframe) {
+    return;
+  }
+
+  $iframe.remove();
+}
+
+export async function _waitForElementIframe(
+  $html,
+  selector,
+  delay = 50,
+  tries = 100
+) {
+  const element = $html.querySelector(selector);
+
+  if (!window[`__${selector}`]) {
+    window[`__${selector}`] = 0;
+    window[`__${selector}__delay`] = delay;
+    window[`__${selector}__tries`] = tries;
+  }
+
+  function _search() {
+    return new Promise((resolve) => {
+      window[`__${selector}`]++;
+      setTimeout(resolve, window[`__${selector}__delay`]);
+    });
+  }
+
+  if (element === null) {
+    if (window[`__${selector}`] >= window[`__${selector}__tries`]) {
+      window[`__${selector}`] = 0;
+      return Promise.resolve(null);
+    }
+
+    return _search().then(() => _waitForElementIframe($html, selector));
+  } else {
+    return Promise.resolve(element);
+  }
+}
+
 export function _sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -638,7 +729,7 @@ export async function convertImageToBase64(image) {
 export async function doesUserHaveProfileImage($image) {
   return new Promise(async (resolve, reject) => {
     const base64 = await convertImageToBase64($image);
-    const defaultImage = `,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAAAXNSR0IArs4c6QAAAD9JREFUSEvt07ENADAIA0HYf2inT++kOQYA6fRsksyHWYdfqaN+JT2oUdcExFWjvRejRl0TEFeN1h+LS1w1gQOnRHencv/3nwAAAABJRU5ErkJggg==`;
+    const defaultImage = `iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAAAXNSR0IArs4c6QAAAD9JREFUSEvt07ENADAIA0HYf2inT++kOQYA6fRsksyHWYdfqaN+JT2oUdcExFWjvRejRl0TEFeN1h+LS1w1gQOnRHencv/3nwAAAABJRU5ErkJ`;
 
     if (base64.includes(defaultImage)) {
       resolve(false);

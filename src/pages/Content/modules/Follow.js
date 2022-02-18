@@ -36,6 +36,10 @@ import {
   getTypeOfFollowButtonOnUserPage,
   getPostsNumber,
   stopExecuting,
+  _waitForElementIframe,
+  getFollowersNumberIframe,
+  removeIframe,
+  randomUniqueIntegers,
 } from './utils';
 
 import { resolveConfig } from 'prettier';
@@ -72,12 +76,32 @@ const Follow = () => {
 
   const [closeTabDelayMin, setCloseTabDelayMin] = useStickyState(
     '@closeTabDelayMin',
-    3
+    1
   );
   const [closeTabDelayMax, setCloseTabDelayMax] = useStickyState(
     '@closeTabDelayMax',
-    4
+    2
   );
+
+  /* Liking posts 
+  ==================================== */
+  const [likePosts, setLikePosts] = useStickyState('@likePosts', true); //like posts?
+  const [likeFirstXPosts, setLikeFirstXPosts] = useStickyState(
+    '@likeFirstXPosts',
+    10
+  ); //randomly choose X of the first user posts and like them.
+
+  /* Loading user error
+  ===================================== */
+  const [iframeRestartTime, setIframeRestartTime] = useStickyState(
+    '@iframeRestartTime',
+    30
+  ); //if iframe does not load, wait for X minutes and reload page.
+
+  const [iframeWaitLimit, setIframeWaitLimit] = useStickyState(
+    '@iframeWaitLimit',
+    30
+  ); //wait X seconds for iframe to load
 
   /* Following limit 
   ==================================== */
@@ -99,6 +123,11 @@ const Follow = () => {
 
   const [followersMax, setFollowersMax] = useStickyState('@followersMax', 5000); //if user has more than this followers, ignore.
 
+  const [storeSkippedUser, setStoreSkippedUser] = useStickyState(
+    '@storeSkippedUser',
+    true
+  ); //if user does not meet the limits (followings, followers, etc) store it in the database
+
   /* === */
   const INTERACTION_DELAY_MIN = 800;
   const INTERACTION_DELAY_MAX = 1200;
@@ -106,8 +135,8 @@ const Follow = () => {
   const LIKING_POSTS_DELAY_MIN = 3000;
   const LIKING_POSTS_DELAY_MAX = 5000;
 
-  const LIKING_POSTS_MIN = 1;
-  const LIKING_POSTS_MAX = 2;
+  const LIKING_POSTS_MIN = 2;
+  const LIKING_POSTS_MAX = 5;
 
   const LIKING_POSTS_LIMIT = randomIntFromInterval(
     LIKING_POSTS_MIN,
@@ -138,6 +167,8 @@ const Follow = () => {
 
   async function clickOnEachUser() {
     let ignored = 0;
+    let ignoredUser;
+    let successfullyFollowed = 0;
 
     for (let i = 1; i <= limit + ignored; i++) {
       const DELAY_BETWEEN_USERS = randomIntFromInterval(
@@ -174,6 +205,14 @@ const Follow = () => {
           continue;
         }
 
+        ignoredUser = await actions.getIgnoredUser(user);
+
+        if (ignoredUser) {
+          updateLog(`You have unfollowed this user in the past. Skipping...`);
+          ignoredUser++;
+          continue;
+        }
+
         if (!$button) {
           updateLog(`Button not found ${i}`);
         }
@@ -205,56 +244,36 @@ const Follow = () => {
           'waiting...'
         );
 
-        updateLog(`Opening <b>${user}</b> page...`);
-
         await _sleep(150);
 
-        const tab = JSON.parse(
-          window.localStorage.getItem(LOCAL_STORAGE.originalTab)
-        );
+        const result = await openIframe(url);
 
-        chrome.runtime.sendMessage(
-          {
-            type: 'openNewTab',
-            message: {
-              url,
-              tab,
-            },
-          },
+        updateLog(`Opening <b>${user}</b> page...`);
 
-          function (data) {
-            console.log('new tab data', data);
-            if (!data) {
-              window.localStorage.removeItem(
-                LOCAL_STORAGE.interactingWithUserInNewTab
-              );
-            }
+        /* TODO
+        - add a while loop that repeats every 1 second. 
+        - while the #ezgram-iframe is empty, keep looping.
+        - if 30 seconds pass by and the iframe does not load, refresh page and restart automatically.
+        
+        options to give control:
+        
+        - seconds to wait for iframe to load;
+        - restart after X minutes if iframe failed to load (server rejected)
 
-            if (data.type === 'openNewTab') {
-              updateLog(`Interacting with <b>${user}</b> in a new tab.<br />`);
+        */
 
-              const newTab = JSON.stringify(data.tab);
+        await _sleep(INTERACTION_DELAY);
 
-              window.localStorage.setItem(
-                LOCAL_STORAGE.interactingWithUserInNewTab,
-                user
-              );
-
-              window.localStorage.setItem(LOCAL_STORAGE.newTab, newTab);
-            }
-          }
-        );
-
-        while (
-          window.localStorage.getItem(LOCAL_STORAGE.interactingWithUserInNewTab)
-        ) {
-          console.log(
-            window.localStorage.getItem(
-              LOCAL_STORAGE.interactingWithUserInNewTab
-            )
-          );
-          await _sleep(INTERACTION_DELAY);
-        }
+        // while (
+        //   window.localStorage.getItem(LOCAL_STORAGE.interactingWithUserInNewTab)
+        // ) {
+        //   console.log(
+        //     window.localStorage.getItem(
+        //       LOCAL_STORAGE.interactingWithUserInNewTab
+        //     )
+        //   );
+        //   await _sleep(INTERACTION_DELAY);
+        // }
 
         if (
           window.localStorage.getItem(LOCAL_STORAGE.interactionResult) !==
@@ -262,6 +281,7 @@ const Follow = () => {
         ) {
           updateLog(`<span style="color:green;">Successfully followed!</span>`);
           window.localStorage.removeItem(LOCAL_STORAGE.interactionResult);
+          successfullyFollowed += 1;
         } else {
           updateLog(
             `<b>${interactingWithUser}</b> was <b>not</b> followed, the user does not match your settings.`
@@ -269,11 +289,13 @@ const Follow = () => {
           ignored += 1;
         }
 
-        if (i - ignored >= limit) {
+        if (successfullyFollowed > limit + ignored) {
           break;
         }
 
-        updateLog(`<br /><b>Following: ${i - ignored} / ${limit}</b> <br />`);
+        updateLog(
+          `<br /><b>Following: ${successfullyFollowed} / ${limit}</b> <br />`
+        );
         updateLog(`<br /><b>Ignored: ${ignored}</b> <br /><br />`);
 
         updateLog(
@@ -300,9 +322,9 @@ const Follow = () => {
   }
 
   /* Currently not working with randomization. It will like each individual post, one by one.*/
-  async function likeRandomPosts() {
+  async function likeRandomPosts($html) {
     return new Promise(async (resolve, reject) => {
-      const type = await getTypeOfFollowButtonOnUserPage();
+      const type = await getTypeOfFollowButtonOnUserPage($html);
 
       if (type === 'private') {
         updateLog(`This is a private account.`);
@@ -310,13 +332,18 @@ const Follow = () => {
         return;
       }
 
-      const posts = await getPostsNumber();
+      const posts = await getPostsNumber($html);
 
       const limit = LIKING_POSTS_LIMIT >= posts ? posts : LIKING_POSTS_LIMIT;
 
       updateLog(`Preparing to like ${limit} posts...`);
 
-      const _$post = await _waitForElement(CSS_SELECTORS.userPagePosts, 50, 20);
+      const _$post = await _waitForElementIframe(
+        $html,
+        CSS_SELECTORS.userPagePosts,
+        50,
+        20
+      );
 
       if (!_$post) {
         updateLog(`There are no posts.`);
@@ -327,6 +354,8 @@ const Follow = () => {
       let ignored = 0;
       let liked = 0;
       var postY = 0;
+
+      const randomPosts = randomUniqueIntegers(likeFirstXPosts, limit);
 
       /* The instagram posts are divided like 3 posts in 1 div. 
 
@@ -357,10 +386,11 @@ const Follow = () => {
         );
 
         if (index >= 3 && i % 4 === 1) {
-          await scrollDownUserPage();
+          await scrollDownUserPage($html);
         }
 
-        var $post = await _waitForElement(
+        var $post = await _waitForElementIframe(
+          $html,
           `main div >article > div > div > div:nth-child(${postY}) > div:nth-child(${postX}) a[href*='/p']`,
           250,
           10
@@ -379,16 +409,16 @@ const Follow = () => {
 
         await _sleep(LIKING_POSTS_DELAY);
 
-        const $close = document.querySelector(
-          CSS_SELECTORS.postPageCloseButton
-        );
+        const $close = $html.querySelector(CSS_SELECTORS.postPageCloseButton);
 
-        const $like = await _waitForElement(
+        const $like = await _waitForElementIframe(
+          $html,
           CSS_SELECTORS.postPageLikeButton,
           100,
           5
         );
-        const $unlike = await _waitForElement(
+        const $unlike = await _waitForElementIframe(
+          $html,
           CSS_SELECTORS.postPageUnlikeButton,
           100,
           5
@@ -482,6 +512,9 @@ const Follow = () => {
   */
   async function finishInteraction(result = 'fail') {
     return new Promise(async (resolve, reject) => {
+      const user = localStorage.getItem(
+        LOCAL_STORAGE.interactingWithUserInNewTab
+      );
       updateLog(`Interaction completed.`);
 
       setInteractingWithUser('');
@@ -491,9 +524,10 @@ const Follow = () => {
         closeTabDelayMin * 1000,
         closeTabDelayMax * 1000
       );
-      await _sleep(delay);
 
-      updateLog(`<br />Closing tab in <b>${delay / 1000}</b> seconds.`);
+      updateLog(`<br />Closing user page in <b>${delay / 1000}</b> seconds.`);
+
+      await _sleep(delay);
 
       const originalTab = JSON.parse(
         window.localStorage.getItem(LOCAL_STORAGE.originalTab)
@@ -505,25 +539,39 @@ const Follow = () => {
 
       window.localStorage.removeItem(LOCAL_STORAGE.interactingWithUserInNewTab);
 
-      try {
-        chrome.runtime.sendMessage(
-          {
-            type: 'closeTab',
-            message: {
-              newTab,
-              originalTab,
-            },
-          },
-          function (data) {
-            if (data.type === 'closeTab') {
-              resolve(true);
-            }
-          }
-        );
-      } catch (err) {
-        alert('error: unable to close tab.');
+      if (storeSkippedUser) {
+        await actions.addIgnoredUser({ user });
       }
+
+      removeIframe();
+
+      await _sleep(100);
+
+      resolve(true);
     });
+  }
+
+  /* 
+  If user page was not loaded, refresh page and restart following.
+  */
+  async function checkIfMustRestartFollow() {
+    const restart = localStorage.getItem(LOCAL_STORAGE.restartFollow);
+
+    if (!restart) {
+      return;
+    }
+
+    updateLog(`Automatically restarting follow...`);
+
+    localStorage.removeItem(LOCAL_STORAGE.restartFollow);
+
+    await _sleep(1000);
+
+    const $follow = document.querySelector(`#ezgram .Follow button`);
+
+    if ($follow) {
+      $follow.click();
+    }
   }
 
   async function start() {
@@ -545,11 +593,12 @@ const Follow = () => {
     clickOnEachUser();
   }
 
-  async function clickOnFollowButton() {
+  async function clickOnFollowButton($html) {
     return new Promise(async (resolve, reject) => {
-      const $button = await _waitForElement(
+      const $button = await _waitForElementIframe(
+        $html,
         CSS_SELECTORS.userPageFollowButton,
-        30,
+        100,
         10
       );
 
@@ -568,7 +617,8 @@ const Follow = () => {
 
       $button.click();
 
-      const $unfollow = await _waitForElement(
+      const $unfollow = await _waitForElementIframe(
+        $html,
         CSS_SELECTORS.userPageUnfollowButton,
         200,
         10
@@ -588,133 +638,226 @@ const Follow = () => {
     });
   }
 
-  async function startInteractingWithUserInNewTab() {
-    const currentUser = window.location.pathname.replaceAll('/', '');
+  async function openIframe(src, $parent) {
+    let tries = 0;
+    const delay = 1000;
 
-    if (
-      interactingWithUser !== currentUser ||
-      interactingWithUser === '' ||
-      !interactingWithUser
-    ) {
-      setInteractingWithUser('');
-      return;
-    }
+    return new Promise(async (resolve, reject) => {
+      const html = `<iframe src="" id="ezgram-iframe"></iframe>`;
+      let $iframe = document.querySelector(`#ezgram-iframe`);
 
-    await _waitForElement(CSS_SELECTORS.userPageProfileImage, 100, 10);
+      if (!$iframe) {
+        const $body = document.querySelector(`body`);
+        $body.insertAdjacentHTML('beforeend', html);
 
-    updateLog(
-      `<span style="font-size: 25px;">Please don't change or close this tab.</span><br /><br />`
-    );
+        await _sleep(50);
+        $iframe = document.querySelector(`#ezgram-iframe`);
+      }
 
-    updateLog(`Interacting with <b>${interactingWithUser}</b>.`);
+      $iframe.setAttribute('src', src);
 
-    /* 
-      TODO
-      Must check if there are enough posts to like.
-      */
+      $iframe.addEventListener('load', async function () {
+        while (!$iframe.contentDocument) {
+          tries += 1;
 
-    const ignored = await actions.getIgnoredUser(interactingWithUser);
+          if (tries > iframeWaitLimit) {
+            updateLog(
+              `User page failed to load. <b>Waiting ${iframeRestartTime} minute(s) before reloading.</b>`
+            );
+            iframeFailedToLoad();
+            break;
+          }
 
-    if (ignored) {
-      updateLog(`You have unfollowed this user in the past.`);
-      await _sleep(100);
-      await finishInteraction('fail');
-    }
+          updateLog(
+            `waiting for user page to load... ${tries} / ${iframeWaitLimit}`
+          );
+          await _sleep(delay);
+        }
 
-    const followType = await getTypeOfFollowButtonOnUserPage();
+        const $html = $iframe.contentDocument.querySelector(`html`);
 
-    if (!followType) {
-      updateLog('ERROR: Unable to identify type of follow button.');
-    }
+        await startInteractingWithUserInNewTab($html);
+        resolve(true);
+      });
+    });
+  }
 
-    if (followType === 'unfollow') {
-      updateLog(`You are already following this user.`);
-      await _sleep(100);
-      await finishInteraction('fail');
-    }
+  /* If the iframe fails to load, wait for X seconds and refresh. */
+  async function iframeFailedToLoad() {
+    return new Promise(async (resolve, reject) => {
+      await _sleep(iframeRestartTime * 60000);
+      localStorage.setItem(LOCAL_STORAGE.restartFollow, 'true');
+      window.location.reload();
+      resolve();
+    });
+  }
 
-    const isPrivate = await isPrivateAccount();
+  async function startInteractingWithUserInNewTab($html) {
+    return new Promise(async (resolve, reject) => {
+      const $currentUser = await _waitForElementIframe(
+        $html,
+        CSS_SELECTORS.userPageUsername,
+        100,
+        10
+      );
+      const currentUser = $currentUser.textContent.trim();
 
-    if (SKIP_PRIVATE_ACCOUNT) {
-      if (isPrivate) {
-        updateLog(`This is a private account. Skipping...`);
+      localStorage.setItem(
+        LOCAL_STORAGE.interactingWithUserInNewTab,
+        currentUser
+      );
+
+      updateLog(`Iframe of the user:`, currentUser);
+
+      if ($html) {
+        updateLog(`Page loaded successfully.`);
+      }
+      await _waitForElementIframe(
+        $html,
+        CSS_SELECTORS.userPageProfileImage,
+        30,
+        10
+      );
+
+      updateLog(
+        `<span style="font-size: 25px;">Please don't change or close this tab.</span><br /><br />`
+      );
+
+      updateLog(`Interacting with <b>${currentUser}</b>.`);
+
+      /* 
+        TODO
+        Must check if there are enough posts to like.
+        */
+
+      const ignored = await actions.getIgnoredUser(currentUser);
+
+      if (ignored) {
+        updateLog(`You have unfollowed this user in the past.`);
         await _sleep(100);
         await finishInteraction('fail');
+        resolve(true);
+        return;
       }
-    }
 
-    const posts = await getPostsNumber();
-    const following = await getFollowingNumber();
-    const followers = await getFollowersNumber();
+      const followType = await getTypeOfFollowButtonOnUserPage($html);
 
-    updateLog(`Checking posts number...`);
+      if (!followType) {
+        updateLog('ERROR: Unable to identify type of follow button.');
+        resolve(true);
+        return;
+      }
 
-    if (posts <= 0 && SKIP_ACCOUNTS_WITH_NO_POSTS) {
-      updateLog(`<b>${interactingWithUser}</b> has no posts. Skipping...`);
-
-      await finishInteraction('fail');
-      return;
-    }
-
-    updateLog(`Checking following number...`);
-
-    if (!(await isFollowingEnough(following))) {
-      updateLog(
-        `<b>${interactingWithUser}</b> is following <b>${following}</b> user(s), this is off your limits.`
-      );
-
-      await finishInteraction('fail');
-      return;
-    }
-
-    updateLog(`Checking followers number...`);
-
-    if (!(await isFollowersEnough(followers))) {
-      updateLog(
-        `<b>${interactingWithUser}</b> has <b>${followers}</b> follower(s), this is off your limits.`
-      );
-
-      await finishInteraction('fail');
-      return;
-    }
-
-    updateLog(`<br /><br />`);
-
-    if (posts >= 1 && !isPrivate) {
-      try {
-        await likeRandomPosts();
-      } catch (err) {
-        updateLog(`No posts found.`);
+      if (followType === 'unfollow') {
+        updateLog(`You are already following this user.`);
+        await _sleep(100);
         await finishInteraction('fail');
+        resolve(true);
+        return;
       }
-    }
 
-    /*
-    TODO
-    Differentiate between requesting to follow & follow */
+      const isPrivate = await isPrivateAccount($html);
 
-    updateLog(`Clicking on the "follow" button...`);
+      if (SKIP_PRIVATE_ACCOUNT) {
+        if (isPrivate) {
+          updateLog(`This is a private account. Skipping...`);
+          await _sleep(100);
+          await finishInteraction('fail');
+          resolve(true);
+          return;
+        }
+      }
 
-    try {
-      await clickOnFollowButton();
-    } catch (err) {
-      updateLog(`Something went wrong while clicking on the follow button.`);
-      await finishInteraction('fail');
-    }
+      const posts = await getPostsNumber($html);
+      const following = await getFollowingNumber($html);
+      const followers = await getFollowersNumberIframe($html);
 
-    updateLog(`Ending interaction...`);
-    /* Todo */
+      updateLog(
+        `Post: ${posts} -- followers: ${followers} -- following: ${following}`
+      );
 
-    //watchStories()
+      updateLog(`Checking posts number...`);
 
-    await _sleep(randomIntFromInterval(800, 1200));
+      if (posts <= 0 && SKIP_ACCOUNTS_WITH_NO_POSTS) {
+        updateLog(`<b>${currentUser}</b> has no posts. Skipping...`);
 
-    await finishInteraction('success');
+        await finishInteraction('fail');
+        resolve(true);
+        return;
+      }
+
+      updateLog(`Checking following number...`);
+
+      if (!(await isFollowingEnough(following))) {
+        updateLog(
+          `<b>${currentUser}</b> is following <b>${following}</b> user(s), this is off your limits.`
+        );
+
+        await finishInteraction('fail');
+        resolve(true);
+        return;
+      }
+
+      updateLog(`Checking followers number...`);
+
+      if (!(await isFollowersEnough(followers))) {
+        updateLog(
+          `<b>${currentUser}</b> has <b>${followers}</b> follower(s), this is off your limits.`
+        );
+
+        await finishInteraction('fail');
+        resolve(true);
+        return;
+      }
+
+      updateLog(`<br /><br />`);
+
+      if (posts >= 1 && !isPrivate && likePosts) {
+        try {
+          await likeRandomPosts($html);
+        } catch (err) {
+          updateLog(`No posts found.`);
+          await finishInteraction('fail');
+          resolve(true);
+          return;
+        }
+      }
+
+      /*
+      TODO
+      Differentiate between requesting to follow & follow */
+
+      updateLog(`Clicking on the "follow" button...`);
+
+      try {
+        await clickOnFollowButton($html);
+      } catch (err) {
+        updateLog(`Something went wrong while clicking on the follow button.`);
+        await finishInteraction('fail');
+        resolve(true);
+        return;
+      }
+
+      updateLog(`Ending interaction...`);
+      /* Todo */
+
+      //watchStories()
+
+      await _sleep(randomIntFromInterval(800, 1200));
+
+      await finishInteraction('success');
+      resolve(true);
+    });
   }
 
   useEffect(() => {
     (async () => {
-      startInteractingWithUserInNewTab();
+      await _sleep(1000);
+      const $html = document.querySelector(`html`);
+      likeRandomPosts($html);
+
+      checkIfMustRestartFollow();
+      // startInteractingWithUserInNewTab();
 
       const _user = window.location.pathname.replaceAll('/', '');
 

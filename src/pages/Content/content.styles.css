@@ -1,1 +1,1 @@
-#ezgram .input-group{-webkit-box-orient:horizontal;-webkit-box-direction:normal;-ms-flex-direction:row;flex-direction:row}
+#ezgram .input-group{flex-direction:row}#ezgram-iframe{position:fixed;top:0;right:0;z-index:1000000000000000300000000 !important;width:500px;height:500px;border:1px solid gray}
