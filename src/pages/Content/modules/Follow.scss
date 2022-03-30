@@ -1,8 +1,27 @@
 $slider-width: 300px;
 
 .Follow {
+  // overflow-x: hidden;
   .form-label {
     width: 100%;
+    font-size: 13.5px;
+    margin-bottom: 5px;
+    line-height: 35px;
+
+    input {
+      display: inline-block;
+      max-width: 60px;
+      width: 100%;
+
+      margin-right: 5px !important;
+      margin-left: 5px !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+    }
+
+    > * {
+      display: inline-block !important;
+    }
   }
 
   &-slider {
@@ -52,5 +71,18 @@ $slider-width: 300px;
       display: flex;
       flex-direction: row;
     }
+  }
+
+  &-hr {
+    opacity: 1 !important;
+    background: #e1e1e1 !important;
+  }
+
+  &-label {
+    margin-bottom: 5px;
+  }
+
+  &-text-separator {
+    text-align: center;
   }
 }

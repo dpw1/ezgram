@@ -68,46 +68,58 @@ const Follow = () => {
   const [delayBetweenUsersMin, setDelayBetweenUsersMin] = useStickyState(
     '@delayBetweenUsersMin',
     4
-  );
+  ); //wait a minimum of X seconds before clicking on the next user
   const [delayBetweenUsersMax, setDelayBetweenUsersMax] = useStickyState(
     '@delayBetweenUsersMax',
     5
-  );
+  ); //wait a maximum of X seconds before clicking on the next user
 
-  const [closeTabDelayMin, setCloseTabDelayMin] = useStickyState(
-    '@closeTabDelayMin',
+  const [closeIframeDelayMin, setCloseIframeDelayMin] = useStickyState(
+    '@closeIframeDelayMin',
     1
   );
-  const [closeTabDelayMax, setCloseTabDelayMax] = useStickyState(
-    '@closeTabDelayMax',
+  const [closeIframeDelayMax, setCloseIframeDelayMax] = useStickyState(
+    '@closeIframeDelayMax',
     2
   );
 
   /* Liking posts 
   ==================================== */
-  const [likePosts, setLikePosts] = useStickyState('@likePosts', true); //like posts?
+  const [likePosts, setLikePosts] = useStickyState('@likePosts', 'true'); //like posts?
   const [likeFirstXPosts, setLikeFirstXPosts] = useStickyState(
     '@likeFirstXPosts',
-    10
-  ); //randomly choose X of the first user posts and like them.
+    20
+  ); // randomly choose X of the first user posts and like them. if the user has less posts than this number, use number of posts instead.
+
+  const [likePostsMin, setLikePostsMin] = useStickyState('@likePostsMin', 2);
+  const [likePostsMax, setLikePostsMax] = useStickyState('@likePostsMax', 2);
+
+  const [likePostsDelayMin, setLikePostsDelayMin] = useStickyState(
+    '@likePostsDelayMin',
+    3
+  );
+  const [likePostsDelayMax, setLikePostsDelayMax] = useStickyState(
+    '@likePostsDelayMax',
+    5
+  );
 
   /* Loading user error
   ===================================== */
   const [iframeRestartTime, setIframeRestartTime] = useStickyState(
     '@iframeRestartTime',
-    30
-  ); //if iframe does not load, wait for X minutes and reload page.
+    5
+  ); // if iframe does not load, wait for X minutes and reload page.
 
   const [iframeWaitLimit, setIframeWaitLimit] = useStickyState(
     '@iframeWaitLimit',
     30
-  ); //wait X seconds for iframe to load
+  ); // wait X seconds for iframe to load
 
   /* Following limit 
   ==================================== */
   const [followingLimit, setFollowingLimit] = useStickyState(
     '@followingLimit',
-    false
+    'false'
   );
   const [followingMin, setFollowingMin] = useStickyState('@followingMin', 0); //if user has less than this following number, ignore.
 
@@ -125,25 +137,27 @@ const Follow = () => {
 
   const [storeSkippedUser, setStoreSkippedUser] = useStickyState(
     '@storeSkippedUser',
-    true
+    'true'
   ); //if user does not meet the limits (followings, followers, etc) store it in the database
+
+  const [skipUserWithoutProfileImage, setSkipUserWithoutProfileImage] =
+    useStickyState('@skipUserWithoutProfileImage', true);
+
+  const [skipAccountWithNoPosts, setSkipAccountWithNoPosts] = useStickyState(
+    '@skipAccountWithNoPosts',
+    false
+  );
+
+  const [skipPrivateAccounts, setSkipPrivateAccounts] = useStickyState(
+    '@skipPrivateAccounts',
+    false
+  );
 
   /* === */
   const INTERACTION_DELAY_MIN = 800;
   const INTERACTION_DELAY_MAX = 1200;
 
-  const LIKING_POSTS_DELAY_MIN = 3000;
-  const LIKING_POSTS_DELAY_MAX = 5000;
-
-  const LIKING_POSTS_MIN = 2;
-  const LIKING_POSTS_MAX = 5;
-
-  const LIKING_POSTS_LIMIT = randomIntFromInterval(
-    LIKING_POSTS_MIN,
-    LIKING_POSTS_MAX
-  );
-
-  const SKIP_USER_WITHOUT_PROFILE_IMAGE = false;
+  const SKIP_USER_WITHOUT_PROFILE_IMAGE = true;
   const SKIP_ACCOUNTS_WITH_NO_POSTS = false;
   const SKIP_PRIVATE_ACCOUNT = false;
 
@@ -246,9 +260,7 @@ const Follow = () => {
 
         await _sleep(150);
 
-        const result = await openIframe(url);
-
-        updateLog(`Opening <b>${user}</b> page...`);
+        await openIframe(url);
 
         /* TODO
         - add a while loop that repeats every 1 second. 
@@ -287,6 +299,8 @@ const Follow = () => {
             `<b>${interactingWithUser}</b> was <b>not</b> followed, the user does not match your settings.`
           );
           ignored += 1;
+          await _sleep(2000);
+          continue;
         }
 
         if (successfullyFollowed > limit + ignored) {
@@ -321,9 +335,13 @@ const Follow = () => {
     */
   }
 
-  /* Currently not working with randomization. It will like each individual post, one by one.*/
   async function likeRandomPosts($html) {
     return new Promise(async (resolve, reject) => {
+      const LIKING_POSTS_LIMIT = randomIntFromInterval(
+        likePostsMin,
+        likePostsMax
+      );
+
       const type = await getTypeOfFollowButtonOnUserPage($html);
 
       if (type === 'private') {
@@ -331,12 +349,6 @@ const Follow = () => {
         reject(null);
         return;
       }
-
-      const posts = await getPostsNumber($html);
-
-      const limit = LIKING_POSTS_LIMIT >= posts ? posts : LIKING_POSTS_LIMIT;
-
-      updateLog(`Preparing to like ${limit} posts...`);
 
       const _$post = await _waitForElementIframe(
         $html,
@@ -351,11 +363,25 @@ const Follow = () => {
         return;
       }
 
+      const posts = await getPostsNumber($html);
+
+      const totalPostsToLike =
+        LIKING_POSTS_LIMIT >= posts ? posts : LIKING_POSTS_LIMIT;
+      const availablePosts = likeFirstXPosts > posts ? posts : likeFirstXPosts;
+
+      updateLog(
+        `Preparing to like <b>${totalPostsToLike}</b> random posts from the first <b>${availablePosts}</b> posts...`
+      );
+
       let ignored = 0;
       let liked = 0;
-      var postY = 0;
 
-      const randomPosts = randomUniqueIntegers(likeFirstXPosts, limit);
+      let LIKING_POSTS_DELAY;
+
+      const randomPosts = randomUniqueIntegers(
+        availablePosts,
+        totalPostsToLike
+      );
 
       /* The instagram posts are divided like 3 posts in 1 div. 
 
@@ -369,20 +395,19 @@ const Follow = () => {
       using mods of the current for loop index.
       */
 
-      let LIKING_POSTS_DELAY;
-
-      for (let i = 1; i <= limit + ignored; i++) {
+      for (var [i, each] of randomPosts.entries()) {
         const index = i + ignored;
 
-        var postX = ((i - 1) % 3) + 1;
+        let postX = each % 3 === 0 ? 3 : each % 3;
+        let postY = Math.ceil(each / 3);
 
-        if (i % 3 === 1) {
-          postY += 1;
+        if (each % 12 === 0) {
+          await scrollDownUserPage($html);
         }
 
         LIKING_POSTS_DELAY = randomIntFromInterval(
-          LIKING_POSTS_DELAY_MIN,
-          LIKING_POSTS_DELAY_MAX
+          likePostsDelayMin * 1000,
+          likePostsDelayMax * 1000
         );
 
         if (index >= 3 && i % 4 === 1) {
@@ -398,13 +423,12 @@ const Follow = () => {
 
         await _sleep(randomIntFromInterval(900, 3000));
 
-        if (!$post) {
-        }
-
         $post.click();
 
         updateLog(
-          `Post opened. Awaiting <b>${LIKING_POSTS_DELAY / 1000}</b> seconds.`
+          `<b>Post ${each} opened.</b>  Awaiting <b>${
+            LIKING_POSTS_DELAY / 1000
+          }</b> seconds.`
         );
 
         await _sleep(LIKING_POSTS_DELAY);
@@ -443,8 +467,8 @@ const Follow = () => {
         }
 
         LIKING_POSTS_DELAY = randomIntFromInterval(
-          LIKING_POSTS_DELAY_MIN,
-          LIKING_POSTS_DELAY_MAX
+          likePostsDelayMin * 1000,
+          likePostsDelayMax * 1000
         );
 
         updateLog(`Waiting <b>${LIKING_POSTS_DELAY / 1000}</b> seconds.<br/>`);
@@ -454,7 +478,7 @@ const Follow = () => {
         $close.click();
 
         updateLog(`Moving to the next post... <br />`);
-        updateLog(`Posts liked: <b>${i} / ${LIKING_POSTS_LIMIT}</b><br />`);
+        updateLog(`Posts liked: <b>${liked} / ${LIKING_POSTS_LIMIT}</b><br />`);
         await _sleep(randomIntFromInterval(500, 800));
       }
 
@@ -469,7 +493,7 @@ const Follow = () => {
 
   async function isFollowingEnough(following) {
     return new Promise(async (resolve, reject) => {
-      if (!followingLimit) {
+      if (followingLimit === 'false') {
         resolve(true);
       }
 
@@ -521,8 +545,8 @@ const Follow = () => {
       window.localStorage.setItem(LOCAL_STORAGE.interactionResult, result);
 
       const delay = randomIntFromInterval(
-        closeTabDelayMin * 1000,
-        closeTabDelayMax * 1000
+        closeIframeDelayMin * 1000,
+        closeIframeDelayMax * 1000
       );
 
       updateLog(`<br />Closing user page in <b>${delay / 1000}</b> seconds.`);
@@ -575,8 +599,6 @@ const Follow = () => {
   }
 
   async function start() {
-    updateLog(`starting...`);
-
     const currentUsername = window.location.pathname.replaceAll(`/`, '').trim();
 
     if (!isRefreshingPage) {
@@ -656,39 +678,49 @@ const Follow = () => {
 
       $iframe.setAttribute('src', src);
 
-      $iframe.addEventListener('load', async function () {
-        while (!$iframe.contentDocument) {
-          tries += 1;
-
-          if (tries > iframeWaitLimit) {
-            updateLog(
-              `User page failed to load. <b>Waiting ${iframeRestartTime} minute(s) before reloading.</b>`
-            );
-            iframeFailedToLoad();
-            break;
-          }
-
-          updateLog(
-            `waiting for user page to load... ${tries} / ${iframeWaitLimit}`
-          );
-          await _sleep(delay);
+      /* Error handling - checks whether the iframe has loaded.
+      
+      If it has not, reload page.
+      
+      TODO: 
+      
+      - ensure it continues from where it stopped ("follow limit")
+      - consider adding a boolean to prevent this set timeout from happening
+      */
+      setTimeout(async () => {
+        if (!$iframe) {
+          return;
         }
 
+        const $content = $iframe.contentDocument.querySelector(`body > * > *`);
+
+        if ($content) {
+          return;
+        }
+
+        updateLog(
+          `User page did not load. Waiting ${iframeRestartTime} minute(s) before reloading.`
+        );
+
+        await _sleep(iframeRestartTime * 60000);
+
+        /* TODO -
+        restartFollow should have the remaining number of folowers needed to continue*/
+        localStorage.setItem(LOCAL_STORAGE.restartFollow, 'true');
+
+        await _sleep(100);
+
+        window.location.reload();
+
+        console.log('xxx iframe content', $content);
+      }, iframeWaitLimit * 1000);
+
+      $iframe.addEventListener('load', async () => {
         const $html = $iframe.contentDocument.querySelector(`html`);
 
         await startInteractingWithUserInNewTab($html);
         resolve(true);
       });
-    });
-  }
-
-  /* If the iframe fails to load, wait for X seconds and refresh. */
-  async function iframeFailedToLoad() {
-    return new Promise(async (resolve, reject) => {
-      await _sleep(iframeRestartTime * 60000);
-      localStorage.setItem(LOCAL_STORAGE.restartFollow, 'true');
-      window.location.reload();
-      resolve();
     });
   }
 
@@ -700,6 +732,11 @@ const Follow = () => {
         100,
         10
       );
+
+      if (!$currentUser) {
+        return;
+      }
+
       const currentUser = $currentUser.textContent.trim();
 
       localStorage.setItem(
@@ -812,7 +849,7 @@ const Follow = () => {
 
       updateLog(`<br /><br />`);
 
-      if (posts >= 1 && !isPrivate && likePosts) {
+      if (posts >= 1 && !isPrivate && likePosts === 'true') {
         try {
           await likeRandomPosts($html);
         } catch (err) {
@@ -852,12 +889,14 @@ const Follow = () => {
 
   useEffect(() => {
     (async () => {
-      await _sleep(1000);
-      const $html = document.querySelector(`html`);
-      likeRandomPosts($html);
+      // await _sleep(1000);
+      // const $html = document.querySelector(`html`);
+      // likeRandomPosts($html);
+
+      // return;
 
       checkIfMustRestartFollow();
-      // startInteractingWithUserInNewTab();
+      startInteractingWithUserInNewTab();
 
       const _user = window.location.pathname.replaceAll('/', '');
 
@@ -869,7 +908,7 @@ const Follow = () => {
 
   return (
     <div className="Follow">
-      <h4 className="h6">Follow user's followers</h4>
+      <h4 className="Follow-label h6">Follow user's followers</h4>
       <hr />
 
       <InputGroup className="mb-3">
@@ -886,6 +925,8 @@ const Follow = () => {
         />
       </InputGroup>
 
+      {/* ## Follow limit
+      ============================================== */}
       <Form.Group className="Follow-option mb-3">
         <Form.Label>Follow limit:</Form.Label>
         <Form.Control
@@ -900,10 +941,27 @@ const Follow = () => {
         />
       </Form.Group>
 
+      {/* 
+      ==============================================
+      ==============================================
+      */}
+
+      <p className="h4 Follow-text-separator">Delays</p>
+
+      {/* 
+      ==============================================
+      ==============================================
+      */}
+
+      {/* ## Clicking on user delay
+      ============================================== */}
+
       <Form.Group className="Follow-option Follow-option--click-delay mb-3">
+        <p className="h6">User clicking</p>
         <Form.Label>
           Wait between <b>{delayBetweenUsersMin}</b> to{' '}
-          <b>{delayBetweenUsersMax}</b> seconds before clicking on each user.
+          <b>{delayBetweenUsersMax}</b> seconds before clicking on each user at
+          the "following" page.
         </Form.Label>
         <div className="Follow-slider">
           <RangeSlider
@@ -923,85 +981,282 @@ const Follow = () => {
             onChange={(e) => setDelayBetweenUsersMax(e.target.value)}
           />
         </div>
+        <hr className="Follow-hr" />
       </Form.Group>
 
-      <div className="Follow-options Follow-options--following">
-        <Form.Group className="Follow-group mb-3">
-          <Form.Check
-            type="switch"
-            id="followingLimitInput"
-            checked={followingLimit}
-            onChange={(e) => {
-              setFollowingLimit(e.target.checked);
-            }}
-            label={`"following" limit`}
-          />
-
-          <div style={{ display: followingLimit ? 'block' : 'none' }}>
-            <Form.Label>
-              Skip user if they are following less than{' '}
-              <b>{followingMin || 'X'}</b> or more than{' '}
-              <b>{followingMax || 'X'}</b> users.
-            </Form.Label>
-
-            <div className="Follow-inputs">
+      {/* ## Close user page delay
+      ============================================== */}
+      <Form.Group className="Follow-option Follow-option--click-delay mb-3">
+        <p className="h6">Close page</p>
+        <Form.Label>
+          Wait between{' '}
+          {
+            <Form.Control
+              type="number"
+              min={1}
+              max={closeIframeDelayMax}
+              value={closeIframeDelayMin}
+              onChange={(e) => {
+                setCloseIframeDelayMin(e.target.value);
+              }}
+            />
+          }{' '}
+          to{' '}
+          <b>
+            {
               <Form.Control
                 type="number"
-                value={followingMin}
+                min={closeIframeDelayMin}
+                max={50}
+                value={closeIframeDelayMax}
                 onChange={(e) => {
-                  setFollowingMin(e.target.value);
+                  setCloseIframeDelayMax(e.target.value);
                 }}
-                placeholder={'Minimum'}
               />
+            }
+          </b>{' '}
+          seconds before closing each user's page.
+        </Form.Label>
+
+        <hr className="Follow-hr" />
+      </Form.Group>
+
+      {/* ## Close user page delay
+      ============================================== */}
+      <Form.Group className="Follow-option Follow-option--click-delay mb-3">
+        <p className="h6">Restart</p>
+
+        <Form.Label>
+          Wait{' '}
+          {
+            <Form.Control
+              type="number"
+              min={1}
+              value={iframeWaitLimit}
+              onChange={(e) => {
+                setIframeWaitLimit(e.target.value);
+              }}
+            />
+          }{' '}
+          seconds to load an user page. If it fails, wait{' '}
+          {
+            <Form.Control
+              type="number"
+              min={1}
+              value={iframeRestartTime}
+              onChange={(e) => {
+                setIframeRestartTime(e.target.value);
+              }}
+            />
+          }{' '}
+          minutes, reload the page and restart.
+        </Form.Label>
+
+        <hr className="Follow-hr" />
+      </Form.Group>
+
+      {/* 
+      ==============================================
+      ==============================================
+      */}
+
+      <p className="h4 Follow-text-separator">Posts</p>
+
+      {/* 
+      ==============================================
+      ==============================================
+      */}
+
+      {/* ## Like posts delay
+      ============================================== */}
+
+      <Form.Check
+        type="switch"
+        id="followingLimitInput"
+        checked={likePosts === 'true' ? true : false}
+        onChange={(e) => {
+          setLikePosts(e.target.checked ? 'true' : 'false');
+        }}
+        label={`Randomly like posts`}
+      />
+
+      <Form.Group
+        style={{ display: likePosts === 'true' ? 'block' : 'none' }}
+        className="Follow-option Follow-option--click-delay mb-3"
+      >
+        <Form.Check
+          className="Follow-"
+          type="switch"
+          id="storeSkippedUserRule"
+          checked={storeSkippedUser === 'true' ? true : false}
+          onChange={(e) => {
+            setStoreSkippedUser(e.target.checked ? 'true' : 'false');
+          }}
+          label={`Add users that do not match the current settings to the ignore list.`}
+        />
+        <p className="h6" style={{ marginTop: 20 }}>
+          Liking
+        </p>
+        <Form.Label>
+          Choose{' '}
+          {
+            <Form.Control
+              type="number"
+              min={1}
+              max={50}
+              value={likeFirstXPosts}
+              onChange={(e) => {
+                setLikeFirstXPosts(e.target.value);
+              }}
+            />
+          }{' '}
+          of the latest user's posts and randomly like between{' '}
+          <b>
+            {
               <Form.Control
                 type="number"
-                value={followingMax}
+                min={1}
+                max={likePostsMax}
+                value={likePostsMin}
                 onChange={(e) => {
-                  setFollowingMax(e.target.value);
+                  setLikePostsMin(e.target.value);
                 }}
-                placeholder={'Maximum'}
               />
+            }
+          </b>{' '}
+          to{' '}
+          <b>
+            {
+              <Form.Control
+                type="number"
+                min={1}
+                max={likeFirstXPosts}
+                value={likePostsMax}
+                onChange={(e) => {
+                  setLikePostsMax(e.target.value);
+                }}
+              />
+            }
+          </b>{' '}
+          of them.
+        </Form.Label>
+
+        <p className="h6">Liking delay</p>
+
+        <div className="Follow--long-input">
+          <Form.Label>
+            Wait between{' '}
+            {
+              <Form.Control
+                type="number"
+                min={1}
+                max={likePostsDelayMax}
+                value={likePostsDelayMin}
+                onChange={(e) => {
+                  setLikePostsDelayMin(e.target.value);
+                }}
+              />
+            }{' '}
+            to{' '}
+            {
+              <Form.Control
+                type="number"
+                min={1}
+                max={30}
+                value={likePostsDelayMax}
+                onChange={(e) => {
+                  setLikePostsDelayMax(e.target.value);
+                }}
+              />
+            }{' '}
+            seconds before clicking on the post's like button.
+          </Form.Label>
+        </div>
+
+        <hr className="Follow-hr" />
+      </Form.Group>
+
+      <p className="h4 Follow-text-separator">Exclusion rules</p>
+
+      <div>
+        <div className="Follow-options Follow-options--following">
+          <Form.Group className="Follow-group mb-3">
+            <Form.Check
+              type="switch"
+              id="followingLimitInput"
+              checked={followingLimit === 'true' ? true : false}
+              onChange={(e) => {
+                setFollowingLimit(e.target.checked ? 'true' : 'false');
+              }}
+              label={`"following" limit`}
+            />
+
+            <div style={{ display: followingLimit ? 'block' : 'none' }}>
+              <Form.Label>
+                Skip user if they are following less than{' '}
+                <b>{followingMin || 'X'}</b> or more than{' '}
+                <b>{followingMax || 'X'}</b> users.
+              </Form.Label>
+
+              <div className="Follow-inputs">
+                <Form.Control
+                  type="number"
+                  value={followingMin}
+                  onChange={(e) => {
+                    setFollowingMin(e.target.value);
+                  }}
+                  placeholder={'Minimum'}
+                />
+                <Form.Control
+                  type="number"
+                  value={followingMax}
+                  onChange={(e) => {
+                    setFollowingMax(e.target.value);
+                  }}
+                  placeholder={'Maximum'}
+                />
+              </div>
             </div>
-          </div>
-        </Form.Group>
+          </Form.Group>
 
-        <Form.Group className="Follow-group mb-3">
-          <Form.Check
-            type="switch"
-            id="followersLimitInput"
-            checked={followersLimit}
-            onChange={(e) => {
-              setFollowersLimit(e.target.checked);
-            }}
-            label={`"followers" limit`}
-          />
+          <Form.Group className="Follow-group mb-3">
+            <Form.Check
+              type="switch"
+              id="followersLimitInput"
+              checked={followersLimit}
+              onChange={(e) => {
+                setFollowersLimit(e.target.checked);
+              }}
+              label={`"followers" limit`}
+            />
 
-          <div style={{ display: followersLimit ? 'block' : 'none' }}>
-            <Form.Label>
-              Skip user if they have less than <b>{followersMin || 'X'}</b> or
-              more than <b>{followersMax || 'X'}</b> followers.
-            </Form.Label>
+            <div style={{ display: followersLimit ? 'block' : 'none' }}>
+              <Form.Label>
+                Skip user if they have less than <b>{followersMin || 'X'}</b> or
+                more than <b>{followersMax || 'X'}</b> followers.
+              </Form.Label>
 
-            <div className="Follow-inputs">
-              <Form.Control
-                type="number"
-                value={followersMin}
-                onChange={(e) => {
-                  setFollowersMin(e.target.value);
-                }}
-                placeholder={'Minimum'}
-              />
-              <Form.Control
-                type="number"
-                value={followersMax}
-                onChange={(e) => {
-                  setFollowersMax(e.target.value);
-                }}
-                placeholder={'Maximum'}
-              />
+              <div className="Follow-inputs">
+                <Form.Control
+                  type="number"
+                  value={followersMin}
+                  onChange={(e) => {
+                    setFollowersMin(e.target.value);
+                  }}
+                  placeholder={'Minimum'}
+                />
+                <Form.Control
+                  type="number"
+                  value={followersMax}
+                  onChange={(e) => {
+                    setFollowersMax(e.target.value);
+                  }}
+                  placeholder={'Maximum'}
+                />
+              </div>
             </div>
-          </div>
-        </Form.Group>
+          </Form.Group>
+        </div>
       </div>
 
       <hr />

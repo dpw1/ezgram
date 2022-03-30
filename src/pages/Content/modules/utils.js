@@ -4,7 +4,9 @@ const striptags = require('striptags');
 /* ====================================== */
 
 export function randomIntFromInterval(min, max) {
-  return Math.floor(Math.random() * (max - min + 1) + min);
+  return Math.floor(
+    Math.random() * (parseInt(max) - parseInt(min) + 1) + parseInt(min)
+  );
 }
 
 export const CSS_SELECTORS = {
@@ -13,6 +15,7 @@ export const CSS_SELECTORS = {
   followingList: `[aria-label][role="dialog"] > div  > div > div:nth-child(3)`,
   followingListUnfollowButton: `div[role="presentation"] ul li button`,
   followingListUnfollowConfirmationButton: `[role="presentation"] + [role="presentation"] button:nth-child(1)`,
+  followingListActionBlocked: `body > div+ div + div + div + div > div > div > div > div  + div > button + button`,
 
   followersList: `[role="presentation"] > div > div > div > div:nth-child(2)`,
   followersNumber: `ul li [href*='followers'] > *`,
@@ -53,7 +56,7 @@ export const LOCAL_STORAGE = {
 };
 
 export function randomUniqueIntegers(total, quantity) {
-  const numbers = Array(total)
+  const numbers = Array(parseInt(total))
     .fill(null)
     .map((_, i) => i + 1);
 
@@ -568,6 +571,9 @@ export async function _waitForElementIframe(
   delay = 50,
   tries = 100
 ) {
+  if (!$html) {
+    return null;
+  }
   const element = $html.querySelector(selector);
 
   if (!window[`__${selector}`]) {
@@ -725,13 +731,26 @@ export async function convertImageToBase64(image) {
   });
 }
 
+export function getPixelColor($image, x, y) {
+  var canvas = document.createElement('canvas');
+  canvas.width = $image.width;
+  canvas.height = $image.height;
+  canvas.getContext('2d').drawImage($image, 0, 0, $image.width, $image.height);
+
+  var pixelData = canvas.getContext('2d').getImageData(x, y, 1, 1).data;
+  var rgba = `${pixelData[0]}, ${pixelData[1]}, ${pixelData[2]}, ${pixelData[3]}`;
+  canvas.remove();
+  return rgba;
+}
+
 /* Checks whether the user has a profile image.  */
 export async function doesUserHaveProfileImage($image) {
   return new Promise(async (resolve, reject) => {
-    const base64 = await convertImageToBase64($image);
-    const defaultImage = `iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAAAXNSR0IArs4c6QAAAD9JREFUSEvt07ENADAIA0HYf2inT++kOQYA6fRsksyHWYdfqaN+JT2oUdcExFWjvRejRl0TEFeN1h+LS1w1gQOnRHencv/3nwAAAABJRU5ErkJ`;
-
-    if (base64.includes(defaultImage)) {
+    if (
+      getPixelColor($image, 20, 1) === '227, 227, 227, 255' &&
+      getPixelColor($image, 10, 1) === '219, 219, 219, 255' &&
+      getPixelColor($image, 15, 15) === '255, 255, 255, 255'
+    ) {
       resolve(false);
     }
 
@@ -853,73 +872,6 @@ export function isObjectEmpty(obj) {
   }
 
   return JSON.stringify(obj) === JSON.stringify({});
-}
-
-export function cleanEcwidProducts(products) {
-  return new Promise((resolve, reject) => {
-    const filtered = products.items.filter((e) => {
-      if (e.enabled) {
-        return e;
-      }
-    });
-
-    resolve(filtered);
-  });
-}
-
-export async function getProductsFromCategory(category) {
-  return new Promise(async (resolve, reject) => {
-    const url = `https://app.ecwid.com/api/v3/61271341/categories?token=public_iNxZWDXrKMZrzGkdBWk3fvcfaJhBVgcm`;
-    let response = await fetch(url);
-    let data = await response.json();
-
-    const _categories = data.items;
-
-    let categories = _categories
-      .filter((e) => {
-        const name = e.name.toLowerCase();
-        const theme = category.toLowerCase();
-
-        if (
-          name.includes(theme) ||
-          name === 'all themes' ||
-          name === 'app functionality'
-        ) {
-          console.log(`${e.name} (${e.id})`);
-          return e;
-        }
-      })
-      .map((e) => e.id);
-
-    const _products = await getProducts();
-
-    /* If the product contains one of the allowed categories, 
-    returns the product */
-    const products = _products
-      .map((e) => {
-        const difference = compareArrays(e.categoryIds, categories);
-
-        console.log('diff', difference, e.name);
-        if (difference.length > 0) {
-          return e;
-        }
-      })
-      .filter((x) => x != null);
-
-    resolve(shuffle(products));
-  });
-}
-
-export function getProducts() {
-  return new Promise(async (resolve, reject) => {
-    const url = `https://app.ecwid.com/api/v3/61271341/products?token=public_iNxZWDXrKMZrzGkdBWk3fvcfaJhBVgcm`;
-    let response = await fetch(url);
-    let data = await response.json();
-
-    const products = await cleanEcwidProducts(data);
-
-    resolve(products);
-  });
 }
 
 export function compareArrays(arr1, arr2) {

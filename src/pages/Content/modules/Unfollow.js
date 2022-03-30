@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import RangeSlider from 'react-bootstrap-range-slider';
@@ -34,17 +34,20 @@ const Unfollow = () => {
     '@unfollowLimit',
     50
   );
+
   const [delayBetweenUnfollowMin, setDelayBetweenUnfollowMin] = useStickyState(
     '@delayBetweenUnfollowMin',
     46
   );
+
   const [delayBetweenUnfollowMax, setDelayBetweenUnfollowMax] = useStickyState(
     '@delayBetweenUnfollowMax',
     68
   );
+
   const [unfollowNonFollowers, setUnfollowNonFollowers] = useStickyState(
     '@unfollowNonFollowers',
-    true
+    'true'
   );
 
   const [localState, localActions] = useLocalStore();
@@ -182,7 +185,7 @@ const Unfollow = () => {
   async function start() {
     await goToProfilePage(state.username);
 
-    if (unfollowNonFollowers) {
+    if (unfollowNonFollowers === 'true') {
       await openFollowersList(state.username);
       await scrollDownFollowersList('all');
       await getFollowersList();
@@ -192,6 +195,10 @@ const Unfollow = () => {
     // await scrollDownFollowingList();
     handleClickOnUnfollowButton();
   }
+
+  useEffect(() => {
+    console.log('value of un', unfollowNonFollowers);
+  }, [unfollowNonFollowers]);
 
   return (
     <div className="Unfollow">
@@ -217,12 +224,8 @@ const Unfollow = () => {
           </Form.Group>
 
           <Form.Group className="Unfollow-option Unfollow-option--click-delay mb-3">
-            <Form.Label>
-              Wait between <b>{delayBetweenUnfollowMin}</b> to{' '}
-              <b>{delayBetweenUnfollowMax}</b> seconds after unfollowing an
-              user.
-            </Form.Label>
-            <div className="Unfollow-slider">
+            <div className="Unfollow-inputfields">
+              {/*               
               <RangeSlider
                 min={5}
                 max={delayBetweenUnfollowMax}
@@ -238,7 +241,34 @@ const Unfollow = () => {
                 max={200}
                 value={delayBetweenUnfollowMax}
                 onChange={(e) => setDelayBetweenUnfollowMax(e.target.value)}
-              />
+              /> */}
+              <Form.Label>
+                <span>Wait between</span>{' '}
+                {
+                  <Form.Control
+                    type="number"
+                    min={3}
+                    max={delayBetweenUnfollowMax}
+                    value={delayBetweenUnfollowMin}
+                    onChange={(e) => setDelayBetweenUnfollowMin(e.target.value)}
+                  />
+                }{' '}
+                <span>to</span>{' '}
+                <b>
+                  {
+                    <Form.Control
+                      type="number"
+                      min={delayBetweenUnfollowMin}
+                      max={9999}
+                      value={delayBetweenUnfollowMax}
+                      onChange={(e) =>
+                        setDelayBetweenUnfollowMax(e.target.value)
+                      }
+                    />
+                  }
+                </b>
+                <span>seconds before closing each user's page.</span>
+              </Form.Label>
             </div>
             <Form.Text className="text-muted">
               45 and 63 are recommended numbers to avoid being action blocked.
@@ -248,9 +278,9 @@ const Unfollow = () => {
           <Form.Check
             type="switch"
             id="custom-switch"
-            checked={unfollowNonFollowers}
+            defaultChecked={unfollowNonFollowers === 'true' ? true : false}
             onChange={(e) => {
-              setUnfollowNonFollowers(e.target.checked);
+              setUnfollowNonFollowers(e.target.checked ? 'true' : 'false');
             }}
             label="Unfollow only who is not following me back"
           />
