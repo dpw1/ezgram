@@ -490,13 +490,14 @@ export async function goToProfilePage(user) {
       alert('no user');
     }
 
-    if (window.location.pathname.includes(user)) {
-      updateLog(`You're already in the profile page.`);
+    const $posts = document.querySelector(CSS_SELECTORS.userPagePostsNumber);
+    if (window.location.pathname.includes(user) && $posts) {
+      updateLog(`You're already at the profile page.`);
       resolve(true);
       return;
     }
 
-    updateLog(`Going to profile page...`);
+    updateLog(`Navigating to profile page...`);
     const $picture = document.querySelector(CSS_SELECTORS.profileDropdownImage);
 
     if (!$picture) {
@@ -686,7 +687,7 @@ export async function openFollowingPage(username) {
 
   await _sleep(50);
 
-  const $followingButton = document.querySelector(css);
+  const $followingButton = await _waitForElement(css);
 
   $followingButton.click();
 

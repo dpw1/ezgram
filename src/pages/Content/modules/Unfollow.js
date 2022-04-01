@@ -92,6 +92,8 @@ const Unfollow = () => {
 
       const found = followers.filter((e) => e === user);
 
+      debugger;
+
       if (found.length > 0) {
         updateLog(`<b>${user}</b> is following you back. Skipping...`);
         ignored += 1;
