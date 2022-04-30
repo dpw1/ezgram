@@ -64,9 +64,8 @@ const Unfollow = () => {
       return;
     }
 
-    const followers = JSON.parse(
-      localStorage.getItem(LOCAL_STORAGE.followersList)
-    );
+    const followers =
+      JSON.parse(localStorage.getItem(LOCAL_STORAGE.followersList)) || [];
 
     let count = 0;
     let ignored = 0;
@@ -91,8 +90,6 @@ const Unfollow = () => {
       const user = $user.getAttribute(`title`);
 
       const found = followers.filter((e) => e === user);
-
-      debugger;
 
       if (found.length > 0) {
         updateLog(`<b>${user}</b> is following you back. Skipping...`);
@@ -193,8 +190,9 @@ const Unfollow = () => {
       await getFollowersList();
     }
 
+    /* Unfollow everyone */
     openFollowingPage(state.username);
-    // await scrollDownFollowingList();
+    await scrollDownFollowingList();
     handleClickOnUnfollowButton();
   }
 

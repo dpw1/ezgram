@@ -148,6 +148,48 @@ export function downloadFile(filename, content) {
   document.body.removeChild(element);
 }
 
+export function createBackupFile() {
+  return new Promise(async (resolve, reject) => {
+    const data = await getChromeStorageData();
+
+    /* Format date */
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+
+    const _date = new Date();
+    const date = `${_date.getDate()}_${
+      months[_date.getMonth()]
+    }_${_date.getFullYear()}`;
+    const hours = _date
+      .toLocaleTimeString('en-US', {
+        // en-US can be set to 'default' to use user's browser settings
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+      .replace(':', '.')
+      .replace(' ', '');
+
+    /* Download file */
+    downloadFile(`ezgram_${date}_${hours}.json`, JSON.stringify(data));
+
+    updateLog(`Exporting ignored users...`);
+
+    resolve();
+  });
+}
+
 export function readImportedFile(file) {
   return new Promise(async (resolve, reject) => {
     var reader = new FileReader();

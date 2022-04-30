@@ -262,30 +262,7 @@ const Follow = () => {
 
         await openIframe(url);
 
-        /* TODO
-        - add a while loop that repeats every 1 second. 
-        - while the #ezgram-iframe is empty, keep looping.
-        - if 30 seconds pass by and the iframe does not load, refresh page and restart automatically.
-        
-        options to give control:
-        
-        - seconds to wait for iframe to load;
-        - restart after X minutes if iframe failed to load (server rejected)
-
-        */
-
         await _sleep(INTERACTION_DELAY);
-
-        // while (
-        //   window.localStorage.getItem(LOCAL_STORAGE.interactingWithUserInNewTab)
-        // ) {
-        //   console.log(
-        //     window.localStorage.getItem(
-        //       LOCAL_STORAGE.interactingWithUserInNewTab
-        //     )
-        //   );
-        //   await _sleep(INTERACTION_DELAY);
-        // }
 
         if (
           window.localStorage.getItem(LOCAL_STORAGE.interactionResult) !==
@@ -308,9 +285,9 @@ const Follow = () => {
         }
 
         updateLog(
-          `<br /><b>Following: ${successfullyFollowed} / ${limit}</b> <br />`
+          `<br /><b>Users followed: ${successfullyFollowed} / ${limit}</b> <br />`
         );
-        updateLog(`<br /><b>Ignored: ${ignored}</b> <br /><br />`);
+        updateLog(`<br /><b>Users skipped: ${ignored}</b> <br /><br />`);
 
         updateLog(
           `<br />Waiting <b>${
@@ -319,6 +296,11 @@ const Follow = () => {
         );
 
         window.localStorage.removeItem(LOCAL_STORAGE.interactionResult);
+
+        if (successfullyFollowed >= limit) {
+          break;
+        }
+
         await _sleep(DELAY_BETWEEN_USERS);
 
         // console.log('res', res);
@@ -328,7 +310,7 @@ const Follow = () => {
       }
     }
 
-    updateLog(`<br />Following completed.`);
+    updateLog(`<br />Following completed. Please refresh the page.`);
 
     /* Todo 
     Add more data here (how many followed, ignored, requested, failed etc)
@@ -955,33 +937,34 @@ const Follow = () => {
 
       {/* ## Clicking on user delay
       ============================================== */}
-
       <Form.Group className="Follow-option Follow-option--click-delay mb-3">
-        <p className="h6">User clicking</p>
         <Form.Label>
-          Wait between <b>{delayBetweenUsersMin}</b> to{' '}
-          <b>{delayBetweenUsersMax}</b> seconds before clicking on each user at
-          the "following" page.
-        </Form.Label>
-        <div className="Follow-slider">
-          <RangeSlider
-            min={1}
-            max={delayBetweenUsersMax}
-            value={delayBetweenUsersMin}
-            onChange={(e) => setDelayBetweenUsersMin(e.target.value)}
-          />
-          <RangeSlider
-            min={
-              delayBetweenUsersMin && delayBetweenUsersMin > 1
-                ? delayBetweenUsersMin
-                : 2
+          <span>Wait between</span>{' '}
+          {
+            <Form.Control
+              type="number"
+              min={3}
+              max={delayBetweenUsersMax}
+              value={delayBetweenUsersMin}
+              onChange={(e) => setDelayBetweenUsersMin(e.target.value)}
+            />
+          }{' '}
+          <span>to</span>{' '}
+          <b>
+            {
+              <Form.Control
+                type="number"
+                min={delayBetweenUsersMin}
+                max={9999}
+                value={delayBetweenUsersMax}
+                onChange={(e) => setDelayBetweenUsersMax(e.target.value)}
+              />
             }
-            max={200}
-            value={delayBetweenUsersMax}
-            onChange={(e) => setDelayBetweenUsersMax(e.target.value)}
-          />
-        </div>
-        <hr className="Follow-hr" />
+          </b>
+          <span>
+            seconds before clicking on each user at the "following" page.
+          </span>
+        </Form.Label>
       </Form.Group>
 
       {/* ## Close user page delay
@@ -1002,19 +985,17 @@ const Follow = () => {
             />
           }{' '}
           to{' '}
-          <b>
-            {
-              <Form.Control
-                type="number"
-                min={closeIframeDelayMin}
-                max={50}
-                value={closeIframeDelayMax}
-                onChange={(e) => {
-                  setCloseIframeDelayMax(e.target.value);
-                }}
-              />
-            }
-          </b>{' '}
+          {
+            <Form.Control
+              type="number"
+              min={closeIframeDelayMin}
+              max={50}
+              value={closeIframeDelayMax}
+              onChange={(e) => {
+                setCloseIframeDelayMax(e.target.value);
+              }}
+            />
+          }{' '}
           seconds before closing each user's page.
         </Form.Label>
 

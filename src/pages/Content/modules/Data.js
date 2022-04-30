@@ -10,6 +10,7 @@ import {
   downloadFile,
   readImportedFile,
   importChromeStorage,
+  createBackupFile,
 } from './utils';
 
 import Unfollow from './Unfollow';
@@ -20,6 +21,7 @@ import TimeAgo from 'javascript-time-ago';
 
 import en from 'javascript-time-ago/locale/en.json';
 import { Button, Form } from 'react-bootstrap';
+import { confirm } from 'react-bootstrap-confirmation';
 
 TimeAgo.addDefaultLocale(en);
 
@@ -52,20 +54,25 @@ const Data = () => {
     setUsers(state.ignoredUsers);
   }, [state.ignoredUsers]);
 
+  const ConfirmButton = () => {
+    const display = async () => {
+      const result = await confirm('Are you really sure?');
+      console.log('True if confirmed, false otherwise:', result);
+    };
+    return (
+      <button type="button" className="btn btn-primary" onClick={display}>
+        Display alert
+      </button>
+    );
+  };
+
   return (
     <div className="Data">
       <div className="Data-actions">
         <Button
           disabled={!users || (users && users.length <= 0)}
           onClick={async () => {
-            const data = await getChromeStorageData();
-
-            downloadFile(
-              `ezgram_${new Date().toUTCString()}.json`,
-              JSON.stringify(data)
-            );
-
-            updateLog(`Exporting ignored users...`);
+            await createBackupFile();
           }}
           className="Data-button"
         >
@@ -74,7 +81,16 @@ const Data = () => {
 
         <Button
           className="Data-button"
-          onClick={() => {
+          onClick={async () => {
+            // await ConfirmButton();
+            const result = await confirm(
+              'The imported users will overwrite your current users. Do you wish to proceed?'
+            );
+
+            if (!result) {
+              return;
+            }
+
             const $button = document.querySelector(`#importFileDialog`);
 
             $button.click();
@@ -92,7 +108,7 @@ const Data = () => {
 
             if (!file || !/json/.test(file.type)) {
               updateLog(
-                `<span style="color:red;">Invalid type of file. Make sure it's a JSON. </span>`
+                `<span style="color:red;">Invalid type of file. Make sure it's a JSON.</span>`
               );
               return;
             }

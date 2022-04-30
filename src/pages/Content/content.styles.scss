@@ -3,6 +3,10 @@
   .input-group {
     flex-direction: row;
   }
+
+  & ~ .modal{
+    z-index: 99999;
+  }
 }
 
 #ezgram-iframe {

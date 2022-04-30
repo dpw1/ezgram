@@ -251,7 +251,7 @@ const Homepage = () => {
             <div className="Homepage-log" readOnly={true} id="log"></div>
             <div className="Homepage-database" id="ezgramDatabase">
               <div className="Homepage-stats Homepage-stats--ignored-users">
-                <p>Ignored users:</p>
+                <p>Interacted users:</p>
                 <span>{state.ignoredUsers && state.ignoredUsers.length}</span>
               </div>
             </div>
