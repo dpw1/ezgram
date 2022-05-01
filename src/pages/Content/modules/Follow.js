@@ -40,6 +40,7 @@ import {
   getFollowersNumberIframe,
   removeIframe,
   randomUniqueIntegers,
+  createBackupFile,
 } from './utils';
 
 import { resolveConfig } from 'prettier';
@@ -85,7 +86,7 @@ const Follow = () => {
 
   /* Liking posts 
   ==================================== */
-  const [likePosts, setLikePosts] = useStickyState('@likePosts', 'true'); //like posts?
+  const [likePosts, setLikePosts] = useStickyState('@likePosts', 'yes'); //like posts?
   const [likeFirstXPosts, setLikeFirstXPosts] = useStickyState(
     '@likeFirstXPosts',
     20
@@ -119,7 +120,7 @@ const Follow = () => {
   ==================================== */
   const [followingLimit, setFollowingLimit] = useStickyState(
     '@followingLimit',
-    'false'
+    'no'
   );
   const [followingMin, setFollowingMin] = useStickyState('@followingMin', 0); //if user has less than this following number, ignore.
 
@@ -129,7 +130,7 @@ const Follow = () => {
   ==================================== */
   const [followersLimit, setFollowersLimit] = useStickyState(
     '@followersLimit',
-    false
+    'no'
   );
   const [followersMin, setFollowersMin] = useStickyState('@followersMin', 30); //if user has less than this followers, ignore.
 
@@ -137,8 +138,13 @@ const Follow = () => {
 
   const [storeSkippedUser, setStoreSkippedUser] = useStickyState(
     '@storeSkippedUser',
-    'true'
+    'yes'
   ); //if user does not meet the limits (followings, followers, etc) store it in the database
+
+  const [downloadBackupFile, setDownloadBackupFIle] = useStickyState(
+    '@downloadBackupFile',
+    'yes'
+  );
 
   const [skipUserWithoutProfileImage, setSkipUserWithoutProfileImage] =
     useStickyState('@skipUserWithoutProfileImage', true);
@@ -215,7 +221,7 @@ const Follow = () => {
         const $button = $parent.querySelector(`button`);
 
         if (user === state.username) {
-          ignored++;
+          ignored += 1;
           continue;
         }
 
@@ -223,7 +229,7 @@ const Follow = () => {
 
         if (ignoredUser) {
           updateLog(`You have unfollowed this user in the past. Skipping...`);
-          ignoredUser++;
+          ignored += 1;
           continue;
         }
 
@@ -235,7 +241,7 @@ const Follow = () => {
 
         if (!isFollowButtonOnFollowerList($button)) {
           updateLog(`You're already following this user. Skipping...`);
-          ignored++;
+          ignored += 1;
           continue;
         }
 
@@ -246,7 +252,7 @@ const Follow = () => {
             updateLog(
               `<b>${user}</b> does not have a profile image. Skipping...`
             );
-            ignored++;
+            ignored += 1;
             continue;
           }
         }
@@ -276,12 +282,8 @@ const Follow = () => {
             `<b>${interactingWithUser}</b> was <b>not</b> followed, the user does not match your settings.`
           );
           ignored += 1;
-          await _sleep(2000);
+          await _sleep(500);
           continue;
-        }
-
-        if (successfullyFollowed > limit + ignored) {
-          break;
         }
 
         updateLog(
@@ -289,17 +291,17 @@ const Follow = () => {
         );
         updateLog(`<br /><b>Users skipped: ${ignored}</b> <br /><br />`);
 
-        updateLog(
-          `<br />Waiting <b>${
-            DELAY_BETWEEN_USERS / 1000
-          } seconds</b> before moving on.`
-        );
-
         window.localStorage.removeItem(LOCAL_STORAGE.interactionResult);
 
         if (successfullyFollowed >= limit) {
           break;
         }
+
+        updateLog(
+          `<br />Waiting <b>${
+            DELAY_BETWEEN_USERS / 1000
+          } seconds</b> before moving on.`
+        );
 
         await _sleep(DELAY_BETWEEN_USERS);
 
@@ -310,11 +312,12 @@ const Follow = () => {
       }
     }
 
-    updateLog(`<br />Following completed. Please refresh the page.`);
+    if (downloadBackupFile === 'yes') {
+      await createBackupFile();
+    }
 
-    /* Todo 
-    Add more data here (how many followed, ignored, requested, failed etc)
-    */
+    localActions.setIsExecuting(false);
+    updateLog(`<br />Following completed. <b>Please Refresh the page.</b>`);
   }
 
   async function likeRandomPosts($html) {
@@ -475,7 +478,7 @@ const Follow = () => {
 
   async function isFollowingEnough(following) {
     return new Promise(async (resolve, reject) => {
-      if (followingLimit === 'false') {
+      if (followingLimit === 'no') {
         resolve(true);
       }
 
@@ -493,7 +496,7 @@ const Follow = () => {
 
   async function isFollowersEnough(followers) {
     return new Promise(async (resolve, reject) => {
-      if (!followersLimit) {
+      if (followersLimit === 'no') {
         resolve(true);
       }
 
@@ -545,7 +548,7 @@ const Follow = () => {
 
       window.localStorage.removeItem(LOCAL_STORAGE.interactingWithUserInNewTab);
 
-      if (storeSkippedUser) {
+      if (storeSkippedUser === 'yes') {
         await actions.addIgnoredUser({ user });
       }
 
@@ -694,7 +697,7 @@ const Follow = () => {
 
         window.location.reload();
 
-        console.log('xxx iframe content', $content);
+        console.log('iframe content', $content);
       }, iframeWaitLimit * 1000);
 
       $iframe.addEventListener('load', async () => {
@@ -831,7 +834,7 @@ const Follow = () => {
 
       updateLog(`<br /><br />`);
 
-      if (posts >= 1 && !isPrivate && likePosts === 'true') {
+      if (posts >= 1 && !isPrivate && likePosts === 'yes') {
         try {
           await likeRandomPosts($html);
         } catch (err) {
@@ -1053,25 +1056,25 @@ const Follow = () => {
 
       <Form.Check
         type="switch"
-        id="followingLimitInput"
-        checked={likePosts === 'true' ? true : false}
+        id="likePostsInput"
+        checked={likePosts === 'yes' ? true : false}
         onChange={(e) => {
-          setLikePosts(e.target.checked ? 'true' : 'false');
+          setLikePosts(e.target.checked ? 'yes' : 'no');
         }}
         label={`Randomly like posts`}
       />
 
       <Form.Group
-        style={{ display: likePosts === 'true' ? 'block' : 'none' }}
+        style={{ display: likePosts === 'yes' ? 'block' : 'none' }}
         className="Follow-option Follow-option--click-delay mb-3"
       >
         <Form.Check
           className="Follow-"
           type="switch"
           id="storeSkippedUserRule"
-          checked={storeSkippedUser === 'true' ? true : false}
+          checked={storeSkippedUser === 'yes' ? true : false}
           onChange={(e) => {
-            setStoreSkippedUser(e.target.checked ? 'true' : 'false');
+            setStoreSkippedUser(e.target.checked ? 'yes' : 'no');
           }}
           label={`Add users that do not match the current settings to the ignore list.`}
         />
@@ -1165,14 +1168,16 @@ const Follow = () => {
             <Form.Check
               type="switch"
               id="followingLimitInput"
-              checked={followingLimit === 'true' ? true : false}
+              checked={followingLimit === 'yes' ? true : false}
               onChange={(e) => {
-                setFollowingLimit(e.target.checked ? 'true' : 'false');
+                setFollowingLimit(e.target.checked ? 'yes' : 'no');
               }}
               label={`"following" limit`}
             />
 
-            <div style={{ display: followingLimit ? 'block' : 'none' }}>
+            <div
+              style={{ display: followingLimit === 'yes' ? 'block' : 'none' }}
+            >
               <Form.Label>
                 Skip user if they are following less than{' '}
                 <b>{followingMin || 'X'}</b> or more than{' '}
@@ -1204,14 +1209,16 @@ const Follow = () => {
             <Form.Check
               type="switch"
               id="followersLimitInput"
-              checked={followersLimit}
+              checked={followersLimit === 'yes' ? true : false}
               onChange={(e) => {
-                setFollowersLimit(e.target.checked);
+                setFollowersLimit(e.target.checked ? 'yes' : 'no');
               }}
               label={`"followers" limit`}
             />
 
-            <div style={{ display: followersLimit ? 'block' : 'none' }}>
+            <div
+              style={{ display: followersLimit === 'yes' ? 'block' : 'none' }}
+            >
               <Form.Label>
                 Skip user if they have less than <b>{followersMin || 'X'}</b> or
                 more than <b>{followersMax || 'X'}</b> followers.
@@ -1238,6 +1245,18 @@ const Follow = () => {
             </div>
           </Form.Group>
         </div>
+      </div>
+
+      <div>
+        <Form.Check
+          type="switch"
+          id="downloadBackupFile"
+          checked={downloadBackupFile === 'yes' ? true : false}
+          onChange={(e) => {
+            setDownloadBackupFIle(e.target.checked ? 'yes' : 'no');
+          }}
+          label={`Download backup file after completion`}
+        />
       </div>
 
       <hr />

@@ -24,6 +24,7 @@ import {
   scrollDownFollowersList,
   scrollDownFollowingList,
   stopExecuting,
+  createBackupFile,
 } from './utils';
 
 import { useDatabase } from '../store/databaseStore';
@@ -123,7 +124,7 @@ const Unfollow = () => {
       actions.addIgnoredUser({ user, date });
 
       if (count >= unfollowLimit) {
-        updateLog(`Finished!`);
+        updateLog(`Unfollowing completed.`);
 
         updateLog(`<b>${count}</b> users were successfully unfollowed.`);
 
@@ -134,6 +135,8 @@ const Unfollow = () => {
         updateLog(
           `<br /><b>Please press F5 to refresh the page before using this app again.</b>`
         );
+
+        await createBackupFile();
 
         localActions.setIsExecuting(false);
         return;
@@ -184,6 +187,7 @@ const Unfollow = () => {
   async function start() {
     await goToProfilePage(state.username);
 
+    /* Unfollow only who does not follow you back */
     if (unfollowNonFollowers === 'true') {
       await openFollowersList(state.username);
       await scrollDownFollowersList('all');

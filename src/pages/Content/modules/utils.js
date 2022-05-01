@@ -184,7 +184,7 @@ export function createBackupFile() {
     /* Download file */
     downloadFile(`ezgram_${date}_${hours}.json`, JSON.stringify(data));
 
-    updateLog(`Exporting ignored users...`);
+    updateLog(`Downloading ignored users' file...`);
 
     resolve();
   });
@@ -269,7 +269,7 @@ export async function scrollDownFollowersList(type = 'once') {
       updateLog(`Error: followers list not found.`);
     }
 
-    const delay = randomIntFromInterval(901, 2641);
+    const delay = randomIntFromInterval(901, 1341);
 
     const repeatLimit = 10;
 
