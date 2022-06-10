@@ -1,5 +1,25 @@
 console.log('hello 2025');
 
+chrome.runtime.onInstalled.addListener(async (details) => {
+  chrome.runtime.onMessage.addListener(function (data, sender, sendResponse) {
+    let promise;
+    if (data.type === 'isFirstInstall') {
+      promise = new Promise(async (resolve) => {
+        let queryOptions = { active: true, currentWindow: true };
+        let [tab] = await chrome.tabs.query(queryOptions);
+
+        resolve(tab);
+      });
+
+      promise.then((tab) => {
+        const res = { type: 'isFirstInstall', details };
+        console.log('isFirstInstall11');
+        sendResponse(res);
+      });
+    }
+  });
+});
+
 chrome.runtime.onMessage.addListener(function (data, sender, sendResponse) {
   let promise;
 

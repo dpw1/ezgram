@@ -11,6 +11,7 @@ export function randomIntFromInterval(min, max) {
 
 export const CSS_SELECTORS = {
   profileDropdownImage: 'nav div > div > div > div:nth-child(3) img[alt]',
+  profileDropdownLink: `div[aria-hidden] > div[style] + * a[href]:nth-child(1)`,
 
   followingList: `[aria-label][role="dialog"] > div  > div > div:nth-child(3)`,
   followingListUnfollowButton: `div[role="presentation"] ul li button`,
@@ -481,8 +482,52 @@ export async function getFollowersNumberIframe($html) {
 ============================= */
 export async function getUserName() {
   return new Promise(async (resolve, reject) => {
+    /* Get username by clicking on profile image > href */
+
+    if (
+      window.hasOwnProperty('ezfyCurrentUser') &&
+      window.ezfyCurrentUser !== ''
+    ) {
+      resolve(window.ezfyCurrentUser);
+      return;
+    }
+
+    const $image = await _waitForElement(
+      CSS_SELECTORS.profileDropdownImage,
+      50,
+      10
+    );
+
+    if (!$image) {
+      resolve(null);
+      return;
+    }
+
+    $image.click();
+
+    const $link = await _waitForElement(
+      CSS_SELECTORS.profileDropdownLink,
+      50,
+      10
+    );
+
+    if (!$link) {
+      resolve(null);
+      return;
+    }
+
+    const _user = $link.getAttribute(`href`);
+    const user = _user.replaceAll(`/`, '').trim();
+
+    document.elementFromPoint(0, 0).click();
+
+    window.ezfyCurrentUser = user;
+
+    resolve(user);
+
     /* Trying to get username from window's script */
 
+    /*
     const $script = await _waitForElement(
       CSS_SELECTORS.scriptTagWithUserData,
       50,
@@ -503,7 +548,7 @@ export async function getUserName() {
 
         const username = m[1];
 
-        /* Checking if the username found in the JSON is the same as the user's profile image ALT tag */
+        // Checking if the username found in the JSON is the same as the user's profile image ALT tag
         const $profile = document.querySelector(
           CSS_SELECTORS.profileDropdownImage
         );
@@ -522,6 +567,7 @@ export async function getUserName() {
     }
 
     resolve(null);
+    */
   });
 }
 

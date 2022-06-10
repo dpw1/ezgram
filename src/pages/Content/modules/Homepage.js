@@ -37,6 +37,20 @@ const Homepage = () => {
   const [localState, localActions] = useLocalStore();
 
   useEffect(() => {
+    async function isFirstInstall() {
+      chrome.runtime.sendMessage(
+        {
+          type: 'isFirstInstall',
+          message: {},
+        },
+        function (data) {
+          console.log('first install data: ', data);
+        }
+      );
+    }
+
+    isFirstInstall();
+
     async function initState() {
       await actions.loadUsername();
       await actions.loadIgnoredUsers();
@@ -114,9 +128,8 @@ const Homepage = () => {
     }
 
     function handleUrlChange() {
-      var target = document.querySelector('#react-root');
+      var target = document.querySelector('body > div:nth-child(1)');
 
-      // create an observer instance
       var observer = new MutationObserver(function (mutations) {
         mutations.forEach(async function (mutation) {
           if (window.location.pathname !== '/') {
@@ -125,10 +138,8 @@ const Homepage = () => {
         });
       });
 
-      // configuration of the observer:
       var config = { attributes: true, childList: true, characterData: true };
 
-      // pass in the target node, as well as the observer options
       observer.observe(target, config);
     }
 

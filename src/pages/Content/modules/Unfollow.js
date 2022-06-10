@@ -48,7 +48,7 @@ const Unfollow = () => {
 
   const [unfollowNonFollowers, setUnfollowNonFollowers] = useStickyState(
     '@unfollowNonFollowers',
-    'true'
+    'yes'
   );
 
   const [localState, localActions] = useLocalStore();
@@ -188,7 +188,7 @@ const Unfollow = () => {
     await goToProfilePage(state.username);
 
     /* Unfollow only who does not follow you back */
-    if (unfollowNonFollowers === 'true') {
+    if (unfollowNonFollowers === 'yes') {
       await openFollowersList(state.username);
       await scrollDownFollowersList('all');
       await getFollowersList();
@@ -199,10 +199,6 @@ const Unfollow = () => {
     await scrollDownFollowingList();
     handleClickOnUnfollowButton();
   }
-
-  useEffect(() => {
-    console.log('value of un', unfollowNonFollowers);
-  }, [unfollowNonFollowers]);
 
   return (
     <div className="Unfollow">
@@ -282,9 +278,9 @@ const Unfollow = () => {
           <Form.Check
             type="switch"
             id="custom-switch"
-            defaultChecked={unfollowNonFollowers === 'true' ? true : false}
+            defaultChecked={unfollowNonFollowers === 'yes' ? true : false}
             onChange={(e) => {
-              setUnfollowNonFollowers(e.target.checked ? 'true' : 'false');
+              setUnfollowNonFollowers(e.target.checked ? 'yes' : 'no');
             }}
             label="Unfollow only who is not following me back"
           />
