@@ -13,12 +13,12 @@ export const CSS_SELECTORS = {
   profileDropdownImage: 'nav div > div > div > div:nth-child(3) img[alt]',
   profileDropdownLink: `div[aria-hidden] > div[style] + * a[href]:nth-child(1)`,
 
-  followingList: `[aria-label][role="dialog"] > div  > div > div:nth-child(3)`,
-  followingListUnfollowButton: `div[role="presentation"] ul li button`,
-  followingListUnfollowConfirmationButton: `[role="presentation"] + [role="presentation"] button:nth-child(1)`,
+  followingList: `[aria-label][role="dialog"] > div  > div > div:nth-child(3), div[style] > div[role]+ div`,
+  followingListUnfollowButton: `div[role="presentation"] ul li button, div[role="tablist"] + div > ul > div > li button`,
+  followingListUnfollowConfirmationButton: `div[style] > div > div > button[tabindex]:nth-child(1)`,
   followingListActionBlocked: `body > div+ div + div + div + div > div > div > div > div  + div > button + button`,
 
-  followersList: `[role="presentation"] > div > div > div > div:nth-child(2)`,
+  followersList: `div[style] > div[style] > div + div`,
   followersNumber: `ul li [href*='followers'] > *`,
   followersListUsernames: `[role="presentation"] > div > div > div > div:nth-child(2) li a[href] > span`,
   followersListButton: `[role="presentation"] > div > div > div > div:nth-child(2) ul li button`,
@@ -44,7 +44,7 @@ export const CSS_SELECTORS = {
 
   /* There are script tags containing the current user data in each page. 
   This CSS selector finds all of them. */
-  scriptTagWithUserData: `body [src*='Feed'] + script[src] + script:not([src]), #react-root + link + link + script`,
+  scriptTagWithUserData: `link + link + script + script + script + script:not([src]) + script + script + script + script`,
 };
 
 export const LOCAL_STORAGE = {
@@ -209,7 +209,7 @@ export async function scrollDownFollowingList() {
   return new Promise(async (resolve, reject) => {
     updateLog(`<br />Scrolling down...`);
 
-    let $list = await _waitForElement(CSS_SELECTORS.followingList, 50, 10);
+    let $list = await _waitForElement(CSS_SELECTORS.followingList, 100, 50);
 
     await _sleep(50);
 
@@ -228,7 +228,7 @@ export async function scrollDownFollowingList() {
 
     $list = document.querySelector(CSS_SELECTORS.followingList);
 
-    $list.scrollTop = $list.scrollHeight - $list.clientHeight;
+    $list.scrollTop = $list.scrollHeight;
 
     await _sleep(delay);
 
@@ -482,16 +482,21 @@ export async function getFollowersNumberIframe($html) {
 ============================= */
 export async function getUserName() {
   return new Promise(async (resolve, reject) => {
+    // if (
+    //   window.hasOwnProperty('ezfyCurrentUser') &&
+    //   window.ezfyCurrentUser !== ''
+    // ) {
+    //   resolve(window.ezfyCurrentUser);
+    //   return;
+    // }
+
+    /* Checks whether we're currently at the user's page. */
+
+    //
+
     /* Get username by clicking on profile image > href */
 
-    if (
-      window.hasOwnProperty('ezfyCurrentUser') &&
-      window.ezfyCurrentUser !== ''
-    ) {
-      resolve(window.ezfyCurrentUser);
-      return;
-    }
-
+    /*
     const $image = await _waitForElement(
       CSS_SELECTORS.profileDropdownImage,
       50,
@@ -517,57 +522,56 @@ export async function getUserName() {
     }
 
     const _user = $link.getAttribute(`href`);
-    const user = _user.replaceAll(`/`, '').trim();
+    const user = _user.split('?')[0].replaceAll(`/`, '').trim();
 
     document.elementFromPoint(0, 0).click();
 
     window.ezfyCurrentUser = user;
 
     resolve(user);
+    */
 
     /* Trying to get username from window's script */
 
-    /*
     const $script = await _waitForElement(
       CSS_SELECTORS.scriptTagWithUserData,
       50,
       10
     );
 
-    const script = $script.innerHTML.trim();
-    const hasUsername = script.includes(`"username":`);
+    const script = $script.innerHTML.toLowerCase().trim();
+    const hasUsername = script.includes(`username\\":\\"`);
 
     if (hasUsername) {
-      const regex = /\"username\"\:\"(.+?)"/gm;
+      const regex = /username\\\":\\\"(.+?)"/gm;
 
       let m;
       while ((m = regex.exec(script)) !== null) {
+        console.log('test');
         if (m.index === regex.lastIndex) {
           regex.lastIndex++;
         }
 
-        const username = m[1];
+        const _username = m[1];
 
         // Checking if the username found in the JSON is the same as the user's profile image ALT tag
-        const $profile = document.querySelector(
-          CSS_SELECTORS.profileDropdownImage
-        );
-        const user = $profile.getAttribute('alt').trim();
+        // const $profile = await _waitForElement(
+        //   CSS_SELECTORS.profileDropdownImage,
+        //   50,
+        //   50
+        // );
 
-        console.log(username, user);
+        // const user = $profile.getAttribute('alt').trim();
 
-        if (user.includes(username)) {
-          resolve(username);
-        } else {
-          resolve(null);
-        }
+        // console.log('usss', username, user);
 
-        return;
+        const username = _username.replace('/', '').replace('\\', '');
+
+        resolve(username);
       }
     }
 
     resolve(null);
-    */
   });
 }
 
@@ -580,7 +584,7 @@ export async function goToProfilePage(user) {
 
     const $posts = document.querySelector(CSS_SELECTORS.userPagePostsNumber);
     if (window.location.pathname.includes(user) && $posts) {
-      updateLog(`You're already at the profile page.`);
+      updateLog(`\nYou're already at the profile page.`);
       resolve(true);
       return;
     }
@@ -703,7 +707,9 @@ export function updateLog() {
     return;
   }
 
-  const text = `${[...arguments].map((e) => `<span>${e}</span>`).join('')}`;
+  const text = `${[...arguments]
+    .map((e) => `<span style="display:block;">${e}</span>`)
+    .join('')}`;
 
   $log.innerHTML += text;
   $log.scrollTop = $log.scrollHeight - $log.clientHeight;
@@ -728,7 +734,7 @@ export async function openFollowersList(username) {
   return new Promise(async (resolve, reject) => {
     updateLog(`<br />Opening followers list...`);
 
-    if (!username) {
+    if (!username || username === '') {
       updateLog(`No username passed as parameter`);
       return;
     }
@@ -737,16 +743,20 @@ export async function openFollowersList(username) {
 
     await _sleep(200);
 
+    console.log(css);
     const $followers = await _waitForElement(css);
 
     console.log('followers btn', $followers);
 
     $followers.click();
+    $followers.click();
 
     await _sleep(50);
 
     const $unfollowButton = await _waitForElement(
-      CSS_SELECTORS.followingListUnfollowButton
+      CSS_SELECTORS.followingListUnfollowButton,
+      50,
+      50
     );
 
     await _sleep(50);
@@ -762,36 +772,42 @@ export async function openFollowersList(username) {
 }
 
 export async function openFollowingPage(username) {
-  updateLog('Navigating to "following" page...');
+  return new Promise(async (resolve, reject) => {
+    updateLog('\nNavigating to following page...');
 
-  if (!username || username === '') {
-    updateLog(`No username.`);
-    return;
-  }
+    if (!username || username === '') {
+      updateLog(`No username.`);
+      return;
+    }
 
-  await goToProfilePage(username);
+    await goToProfilePage(username);
 
-  const css = `[href*='${username}'][href*="following/"]`;
+    const css = `[href*="following/"]`;
 
-  await _sleep(50);
+    await _sleep(50);
 
-  const $followingButton = await _waitForElement(css);
+    const $followingButton = await _waitForElement(css, 50, 50);
 
-  $followingButton.click();
+    $followingButton.click();
+    $followingButton.click();
 
-  await _sleep(50);
+    updateLog(`Opening Following page.`);
+    await _sleep(50);
 
-  const $unfollowButton = await _waitForElement(
-    CSS_SELECTORS.followingListUnfollowButton
-  );
+    const $unfollowButton = await _waitForElement(
+      CSS_SELECTORS.followingListUnfollowButton
+    );
 
-  await _sleep(50);
+    await _sleep(50);
 
-  if ($unfollowButton) {
-    updateLog('Following page opened.');
-  } else {
-    updateLog(`Something went wrong.`);
-  }
+    if ($unfollowButton) {
+      updateLog('Following page opened.');
+    } else {
+      updateLog(`Something went wrong.`);
+    }
+
+    resolve();
+  });
 }
 
 /* Deletes all data in Chrome storage

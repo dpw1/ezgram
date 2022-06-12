@@ -84,11 +84,11 @@ const Unfollow = () => {
       );
 
       const $button = await _waitForElement(
-        `div[role="presentation"] ul li:nth-child(${i}) button`
+        `div[role="tablist"] + div > ul li:nth-child(${i}) button`
       );
       const $parent = $button.closest(`li`);
-      const $user = $parent.querySelector(`a[title]`);
-      const user = $user.getAttribute(`title`);
+      const $user = $parent.querySelector(`a[href]`);
+      const user = $user.getAttribute(`href`).replaceAll(`/`, '').trim();
 
       const found = followers.filter((e) => e === user);
 
@@ -195,7 +195,7 @@ const Unfollow = () => {
     }
 
     /* Unfollow everyone */
-    openFollowingPage(state.username);
+    await openFollowingPage(state.username);
     await scrollDownFollowingList();
     handleClickOnUnfollowButton();
   }

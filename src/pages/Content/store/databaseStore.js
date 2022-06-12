@@ -96,6 +96,11 @@ const Store = createStore({
       async ({ setState, getState }) => {
         return new Promise(async (resolve, reject) => {
           const _users = await getChromeStorageData('ignoredUsers');
+
+          if (!_users) {
+            resolve(null);
+            return;
+          }
           const users = _users.ignoredUsers;
 
           const found =
