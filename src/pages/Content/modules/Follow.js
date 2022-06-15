@@ -185,6 +185,7 @@ const Follow = () => {
     }
   }
 
+  /* Clicks on each user of the "followers" list. */
   async function clickOnEachUser() {
     let ignored = 0;
     let ignoredUser;
@@ -209,14 +210,18 @@ const Follow = () => {
         }
 
         const $parent = await _waitForElement(
-          `[role="presentation"] > div > div > div > div:nth-child(2) ul div li:nth-child(${i})`,
+          `${CSS_SELECTORS.followersList} li:nth-child(${i})`,
           250,
           10
         );
 
-        const $user = $parent.querySelector(`a[title]`);
-        const user = $user.getAttribute(`title`);
-        const url = `https://instagram.com/${user}`;
+        const $user = $parent.querySelector(`a[href]`);
+        const user = $user
+          .getAttribute(`href`)
+          .replaceAll('/', '')
+          .replaceAll(`followers`, '')
+          .trim();
+        const url = `https://www.instagram.com/${user}/`;
         const $image = $parent.querySelector(`img`);
         const $button = $parent.querySelector(`button`);
 
@@ -702,9 +707,18 @@ const Follow = () => {
 
       $iframe.addEventListener('load', async () => {
         const $html = $iframe.contentDocument.querySelector(`html`);
+        await _sleep(1000);
+        $iframe.contentWindow.location.href = `https://instagram.com`;
 
-        await startInteractingWithUserInNewTab($html);
-        resolve(true);
+        // await _sleep(1000);
+
+        // <a class="customlink" href="https://www.instagram.com/spituki/">click</a>
+
+        //
+
+        // $iframe.contentWindow.location.href = `https://www.instagram.com/dropdopememe`;
+        // await startInteractingWithUserInNewTab($html);
+        // resolve(true);
       });
     });
   }

@@ -482,13 +482,13 @@ export async function getFollowersNumberIframe($html) {
 ============================= */
 export async function getUserName() {
   return new Promise(async (resolve, reject) => {
-    // if (
-    //   window.hasOwnProperty('ezfyCurrentUser') &&
-    //   window.ezfyCurrentUser !== ''
-    // ) {
-    //   resolve(window.ezfyCurrentUser);
-    //   return;
-    // }
+    if (
+      window.hasOwnProperty('ezfyCurrentUser') &&
+      window.ezfyCurrentUser !== ''
+    ) {
+      resolve(window.ezfyCurrentUser);
+      return;
+    }
 
     /* Checks whether we're currently at the user's page. */
 
@@ -566,7 +566,7 @@ export async function getUserName() {
         // console.log('usss', username, user);
 
         const username = _username.replace('/', '').replace('\\', '');
-
+        window.ezfyCurrentUser = username;
         resolve(username);
       }
     }
