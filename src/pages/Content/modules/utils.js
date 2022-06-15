@@ -20,8 +20,8 @@ export const CSS_SELECTORS = {
 
   followersList: `div[style] > div[style] > div + div`,
   followersNumber: `ul li [href*='followers'] > *`,
-  followersListUsernames: `[role="presentation"] > div > div > div > div:nth-child(2) li a[href] > span`,
-  followersListButton: `[role="presentation"] > div > div > div > div:nth-child(2) ul li button`,
+  followersListUsernames: `div > div > div > div:nth-child(2) li a[href] > span`,
+  followersListButton: `div > div > div > div:nth-child(2) ul li button`,
 
   userPagePostsNumber: `header section ul li:nth-child(1) >span >span, header section ul li:nth-child(1) span, main header + div + ul li:nth-child(1) > div > span, section > main > div > header + * + * + ul li:nth-child(1) > div > span`,
   userPageFollowersNumber: `header section ul li:nth-child(2) >span >span, ul li [href*='followers'] > *,  header section ul li:nth-child(2) span, main header + div + ul li:nth-child(2) > * > span`,
@@ -34,12 +34,12 @@ export const CSS_SELECTORS = {
   userPageUnfollowButton: `header section h2 + div:first-of-type  > div > div:nth-child(2) > * > * > *:nth-child(1) > button`,
   userPagePosts: `main div >article a[href*='/p']`,
   userPageActionBlocked: `#fb-root + div > div > div > div > div  + div > button + button`,
-  userPagePrivateAccountMessage: `#react-root section main article > div > div > h2`,
-  userPageProfileImage: `main > div > header canvas + span > img[alt][src]`,
+  userPagePrivateAccountMessage: `section main article > div > div > h2`,
+  userPageProfileImage: `main > div > header canvas + span > img[alt][src], main > div > header button > img[src]`,
   userPageUsername: `main header section > * > h2, main header section > * > h1`,
 
   postPageLikeButton: `section > span:nth-child(1) > button`,
-  postPageCloseButton: `div[role="presentation"] > div > button[type]`,
+  postPageCloseButton: `div[role="presentation"] > div > button[type], div[style] > div > div > div > div[role='button']`,
   postPageUnlikeButton: `section > span:nth-child(1) > button [color*='#ed4956'], section > span:nth-child(1) > button [aria-label*='Unlike']`,
 
   /* There are script tags containing the current user data in each page. 
@@ -256,7 +256,7 @@ export async function scrollDownFollowersList(type = 'once') {
 
     const limit = type === 'once' ? 1 : await getFollowersNumber();
 
-    let $list = document.querySelector(CSS_SELECTORS.followersList);
+    let $list = await _waitForElement(CSS_SELECTORS.followersList);
 
     await _sleep(50);
 
@@ -270,7 +270,7 @@ export async function scrollDownFollowersList(type = 'once') {
       updateLog(`Error: followers list not found.`);
     }
 
-    const delay = randomIntFromInterval(901, 1341);
+    const delay = randomIntFromInterval(1800, 2041);
 
     const repeatLimit = 10;
 
@@ -732,42 +732,34 @@ export function refreshPage() {
 /* Opens the follower list of a given user. */
 export async function openFollowersList(username) {
   return new Promise(async (resolve, reject) => {
-    updateLog(`<br />Opening followers list...`);
+    let isOpen = false;
 
     if (!username || username === '') {
       updateLog(`No username passed as parameter`);
       return;
     }
 
-    const css = `[href*='${username}'][href*="followers/"]`;
+    while (!isOpen) {
+      updateLog(`<br />Opening followers list...`);
+      const $followers = document.querySelector(`a[href*="followers/"]`);
 
-    await _sleep(200);
+      console.log('followers btn', $followers);
 
-    console.log(css);
-    const $followers = await _waitForElement(css);
+      $followers.click();
 
-    console.log('followers btn', $followers);
+      await _sleep(50);
 
-    $followers.click();
-    $followers.click();
+      const $list = await _waitForElement(CSS_SELECTORS.followersList, 50, 50);
 
-    await _sleep(50);
-
-    const $unfollowButton = await _waitForElement(
-      CSS_SELECTORS.followingListUnfollowButton,
-      50,
-      50
-    );
-
-    await _sleep(50);
-
-    if ($unfollowButton) {
-      updateLog('Followers page opened.');
-      resolve(true);
-    } else {
-      updateLog(`Something went wrong. Please refresh the page and try again.`);
-      resolve(false);
+      if ($list) {
+        isOpen = true;
+      }
     }
+
+    await _sleep(50);
+
+    updateLog('Followers page opened.');
+    resolve(true);
   });
 }
 
@@ -782,7 +774,7 @@ export async function openFollowingPage(username) {
 
     await goToProfilePage(username);
 
-    const css = `[href*="following/"]`;
+    const css = `a[href*="following/"]`;
 
     await _sleep(50);
 
