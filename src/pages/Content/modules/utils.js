@@ -92,21 +92,21 @@ unfollow = I already follow the user
 private = private account.
 
 */
-export async function getTypeOfFollowButtonOnUserPage($html) {
+export async function getTypeOfFollowButtonOnUserPage() {
   let $buttons;
   return new Promise(async (resolve, reject) => {
     /* Private */
-    const $message = $html.querySelector(
+    const $message = document.querySelector(
       CSS_SELECTORS.userPagePrivateAccountMessage
     );
-    $buttons = $html.querySelectorAll(`header section h2 + div button`);
+    $buttons = document.querySelectorAll(`header section h2 + div button`);
 
     if ($message) {
       resolve('private');
       return;
     }
 
-    $buttons = $html.querySelectorAll(CSS_SELECTORS.userPageFollowButton);
+    $buttons = document.querySelectorAll(CSS_SELECTORS.userPageFollowButton);
 
     /* Follow */
     if ($buttons && $buttons.length === 1) {
@@ -363,8 +363,7 @@ export async function scrollDownUserPage($html) {
 /* Detects within an iframe whether it's a private account or Not */
 export async function isPrivateAccount($html) {
   return new Promise(async (resolve, reject) => {
-    const $title = await _waitForElementIframe(
-      $html,
+    const $title = await _waitForElement(
       CSS_SELECTORS.userPagePrivateAccountMessage,
       50,
       10
@@ -380,10 +379,9 @@ export async function isPrivateAccount($html) {
 }
 
 /* Checks within an iframe whether how many posts there are */
-export async function getPostsNumber($html) {
+export async function getPostsNumber() {
   return new Promise(async (resolve, reject) => {
-    const $posts = await _waitForElementIframe(
-      $html,
+    const $posts = await _waitForElement(
       CSS_SELECTORS.userPagePostsNumber,
       50,
       10
@@ -411,10 +409,9 @@ export async function getPostsNumber($html) {
 
 To use it, make sure you're currently on the user's page. (instagram.com/user1)
 =========================== */
-export async function getFollowingNumber($html) {
+export async function getFollowingNumber() {
   return new Promise(async (resolve, reject) => {
-    const $following = await _waitForElementIframe(
-      $html,
+    const $following = await _waitForElement(
       CSS_SELECTORS.userPageFollowingNumber,
       30,
       10
@@ -468,10 +465,9 @@ export async function getFollowersNumber() {
   });
 }
 
-export async function getFollowersNumberIframe($html) {
+export async function getFollowersNumberIframe() {
   return new Promise(async (resolve, reject) => {
-    const $followers = await _waitForElementIframe(
-      $html,
+    const $followers = await _waitForElement(
       CSS_SELECTORS.userPageFollowersNumber,
       50,
       20
@@ -891,15 +887,13 @@ export async function addChromeStorageData(key, data) {
   const user = await getUserName();
   let previous = (await getChromeStorageData()) || {};
 
-  console.log(previous);
-
   var obj = {};
 
   /* Create new field */
   if (isObjectEmpty(previous)) {
     obj = {
       [user]: {
-        [key]: [data],
+        [key]: data,
       },
     };
   } else if (!previous.hasOwnProperty(key)) {
@@ -913,8 +907,6 @@ export async function addChromeStorageData(key, data) {
     /* Add data to existing field */
 
     const currentData = previous[key];
-
-    debugger;
 
     let updated = [];
     /* Check if it's a simple array, not array of objects */
@@ -948,7 +940,7 @@ function isObject(obj) {
 }
 
 /* Gets the chrome storage data for the current user. */
-export async function getChromeStorageData(key) {
+export async function getChromeStorageData(key = null) {
   return new Promise(async (resolve, reject) => {
     const user = await getUserName();
 
@@ -960,7 +952,6 @@ export async function getChromeStorageData(key) {
     }
 
     chrome.storage.local.get(user, function (result) {
-      console.log('res', result);
       if (chrome.runtime.lastError) {
         reject(null);
         updateLog('error getting data from Database.');
@@ -971,6 +962,11 @@ export async function getChromeStorageData(key) {
       }
 
       if (result[user] !== undefined) {
+        if (key) {
+          resolve(result[user][key]);
+          return;
+        }
+
         resolve(result[user]);
       }
     });

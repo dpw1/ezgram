@@ -36,12 +36,12 @@ import {
   getTypeOfFollowButtonOnUserPage,
   getPostsNumber,
   stopExecuting,
-  _waitForElementIframe,
   getFollowersNumberIframe,
   removeIframe,
   randomUniqueIntegers,
   createBackupFile,
   removeChromeStorageData,
+  getInstagramUsernames,
 } from './utils';
 
 import { resolveConfig } from 'prettier';
@@ -161,6 +161,18 @@ const Follow = () => {
     '@skipPrivateAccounts',
     false
   );
+
+  /* Following user automation
+  ==================================== */
+  const [isFollowingList, setIsFollowingList] = useStickyState(
+    '@isFollowingList',
+    'no'
+  ); //checks whether the bot is currently following a list of users
+
+  const [followingListLoop, setFollowingListLoop] = useStickyState(
+    '@followingListLoop',
+    0
+  ); //checks what user the bot is currently following
 
   /* === */
   const INTERACTION_DELAY_MIN = 800;
@@ -328,14 +340,14 @@ const Follow = () => {
     updateLog(`<br />Following completed. <b>Please Refresh the page.</b>`);
   }
 
-  async function likeRandomPosts($html) {
+  async function likeRandomPosts() {
     return new Promise(async (resolve, reject) => {
       const LIKING_POSTS_LIMIT = randomIntFromInterval(
         likePostsMin,
         likePostsMax
       );
 
-      const type = await getTypeOfFollowButtonOnUserPage($html);
+      const type = await getTypeOfFollowButtonOnUserPage();
 
       if (type === 'private') {
         updateLog(`This is a private account.`);
@@ -343,12 +355,7 @@ const Follow = () => {
         return;
       }
 
-      const _$post = await _waitForElementIframe(
-        $html,
-        CSS_SELECTORS.userPagePosts,
-        50,
-        20
-      );
+      const _$post = await _waitForElement(CSS_SELECTORS.userPagePosts, 50, 20);
 
       if (!_$post) {
         updateLog(`There are no posts.`);
@@ -356,7 +363,7 @@ const Follow = () => {
         return;
       }
 
-      const posts = await getPostsNumber($html);
+      const posts = await getPostsNumber();
 
       const totalPostsToLike =
         LIKING_POSTS_LIMIT >= posts ? posts : LIKING_POSTS_LIMIT;
@@ -395,7 +402,7 @@ const Follow = () => {
         let postY = Math.ceil(each / 3);
 
         if (each % 12 === 0) {
-          await scrollDownUserPage($html);
+          await scrollDownUserPage();
         }
 
         LIKING_POSTS_DELAY = randomIntFromInterval(
@@ -404,11 +411,10 @@ const Follow = () => {
         );
 
         if (index >= 3 && i % 4 === 1) {
-          await scrollDownUserPage($html);
+          await scrollDownUserPage();
         }
 
-        var $post = await _waitForElementIframe(
-          $html,
+        var $post = await _waitForElement(
           `main div >article > div > div > div:nth-child(${postY}) > div:nth-child(${postX}) a[href*='/p']`,
           250,
           10
@@ -426,16 +432,16 @@ const Follow = () => {
 
         await _sleep(LIKING_POSTS_DELAY);
 
-        const $close = $html.querySelector(CSS_SELECTORS.postPageCloseButton);
+        const $close = document.querySelector(
+          CSS_SELECTORS.postPageCloseButton
+        );
 
-        const $like = await _waitForElementIframe(
-          $html,
+        const $like = await _waitForElement(
           CSS_SELECTORS.postPageLikeButton,
           100,
           5
         );
-        const $unlike = await _waitForElementIframe(
-          $html,
+        const $unlike = await _waitForElement(
           CSS_SELECTORS.postPageUnlikeButton,
           100,
           5
@@ -521,11 +527,11 @@ const Follow = () => {
   }
 
   /* 
- Completes an interaction with a new user's tab. You can complete the interaction with a result of "fail" or "success".
+ Completes an interaction on a new user's tab. You can complete the interaction with a result of "fail" or "success".
 
  'fail' = something went wrong, unable to "follow" user.
 
- 'success' = was able to follow the user.
+ 'success' = user followed successfully.
   */
   async function finishInteraction(result = 'fail') {
     return new Promise(async (resolve, reject) => {
@@ -560,8 +566,6 @@ const Follow = () => {
         await actions.addIgnoredUser({ user });
       }
 
-      removeIframe();
-
       await _sleep(100);
 
       resolve(true);
@@ -592,8 +596,18 @@ const Follow = () => {
   }
 
   async function start() {
-    storeFollowingListUsers();
-    // goToEachUserOnTheFollowingList();
+    const users = await storeUsersThatMustBeFollowed();
+
+    setIsFollowingList('yes');
+    setFollowingListLoop(0);
+    await _sleep(25);
+    window.location.href = users[0];
+
+    /* The function responsible to follow users is:
+    
+    startInteractingWithUserInNewTab()
+    */
+
     // const currentUsername = window.location.pathname.replaceAll(`/`, '').trim();
 
     // if (!isRefreshingPage) {
@@ -613,24 +627,19 @@ const Follow = () => {
   /**
    * Adds users on the "To-follow" list to the database
    */
-  async function storeFollowingListUsers() {
-    const users = [...new Set(usersList.split('\n'))];
-
-    debugger;
-    const res = await actions.addMustFollowUsers(users);
-
-    console.log('xxx', res);
-    // const db = actions.getMustFollowUsers();
-  }
-
-  function goToEachUserOnTheFollowingList() {
-    const users = usersList.split('\n');
-  }
-
-  async function clickOnFollowButton($html) {
+  async function storeUsersThatMustBeFollowed() {
     return new Promise(async (resolve, reject) => {
-      const $button = await _waitForElementIframe(
-        $html,
+      const users = [...new Set(usersList.split('\n'))];
+
+      const res = await actions.addMustFollowUsers(users);
+
+      resolve(res);
+    });
+  }
+
+  async function clickOnFollowButton() {
+    return new Promise(async (resolve, reject) => {
+      const $button = await _waitForElement(
         CSS_SELECTORS.userPageFollowButton,
         100,
         10
@@ -651,8 +660,7 @@ const Follow = () => {
 
       $button.click();
 
-      const $unfollow = await _waitForElementIframe(
-        $html,
+      const $unfollow = await _waitForElement(
         CSS_SELECTORS.userPageUnfollowButton,
         200,
         10
@@ -747,14 +755,26 @@ const Follow = () => {
 
   async function startInteractingWithUserInNewTab($html) {
     return new Promise(async (resolve, reject) => {
-      const $currentUser = await _waitForElementIframe(
-        $html,
+      if (isFollowingList !== 'yes' && followingListLoop > 0) {
+        const mustFollowUsers = await actions.getMustFollowUsers();
+
+        const url = mustFollowUsers[followingListLoop];
+
+        const currentUser = getInstagramUsernames(url)[0];
+
+        if (!window.location.href.includes(currentUser)) {
+          window.location.href = url;
+        }
+      }
+
+      const $currentUser = await _waitForElement(
         CSS_SELECTORS.userPageUsername,
-        100,
-        10
+        200,
+        20
       );
 
       if (!$currentUser) {
+        setIsFollowingList('no');
         return;
       }
 
@@ -765,23 +785,25 @@ const Follow = () => {
         currentUser
       );
 
-      updateLog(`Iframe of the user:`, currentUser);
-
-      if ($html) {
-        updateLog(`Page loaded successfully.`);
-      }
-      await _waitForElementIframe(
-        $html,
-        CSS_SELECTORS.userPageProfileImage,
-        30,
-        10
-      );
+      await _waitForElement(CSS_SELECTORS.userPageProfileImage, 30, 10);
 
       updateLog(
         `<span style="font-size: 25px;">Please don't change or close this tab.</span><br /><br />`
       );
 
-      updateLog(`Interacting with <b>${currentUser}</b>.`);
+      const mustFollowUsers = await actions.getMustFollowUsers();
+
+      if (!mustFollowUsers || mustFollowUsers <= 0) {
+        updateLog(`The users list is empty.`);
+        await _sleep(100);
+        await finishInteraction('fail');
+        resolve(true);
+        return;
+      }
+
+      updateLog(
+        `Interacting with <b>${currentUser}</b>. ${followingListLoop} / ${mustFollowUsers.length}`
+      );
 
       /* 
         TODO
@@ -798,7 +820,7 @@ const Follow = () => {
         return;
       }
 
-      const followType = await getTypeOfFollowButtonOnUserPage($html);
+      const followType = await getTypeOfFollowButtonOnUserPage();
 
       if (!followType) {
         updateLog('ERROR: Unable to identify type of follow button.');
@@ -808,13 +830,13 @@ const Follow = () => {
 
       if (followType === 'unfollow') {
         updateLog(`You are already following this user.`);
-        await _sleep(100);
-        await finishInteraction('fail');
-        resolve(true);
-        return;
+        // await _sleep(100);
+        // await finishInteraction('fail');
+        // resolve(true);
+        // return;
       }
 
-      const isPrivate = await isPrivateAccount($html);
+      const isPrivate = await isPrivateAccount();
 
       if (SKIP_PRIVATE_ACCOUNT) {
         if (isPrivate) {
@@ -826,9 +848,9 @@ const Follow = () => {
         }
       }
 
-      const posts = await getPostsNumber($html);
-      const following = await getFollowingNumber($html);
-      const followers = await getFollowersNumberIframe($html);
+      const posts = await getPostsNumber();
+      const following = await getFollowingNumber();
+      const followers = await getFollowersNumberIframe();
 
       updateLog(
         `Post: ${posts} -- followers: ${followers} -- following: ${following}`
@@ -872,7 +894,7 @@ const Follow = () => {
 
       if (posts >= 1 && !isPrivate && likePosts === 'yes') {
         try {
-          await likeRandomPosts($html);
+          await likeRandomPosts();
         } catch (err) {
           updateLog(`No posts found.`);
           await finishInteraction('fail');
@@ -881,6 +903,19 @@ const Follow = () => {
         }
       }
 
+      const loop = followingListLoop + 1;
+
+      setFollowingListLoop(loop);
+
+      if (loop > mustFollowUsers.length) {
+        updateLog(`Followed all ${mustFollowUsers.length} users!`);
+      } else {
+        updateLog(`Moving to user nubmer ${loop + 1}`);
+        window.location.href = mustFollowUsers[loop];
+      }
+
+      return;
+
       /*
       TODO
       Differentiate between requesting to follow & follow */
@@ -888,7 +923,7 @@ const Follow = () => {
       updateLog(`Clicking on the "follow" button...`);
 
       try {
-        await clickOnFollowButton($html);
+        await clickOnFollowButton();
       } catch (err) {
         updateLog(`Something went wrong while clicking on the follow button.`);
         await finishInteraction('fail');
@@ -1317,7 +1352,7 @@ https://www.instagram.com/kacperbereziecki/`}
           if (localState.isExecuting) {
             stopExecuting();
           } else {
-            localActions.setIsExecuting(true);
+            // localActions.setIsExecuting(true);
             start();
           }
         }}

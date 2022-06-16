@@ -52,7 +52,7 @@ const Store = createStore({
             mustFollowUsers: users,
           });
 
-          resolve(users);
+          resolve(users.mustFollowUsers);
         });
       },
 
@@ -67,18 +67,14 @@ const Store = createStore({
             return;
           }
 
-          const users = _users.hasOwnProperty('mustFollowUsers')
-            ? _users.mustFollowUsers.sort((a, b) =>
-                a.date < b.date ? 1 : b.date < a.date ? -1 : 0
-              )
-            : [];
+          const users = _users;
 
           const obj = {
             mustFollowUsers: users,
           };
 
           setState(obj);
-          resolve(obj);
+          resolve(users);
         });
       },
     /* ## Ignored Users
