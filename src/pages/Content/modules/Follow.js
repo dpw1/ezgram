@@ -41,6 +41,7 @@ import {
   removeIframe,
   randomUniqueIntegers,
   createBackupFile,
+  removeChromeStorageData,
 } from './utils';
 
 import { resolveConfig } from 'prettier';
@@ -103,6 +104,8 @@ const Follow = () => {
     '@likePostsDelayMax',
     5
   );
+
+  const [usersList, setUsersList] = useStickyState('@usersList', '');
 
   /* Loading user error
   ===================================== */
@@ -589,20 +592,39 @@ const Follow = () => {
   }
 
   async function start() {
-    const currentUsername = window.location.pathname.replaceAll(`/`, '').trim();
+    storeFollowingListUsers();
+    // goToEachUserOnTheFollowingList();
+    // const currentUsername = window.location.pathname.replaceAll(`/`, '').trim();
 
-    if (!isRefreshingPage) {
-      redirectToUsernamePage();
-    }
+    // if (!isRefreshingPage) {
+    //   redirectToUsernamePage();
+    // }
 
-    if (isRefreshingPage && currentUsername === username) {
-      updateLog(`Successfully navigated to ${username}.`);
-    }
+    // if (isRefreshingPage && currentUsername === username) {
+    //   updateLog(`Successfully navigated to ${username}.`);
+    // }
 
     /* TODO
     check if is not open already */
-    await openFollowersList(username);
-    clickOnEachUser();
+    // await openFollowersList(username);
+    // clickOnEachUser();
+  }
+
+  /**
+   * Adds users on the "To-follow" list to the database
+   */
+  async function storeFollowingListUsers() {
+    const users = [...new Set(usersList.split('\n'))];
+
+    debugger;
+    const res = await actions.addMustFollowUsers(users);
+
+    console.log('xxx', res);
+    // const db = actions.getMustFollowUsers();
+  }
+
+  function goToEachUserOnTheFollowingList() {
+    const users = usersList.split('\n');
   }
 
   async function clickOnFollowButton($html) {
@@ -911,9 +933,25 @@ const Follow = () => {
       <hr />
 
       <InputGroup className="mb-3">
-        <Form.Label style={{ display: 'block' }}>User:</Form.Label>
-        <InputGroup.Text id="basic-addon1">@</InputGroup.Text>
-        <FormControl
+        <Form.Label style={{ display: 'block' }}>Users:</Form.Label>
+
+        <Form.Control
+          value={usersList}
+          defaultValue={`https://www.instagram.com/dantemohamed/
+https://www.instagram.com/kacperbereziecki/`}
+          as="textarea"
+          onKeyDown={(e) => {
+            if (e.key === ' ') {
+              e.preventDefault();
+            }
+          }}
+          onChange={(e) => {
+            setUsersList(e.target.value);
+          }}
+          rows={3}
+        />
+        {/* <InputGroup.Text id="basic-addon1">@</InputGroup.Text> */}
+        {/* <FormControl
           value={username}
           placeholder="Username"
           aria-label="Username"
@@ -921,7 +959,7 @@ const Follow = () => {
             setUsername(e.target.value);
           }}
           aria-describedby="basic-addon1"
-        />
+        /> */}
       </InputGroup>
 
       {/* ## Follow limit
@@ -1285,6 +1323,14 @@ const Follow = () => {
         }}
       >
         {localState.isExecuting ? 'Stop' : 'Start'}
+      </Button>
+
+      <Button
+        onClick={async () => {
+          await removeChromeStorageData();
+        }}
+      >
+        Delete
       </Button>
     </div>
   );

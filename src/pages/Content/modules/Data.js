@@ -31,6 +31,7 @@ const Data = () => {
   const [state, actions] = useDatabase();
 
   const [users, setUsers] = useState(null);
+  const [mustFollowUsers, setMustFollowUsers] = useState(null);
 
   useEffect(() => {
     const loadIgnoredUsers = (async () => {
@@ -48,11 +49,31 @@ const Data = () => {
 
       setUsers(_users());
     })();
+
+    const loadMustFollowUsers = (async () => {
+      actions.getMustFollowUsers();
+
+      const _users = () => {
+        if (!state.hasOwnProperty(`mustFollowUsers`)) {
+          return {};
+        }
+
+        return state.mustFollowUsers.hasOwnProperty('mustFollowUsers')
+          ? state.mustFollowUsers.mustFollowUsers
+          : state.mustFollowUsers;
+      };
+
+      setMustFollowUsers(_users());
+    })();
   }, []);
 
   useEffect(() => {
     setUsers(state.ignoredUsers);
   }, [state.ignoredUsers]);
+
+  useEffect(() => {
+    setUsers(state.mustFollowUsers);
+  }, [state.mustFollowUsers]);
 
   const ConfirmButton = () => {
     const display = async () => {

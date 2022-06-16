@@ -11,7 +11,9 @@ import {
 const Store = createStore({
   // value of the store on initialisation
   initialState: {
-    ignoredUsers: [],
+    ignoredUsers:
+      [] /* Users that were already interacted with (followed and/or unfollowed) */,
+    mustFollowUsers: [] /* List of users that must be followed */,
     username: '',
   },
   // actions that trigger store mutation
@@ -33,11 +35,59 @@ const Store = createStore({
           });
         });
       },
+
+    /* ## Must Follow users
+      ======================== */
+    addMustFollowUsers:
+      (data) =>
+      async ({ setState, getState }) => {
+        return new Promise(async (resolve, reject) => {
+          if (!Array.isArray(data) || data.length <= 1) {
+            throw new Error("Invalid data. 'users' array required.");
+          }
+
+          const users = await addChromeStorageData('mustFollowUsers', data);
+
+          setState({
+            mustFollowUsers: users,
+          });
+
+          resolve(users);
+        });
+      },
+
+    getMustFollowUsers:
+      () =>
+      async ({ setState, getState }) => {
+        return new Promise(async (resolve, reject) => {
+          const _users = await getChromeStorageData('mustFollowUsers');
+
+          if (!_users) {
+            resolve(null);
+            return;
+          }
+
+          const users = _users.hasOwnProperty('mustFollowUsers')
+            ? _users.mustFollowUsers.sort((a, b) =>
+                a.date < b.date ? 1 : b.date < a.date ? -1 : 0
+              )
+            : [];
+
+          const obj = {
+            mustFollowUsers: users,
+          };
+
+          setState(obj);
+          resolve(obj);
+        });
+      },
+    /* ## Ignored Users
+      ======================== */
     addIgnoredUser:
       (data) =>
       async ({ setState, getState }) => {
         if (!data.hasOwnProperty('user')) {
-          throw new Error("Invalid data. It needs to have a 'user'.");
+          throw new Error("Invalid data. 'user' required.");
         }
 
         const user = await addChromeStorageData('ignoredUsers', {

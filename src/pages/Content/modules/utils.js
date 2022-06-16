@@ -9,6 +9,23 @@ export function randomIntFromInterval(min, max) {
   );
 }
 
+export function getInstagramUsernames(list) {
+  const _regex =
+    /^(?:@|(?:https?:\/\/)?(?:www\.)?instagr(?:\.am|am\.com)\/)?(\w+)\/?$/;
+
+  let results = [];
+
+  for (const each of list) {
+    let match = _regex.exec(each);
+    if (match) {
+      results.push(match[1]);
+      console.log(match[1]);
+    }
+  }
+
+  return results;
+}
+
 export const CSS_SELECTORS = {
   profileDropdownImage: 'nav div > div > div > div:nth-child(3) img[alt]',
   profileDropdownLink: `div[aria-hidden] > div[style] + * a[href]:nth-child(1)`,
@@ -872,20 +889,40 @@ export async function importChromeStorage(data) {
 
 export async function addChromeStorageData(key, data) {
   const user = await getUserName();
-  let _previous = await getChromeStorageData(key);
+  let previous = (await getChromeStorageData()) || {};
+
+  console.log(previous);
 
   var obj = {};
-  if (isObjectEmpty(_previous)) {
+
+  /* Create new field */
+  if (isObjectEmpty(previous)) {
     obj = {
       [user]: {
         [key]: [data],
       },
     };
+  } else if (!previous.hasOwnProperty(key)) {
+    obj = {
+      [user]: {
+        ...previous,
+        [key]: data,
+      },
+    };
   } else {
-    var updated = [..._previous[key]];
+    /* Add data to existing field */
 
-    updated.push(data);
+    const currentData = previous[key];
 
+    debugger;
+
+    let updated = [];
+    /* Check if it's a simple array, not array of objects */
+    if (Array.isArray(currentData) && !isObject(currentData[0])) {
+      updated = [...previous[key], ...data];
+    } else {
+      updated = [...previous[key], data];
+    }
     obj = {
       [user]: {
         [key]: updated,
@@ -897,9 +934,17 @@ export async function addChromeStorageData(key, data) {
 
   return new Promise(async (resolve, reject) => {
     chrome.storage.local.set(obj, function () {
-      resolve(obj[user][key]);
+      resolve(obj[user]);
     });
   });
+}
+
+function isObject(obj) {
+  var type = typeof obj;
+  return (
+    obj === Object(obj) &&
+    Object.prototype.toString.call(obj) !== '[object Array]'
+  );
 }
 
 /* Gets the chrome storage data for the current user. */
