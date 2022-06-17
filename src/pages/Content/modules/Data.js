@@ -63,17 +63,18 @@ const Data = () => {
           : state.mustFollowUsers;
       };
 
-      setMustFollowUsers(_users());
+      // setMustFollowUsers(_users());
     })();
   }, []);
 
   useEffect(() => {
+    console.log('xxx ignored users', state);
     setUsers(state.ignoredUsers);
-  }, [state.ignoredUsers]);
+  }, [state]);
 
-  useEffect(() => {
-    setUsers(state.mustFollowUsers);
-  }, [state.mustFollowUsers]);
+  // useEffect(() => {
+  //   setUsers(state.mustFollowUsers);
+  // }, [state.mustFollowUsers]);
 
   const ConfirmButton = () => {
     const display = async () => {
@@ -138,7 +139,11 @@ const Data = () => {
 
             await importChromeStorage(data);
             actions.loadIgnoredUsers();
-            setUsers(state.ignoredUsers);
+            setUsers(
+              state.ignoredUsers.hasOwnProperty('ignoredUsers')
+                ? state.ignoredUsers.ignoredUsers
+                : state.ignoredUsers
+            );
 
             updateLog(`Successfully imported data.`);
           }}
@@ -146,6 +151,7 @@ const Data = () => {
         />
       </div>
 
+      {console.log('xx', users)}
       {users && users.length > 0 ? (
         <Table striped bordered hover>
           <thead>
@@ -168,8 +174,13 @@ const Data = () => {
                       const column = Object.keys(users[0])[index];
                       let content = val;
 
+                      const date = new Date(val);
+
                       if (column === 'date') {
-                        content = timeAgo.format(new Date(val), 'round-minute');
+                        content = `${date.toDateString()}, ${timeAgo.format(
+                          date,
+                          'round-minute'
+                        )}`;
                       }
 
                       if (column === 'user') {

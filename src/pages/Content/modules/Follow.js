@@ -286,7 +286,7 @@ const Follow = () => {
 
         await _sleep(150);
 
-        await openIframe(url);
+        // await openIframe(url);
 
         await _sleep(INTERACTION_DELAY);
 
@@ -541,7 +541,6 @@ const Follow = () => {
       updateLog(`Interaction completed.`);
 
       setInteractingWithUser('');
-      window.localStorage.setItem(LOCAL_STORAGE.interactionResult, result);
 
       const delay = randomIntFromInterval(
         closeIframeDelayMin * 1000,
@@ -551,16 +550,6 @@ const Follow = () => {
       updateLog(`<br />Closing user page in <b>${delay / 1000}</b> seconds.`);
 
       await _sleep(delay);
-
-      const originalTab = JSON.parse(
-        window.localStorage.getItem(LOCAL_STORAGE.originalTab)
-      );
-
-      const newTab = JSON.parse(
-        window.localStorage.getItem(LOCAL_STORAGE.newTab)
-      );
-
-      window.localStorage.removeItem(LOCAL_STORAGE.interactingWithUserInNewTab);
 
       if (storeSkippedUser === 'yes') {
         await actions.addIgnoredUser({ user });
@@ -680,83 +669,18 @@ const Follow = () => {
     });
   }
 
-  async function openIframe(src, $parent) {
-    let tries = 0;
-    const delay = 1000;
-
+  async function startInteractingWithUserInNewTab() {
     return new Promise(async (resolve, reject) => {
-      const html = `<iframe src="" id="ezgram-iframe"></iframe>`;
-      let $iframe = document.querySelector(`#ezgram-iframe`);
+      /* Checks whether is currently set to follow */
 
-      if (!$iframe) {
-        const $body = document.querySelector(`body`);
-        $body.insertAdjacentHTML('beforeend', html);
-
-        await _sleep(50);
-        $iframe = document.querySelector(`#ezgram-iframe`);
-      }
-
-      $iframe.setAttribute('src', src);
-
-      /* Error handling - checks whether the iframe has loaded.
-      
-      If it has not, reload page.
-      
-      TODO: 
-      
-      - ensure it continues from where it stopped ("follow limit")
-      - consider adding a boolean to prevent this set timeout from happening
-      */
-      setTimeout(async () => {
-        if (!$iframe) {
-          return;
-        }
-
-        const $content = $iframe.contentDocument.querySelector(`body > * > *`);
-
-        if ($content) {
-          return;
-        }
-
-        updateLog(
-          `User page did not load. Waiting ${iframeRestartTime} minute(s) before reloading.`
-        );
-
-        await _sleep(iframeRestartTime * 60000);
-
-        /* TODO -
-        restartFollow should have the remaining number of folowers needed to continue*/
-        localStorage.setItem(LOCAL_STORAGE.restartFollow, 'true');
-
-        await _sleep(100);
-
-        window.location.reload();
-
-        console.log('iframe content', $content);
-      }, iframeWaitLimit * 1000);
-
-      $iframe.addEventListener('load', async () => {
-        const $html = $iframe.contentDocument.querySelector(`html`);
-        await _sleep(1000);
-        $iframe.contentWindow.location.href = `https://instagram.com`;
-
-        // await _sleep(1000);
-
-        // <a class="customlink" href="https://www.instagram.com/spituki/">click</a>
-
-        //
-
-        // $iframe.contentWindow.location.href = `https://www.instagram.com/dropdopememe`;
-        // await startInteractingWithUserInNewTab($html);
-        // resolve(true);
-      });
-    });
-  }
-
-  async function startInteractingWithUserInNewTab($html) {
-    return new Promise(async (resolve, reject) => {
+      return;
       if (isFollowingList !== 'yes' && followingListLoop > 0) {
         const mustFollowUsers = await actions.getMustFollowUsers();
+
+        if (!mustFollowUsers || mustFollowUsers.length <= 0) {
+          resolve();
+          return;
+        }
 
         const url = mustFollowUsers[followingListLoop];
 
@@ -773,8 +697,10 @@ const Follow = () => {
         20
       );
 
+      /* Checks whether is on a user page */
       if (!$currentUser) {
         setIsFollowingList('no');
+        resolve();
         return;
       }
 
@@ -914,6 +840,10 @@ const Follow = () => {
         window.location.href = mustFollowUsers[loop];
       }
 
+      await _sleep(randomIntFromInterval(800, 1200));
+
+      await finishInteraction('success');
+
       return;
 
       /*
@@ -972,8 +902,6 @@ const Follow = () => {
 
         <Form.Control
           value={usersList}
-          defaultValue={`https://www.instagram.com/dantemohamed/
-https://www.instagram.com/kacperbereziecki/`}
           as="textarea"
           onKeyDown={(e) => {
             if (e.key === ' ') {

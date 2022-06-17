@@ -55,18 +55,18 @@ const Homepage = () => {
       await actions.loadUsername();
       await actions.loadIgnoredUsers();
 
-      if (
-        interactingWithUser !== window.location.pathname.replaceAll('/', '')
-      ) {
-        setInteractingWithUser('');
-      }
+      // if (
+      //   interactingWithUser !== window.location.pathname.replaceAll('/', '')
+      // ) {
+      //   setInteractingWithUser('');
+      // }
 
-      if (
-        interactingWithUser === '' ||
-        interactingWithUser !== window.location.pathname.replaceAll('/', '')
-      ) {
-        storeOriginalTabData();
-      }
+      // if (
+      //   interactingWithUser === '' ||
+      //   interactingWithUser !== window.location.pathname.replaceAll('/', '')
+      // ) {
+      //   storeOriginalTabData();
+      // }
     }
 
     function storeOriginalTabData() {
@@ -220,25 +220,26 @@ const Homepage = () => {
               className="Homepage-tab"
               label="Testing"
             >
+              <p>Ignored users</p>
               <input id="okok" type="text" />
 
-              <button
+              <Button
                 onClick={async () => {
                   const $okok = document.querySelector(`#okok`);
                   const user = $okok.value;
 
-                  actions.addIgnoredUser({ user, date: 111 });
+                  actions.addIgnoredUser({ user, date: new Date().getTime() });
                 }}
               >
                 add
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => {
                   actions.clearIgnoredUsers();
                 }}
               >
                 delte
-              </button>
+              </Button>
             </Tab>
 
             <Tab eventKey={3} className="Homepage-tab" label="Database">
@@ -263,7 +264,11 @@ const Homepage = () => {
             <div className="Homepage-database" id="ezgramDatabase">
               <div className="Homepage-stats Homepage-stats--ignored-users">
                 <p>Interacted users:</p>
-                <span>{state.ignoredUsers && state.ignoredUsers.length}</span>
+                <span>
+                  {state.ignoredUsers.hasOwnProperty('ignoredUsers')
+                    ? state.ignoredUsers.ignoredUsers.length
+                    : state.ignoredUsers.length}
+                </span>
               </div>
             </div>
           </div>

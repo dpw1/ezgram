@@ -4,6 +4,7 @@ import {
   CSS_SELECTORS,
   getChromeStorageData,
   getUserName,
+  isObjectEmpty,
   removeChromeStorageData,
   _waitForElement,
 } from '../modules/utils';
@@ -62,7 +63,7 @@ const Store = createStore({
         return new Promise(async (resolve, reject) => {
           const _users = await getChromeStorageData('mustFollowUsers');
 
-          if (!_users) {
+          if (!_users || isObjectEmpty(_users)) {
             resolve(null);
             return;
           }
@@ -101,16 +102,14 @@ const Store = createStore({
         return new Promise(async (resolve, reject) => {
           const _users = await getChromeStorageData('ignoredUsers');
 
-          if (!_users) {
+          if (!_users || isObjectEmpty(_users)) {
             resolve(null);
             return;
           }
 
-          const users = _users.hasOwnProperty('ignoredUsers')
-            ? _users.ignoredUsers.sort((a, b) =>
-                a.date < b.date ? 1 : b.date < a.date ? -1 : 0
-              )
-            : [];
+          const users = _users.sort((a, b) =>
+            a.date < b.date ? 1 : b.date < a.date ? -1 : 0
+          );
 
           const obj = {
             ignoredUsers: users,
@@ -143,7 +142,7 @@ const Store = createStore({
         return new Promise(async (resolve, reject) => {
           const _users = await getChromeStorageData('ignoredUsers');
 
-          if (!_users) {
+          if (!_users || isObjectEmpty(_users)) {
             resolve(null);
             return;
           }

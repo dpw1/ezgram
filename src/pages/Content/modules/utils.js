@@ -10,6 +10,10 @@ export function randomIntFromInterval(min, max) {
 }
 
 export function getInstagramUsernames(list) {
+  if (!list || list.length <= 0) {
+    return [];
+  }
+
   const _regex =
     /^(?:@|(?:https?:\/\/)?(?:www\.)?instagr(?:\.am|am\.com)\/)?(\w+)\/?$/;
 
@@ -893,7 +897,7 @@ export async function addChromeStorageData(key, data) {
   if (isObjectEmpty(previous)) {
     obj = {
       [user]: {
-        [key]: data,
+        [key]: [data],
       },
     };
   } else if (!previous.hasOwnProperty(key)) {
@@ -913,7 +917,7 @@ export async function addChromeStorageData(key, data) {
     if (Array.isArray(currentData) && !isObject(currentData[0])) {
       updated = [...previous[key], ...data];
     } else {
-      updated = [...previous[key], data];
+      updated = [previous[key], data].flat();
     }
     obj = {
       [user]: {
@@ -944,8 +948,6 @@ export async function getChromeStorageData(key = null) {
   return new Promise(async (resolve, reject) => {
     const user = await getUserName();
 
-    console.log('user is: ', user);
-
     if (!user) {
       resolve(null);
       return;
@@ -953,22 +955,23 @@ export async function getChromeStorageData(key = null) {
 
     chrome.storage.local.get(user, function (result) {
       if (chrome.runtime.lastError) {
-        reject(null);
+        console.log('errrr', chrome.runtime.lastError);
         updateLog('error getting data from Database.');
+        resolve(null);
+        return;
       }
 
-      if (!result[user]) {
-        resolve({});
+      if (!result[user] || result[user] === undefined) {
+        resolve(null);
+        return;
       }
 
-      if (result[user] !== undefined) {
-        if (key) {
-          resolve(result[user][key]);
-          return;
-        }
-
-        resolve(result[user]);
+      if (key) {
+        resolve(result[user][key]);
+        return;
       }
+
+      resolve(result[user]);
     });
   });
 }
