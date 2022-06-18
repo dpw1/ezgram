@@ -888,6 +888,12 @@ export async function importChromeStorage(data) {
 }
 
 export async function addChromeStorageData(key, data) {
+  if (!key) {
+    throw new Error('Key is needed.');
+    resolve(null);
+    return;
+  }
+
   const user = await getUserName();
   let previous = (await getChromeStorageData()) || {};
 
@@ -921,6 +927,7 @@ export async function addChromeStorageData(key, data) {
     }
     obj = {
       [user]: {
+        ...previous,
         [key]: updated,
       },
     };
@@ -977,18 +984,40 @@ export async function getChromeStorageData(key = null) {
 }
 
 /* Deletes all data for the current user. */
-export async function removeChromeStorageData() {
-  const user = await getUserName();
-
+export async function removeChromeStorageData(key = null) {
   return new Promise(async (resolve, reject) => {
-    chrome.storage.local.remove(user, function () {
-      var error = chrome.runtime.lastError;
-      if (error) {
-        reject(null);
-      }
+    const user = await getUserName();
 
-      resolve(true);
-    });
+    if (!user) {
+      resolve(null);
+
+      return;
+    }
+
+    /* No specified key, remove everything */
+    if (!key) {
+      chrome.storage.local.remove(user, function () {
+        var error = chrome.runtime.lastError;
+        if (error) {
+          reject(null);
+        }
+
+        resolve(true);
+      });
+    } else {
+      /* There is a specific key remove only that field */
+      const data = await getChromeStorageData();
+
+      delete data[key];
+
+      const obj = {
+        [user]: data,
+      };
+
+      chrome.storage.local.set(obj, function () {
+        resolve(true);
+      });
+    }
   });
 }
 

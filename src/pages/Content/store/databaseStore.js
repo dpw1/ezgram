@@ -43,7 +43,7 @@ const Store = createStore({
       (data) =>
       async ({ setState, getState }) => {
         return new Promise(async (resolve, reject) => {
-          if (!Array.isArray(data) || data.length <= 1) {
+          if (!Array.isArray(data) || data.length <= 0) {
             throw new Error("Invalid data. 'users' array required.");
           }
 
@@ -78,6 +78,24 @@ const Store = createStore({
           resolve(users);
         });
       },
+
+    clearMustFollowUsers:
+      () =>
+      async ({ setState, getState }) => {
+        return new Promise(async (resolve, reject) => {
+          const remove = await removeChromeStorageData('mustFollowUsers');
+
+          if (!remove) {
+            throw new Error('Unable to delete storage.');
+          }
+
+          setState({
+            mustFollowUsers: [],
+          });
+
+          resolve([]);
+        });
+      },
     /* ## Ignored Users
       ======================== */
     addIgnoredUser:
@@ -107,9 +125,11 @@ const Store = createStore({
             return;
           }
 
-          const users = _users.sort((a, b) =>
-            a.date < b.date ? 1 : b.date < a.date ? -1 : 0
-          );
+          const users = Array.isArray(_users)
+            ? _users.sort((a, b) =>
+                a.date < b.date ? 1 : b.date < a.date ? -1 : 0
+              )
+            : [_users];
 
           const obj = {
             ignoredUsers: users,
@@ -123,7 +143,7 @@ const Store = createStore({
       () =>
       async ({ setState, getState }) => {
         return new Promise(async (resolve, reject) => {
-          const remove = await removeChromeStorageData();
+          const remove = await removeChromeStorageData('ignoredUsers');
 
           if (!remove) {
             throw new Error('Unable to delete storage.');

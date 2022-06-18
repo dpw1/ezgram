@@ -51,9 +51,12 @@ const Homepage = () => {
 
     isFirstInstall();
 
+    /* initiate state for store */
+
     async function initState() {
       await actions.loadUsername();
       await actions.loadIgnoredUsers();
+      await actions.getMustFollowUsers();
 
       // if (
       //   interactingWithUser !== window.location.pathname.replaceAll('/', '')
@@ -220,26 +223,55 @@ const Homepage = () => {
               className="Homepage-tab"
               label="Testing"
             >
-              <p>Ignored users</p>
-              <input id="okok" type="text" />
+              <fieldset>
+                <p>Ignored users</p>
+                <input id="okok" type="text" />
 
-              <Button
-                onClick={async () => {
-                  const $okok = document.querySelector(`#okok`);
-                  const user = $okok.value;
+                <Button
+                  onClick={async () => {
+                    const $okok = document.querySelector(`#okok`);
+                    const user = $okok.value;
 
-                  actions.addIgnoredUser({ user, date: new Date().getTime() });
-                }}
-              >
-                add
-              </Button>
-              <Button
-                onClick={() => {
-                  actions.clearIgnoredUsers();
-                }}
-              >
-                delte
-              </Button>
+                    actions.addIgnoredUser({
+                      user,
+                      date: new Date().getTime(),
+                    });
+                  }}
+                >
+                  add
+                </Button>
+                <Button
+                  onClick={() => {
+                    actions.clearIgnoredUsers();
+                  }}
+                >
+                  delete
+                </Button>
+              </fieldset>
+              <hr />
+              <fieldset>
+                <p>Must follow users</p>
+                <input id="mustFollowUser" type="text" />
+
+                <Button
+                  onClick={async () => {
+                    const $mustFollow =
+                      document.querySelector(`#mustFollowUser`);
+                    const user = $mustFollow.value;
+
+                    actions.addMustFollowUsers([user]);
+                  }}
+                >
+                  add
+                </Button>
+                <Button
+                  onClick={() => {
+                    actions.clearMustFollowUsers();
+                  }}
+                >
+                  delete
+                </Button>
+              </fieldset>
             </Tab>
 
             <Tab eventKey={3} className="Homepage-tab" label="Database">
@@ -268,6 +300,13 @@ const Homepage = () => {
                   {state.ignoredUsers.hasOwnProperty('ignoredUsers')
                     ? state.ignoredUsers.ignoredUsers.length
                     : state.ignoredUsers.length}
+                </span>
+                <hr />
+                <p>To-follow list:</p>
+                <span>
+                  {state.mustFollowUsers.hasOwnProperty('mustFollowUsers')
+                    ? state.mustFollowUsers.mustFollowUsers.length
+                    : state.mustFollowUsers.length}
                 </span>
               </div>
             </div>

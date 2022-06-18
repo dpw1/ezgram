@@ -587,6 +587,7 @@ const Follow = () => {
   async function start() {
     const users = await storeUsersThatMustBeFollowed();
 
+    return;
     setIsFollowingList('yes');
     setFollowingListLoop(0);
     await _sleep(25);
@@ -673,7 +674,20 @@ const Follow = () => {
     return new Promise(async (resolve, reject) => {
       /* Checks whether is currently set to follow */
 
-      return;
+      const $currentUser = await _waitForElement(
+        CSS_SELECTORS.userPageUsername,
+        200,
+        20
+      );
+
+      /* Checks whether is on a user page */
+      if (!$currentUser) {
+        setIsFollowingList('no');
+        resolve();
+        return;
+      }
+
+      /* Checks whether is currently following */
       if (isFollowingList !== 'yes' && followingListLoop > 0) {
         const mustFollowUsers = await actions.getMustFollowUsers();
 
@@ -691,25 +705,8 @@ const Follow = () => {
         }
       }
 
-      const $currentUser = await _waitForElement(
-        CSS_SELECTORS.userPageUsername,
-        200,
-        20
-      );
-
-      /* Checks whether is on a user page */
-      if (!$currentUser) {
-        setIsFollowingList('no');
-        resolve();
-        return;
-      }
-
+      /* Starts following */
       const currentUser = $currentUser.textContent.trim();
-
-      localStorage.setItem(
-        LOCAL_STORAGE.interactingWithUserInNewTab,
-        currentUser
-      );
 
       await _waitForElement(CSS_SELECTORS.userPageProfileImage, 30, 10);
 
@@ -898,7 +895,13 @@ const Follow = () => {
       <hr />
 
       <InputGroup className="mb-3">
-        <Form.Label style={{ display: 'block' }}>Users:</Form.Label>
+        <Form.Label style={{ display: 'block' }}>
+          Users list (
+          {state.mustFollowUsers.hasOwnProperty('mustFollowUsers')
+            ? state.mustFollowUsers.mustFollowUsers.length
+            : state.mustFollowUsers.length}{' '}
+          user(s) to follow):
+        </Form.Label>
 
         <Form.Control
           value={usersList}
