@@ -201,146 +201,6 @@ const Follow = () => {
     // }
   }
 
-  /* Clicks on each user of the "followers" list. */
-  async function clickOnEachUser() {
-    let ignored = 0;
-    let ignoredUser;
-    let successfullyFollowed = 0;
-
-    for (let i = 1; i <= limit + ignored; i++) {
-      const DELAY_BETWEEN_USERS = randomIntFromInterval(
-        delayBetweenUsersMin * 1000,
-        delayBetweenUsersMax * 1000
-      );
-
-      const INTERACTION_DELAY = randomIntFromInterval(
-        INTERACTION_DELAY_MIN,
-        INTERACTION_DELAY_MAX
-      );
-
-      try {
-        await _sleep(randomIntFromInterval(40, 70));
-
-        if (i % 3 === 1) {
-          await scrollDownFollowersList();
-        }
-
-        const $parent = await _waitForElement(
-          `${CSS_SELECTORS.followersList} li:nth-child(${i})`,
-          250,
-          10
-        );
-
-        const $user = $parent.querySelector(`a[href]`);
-        const user = $user
-          .getAttribute(`href`)
-          .replaceAll('/', '')
-          .replaceAll(`followers`, '')
-          .trim();
-        const url = `https://www.instagram.com/${user}/`;
-        const $image = $parent.querySelector(`img`);
-        const $button = $parent.querySelector(`button`);
-
-        if (user === state.username) {
-          ignored += 1;
-          continue;
-        }
-
-        ignoredUser = await actions.getIgnoredUser(user);
-
-        if (ignoredUser) {
-          updateLog(`You have unfollowed this user in the past. Skipping...`);
-          ignored += 1;
-          continue;
-        }
-
-        if (!$button) {
-          updateLog(`Button not found ${i}`);
-        }
-
-        /* Check if user is in ignore list */
-
-        if (!isFollowButtonOnFollowerList($button)) {
-          updateLog(`You're already following this user. Skipping...`);
-          ignored += 1;
-          continue;
-        }
-
-        if (SKIP_USER_WITHOUT_PROFILE_IMAGE) {
-          const hasImage = await doesUserHaveProfileImage($image);
-
-          if (!hasImage) {
-            updateLog(
-              `<b>${user}</b> does not have a profile image. Skipping...`
-            );
-            ignored += 1;
-            continue;
-          }
-        }
-
-        setInteractingWithUser(user);
-
-        window.localStorage.setItem(
-          LOCAL_STORAGE.interactingWithUserInNewTab,
-          'waiting...'
-        );
-
-        await _sleep(150);
-
-        // await openIframe(url);
-
-        await _sleep(INTERACTION_DELAY);
-
-        if (
-          window.localStorage.getItem(LOCAL_STORAGE.interactionResult) !==
-          'fail'
-        ) {
-          updateLog(`<span style="color:green;">Successfully followed!</span>`);
-          window.localStorage.removeItem(LOCAL_STORAGE.interactionResult);
-          successfullyFollowed += 1;
-        } else {
-          updateLog(
-            `<b>${interactingWithUser}</b> was <b>not</b> followed, the user does not match your settings.`
-          );
-          ignored += 1;
-          await _sleep(500);
-          continue;
-        }
-
-        updateLog(
-          `<br /><b>Users followed: ${successfullyFollowed} / ${limit}</b> <br />`
-        );
-        updateLog(`<br /><b>Users skipped: ${ignored}</b> <br /><br />`);
-
-        window.localStorage.removeItem(LOCAL_STORAGE.interactionResult);
-
-        if (successfullyFollowed >= limit) {
-          break;
-        }
-
-        updateLog(
-          `<br />Waiting <b>${
-            DELAY_BETWEEN_USERS / 1000
-          } seconds</b> before moving on.`
-        );
-
-        await _sleep(DELAY_BETWEEN_USERS);
-
-        // console.log('res', res);
-      } catch (err) {
-        updateLog(`Something went wrong.`);
-        throw new Error(err);
-      }
-    }
-
-    if (downloadBackupFile === 'yes') {
-      await createBackupFile();
-    }
-
-    localActions.setIsExecuting(false);
-    updateLog(`<br />Following completed. <b>Please Refresh the page.</b>`);
-  }
-
   async function likeRandomPosts() {
     return new Promise(async (resolve, reject) => {
       const LIKING_POSTS_LIMIT = randomIntFromInterval(
@@ -533,15 +393,36 @@ const Follow = () => {
  'fail' = something went wrong, unable to "follow" user.
 
  'success' = user followed successfully.
+
+ 'final' = final interaction, no more loop.
   */
   async function finishInteraction(result = 'fail') {
     return new Promise(async (resolve, reject) => {
-      const user = localStorage.getItem(
-        LOCAL_STORAGE.interactingWithUserInNewTab
+      const $currentUser = document.querySelector(
+        CSS_SELECTORS.userPageUsername
       );
-      updateLog(`Interaction completed.`);
+      const user = $currentUser.textContent.trim();
 
-      setInteractingWithUser('');
+      /* ===== */
+
+      const mustFollowUsers = await actions.getMustFollowUsers();
+      const loop = followingListLoop + 1;
+
+      if (loop >= mustFollowUsers.length) {
+        updateLog(
+          `Interacted with all ${mustFollowUsers.length} users in the list!`
+        );
+        result = 'final';
+      }
+
+      if (result === 'final') {
+        await actions.overwriteMustFollowUsers([]);
+        setFollowingListLoop(0);
+        setIsFollowingList('no');
+        updateLog(`Please refresh the page.`);
+        resolve();
+        return;
+      }
 
       const delay = randomIntFromInterval(
         closeIframeDelayMin * 1000,
@@ -559,7 +440,11 @@ const Follow = () => {
         await actions.addIgnoredUser({ user });
       }
 
-      await _sleep(100);
+      updateLog(
+        `Interacted with all ${mustFollowUsers.length} users in the list!`
+      );
+
+      await goToURLThatMustBeFollowed(loop);
 
       resolve(true);
     });
@@ -598,8 +483,8 @@ const Follow = () => {
       const url = getInstagramURL(users[loop]);
 
       if (!url || url === undefined || url === 'undefined') {
-        alert('error - user undefined');
         setIsFollowingList('no');
+        alert('error - user undefined');
         resolve();
         return;
       }
@@ -609,11 +494,9 @@ const Follow = () => {
   }
 
   async function start() {
-    const result = await getTypeOfFollowButtonOnUserPage();
+    const stored = await storeUsersThatMustBeFollowed();
 
-    console.log('resssssss', result);
-    return;
-    await storeUsersThatMustBeFollowed();
+    updateLog(`Stored users: ${stored.length}`);
 
     setIsFollowingList('yes');
     setFollowingListLoop(0);
@@ -702,15 +585,6 @@ const Follow = () => {
     return new Promise(async (resolve, reject) => {
       /* Checks whether is currently set to follow */
 
-      /*
-  TODO:
-
-  
-  - remove from "mustFollow" list after following
-  - check if the current page is the current user in "mustFollow", if not,  setIsFollowingList('no');
-
-      */
-
       const $currentUser = await _waitForElement(
         CSS_SELECTORS.userPageUsername,
         200,
@@ -724,44 +598,42 @@ const Follow = () => {
         return;
       }
 
-      /* Checks whether is currently following */
-      if (isFollowingList === 'yes') {
-        const mustFollowUsers = await actions.getMustFollowUsers();
-
-        if (!mustFollowUsers || mustFollowUsers.length <= 0) {
-          resolve();
-          return;
-        }
-
-        // const url = mustFollowUsers[followingListLoop];
-
-        // const currentUser = getInstagramURL(url)[0];
-
-        // if (!currentU)
-
-        // if (!window.location.href.includes(currentUser)) {
-        //   // window.location.href = url;
-        // }
-      }
-
-      /* Starts following */
       const currentUser = $currentUser.textContent.trim();
 
-      await _waitForElement(CSS_SELECTORS.userPageProfileImage, 30, 10);
+      if (isFollowingList !== 'yes') {
+        resolve();
+        return;
+      }
 
-      updateLog(
-        `<span style="font-size: 25px;">Please don't change or close this tab.</span><br /><br />`
-      );
+      const ignored = await actions.getIgnoredUser(currentUser);
 
-      const mustFollowUsers = await actions.getMustFollowUsers();
-
-      if (!mustFollowUsers || mustFollowUsers <= 0) {
-        updateLog(`The users list is empty.`);
+      if (ignored) {
+        updateLog(`You have unfollowed this user in the past.`);
         await _sleep(100);
         await finishInteraction('fail');
         resolve(true);
         return;
       }
+
+      /* Checks whether is currently following */
+      const mustFollowUsers = await actions.getMustFollowUsers();
+
+      /* Starts following */
+
+      await _waitForElement(CSS_SELECTORS.userPageProfileImage, 30, 10);
+
+      if (!mustFollowUsers || mustFollowUsers <= 0) {
+        updateLog(`The users list is empty.`);
+        setIsFollowingList('no');
+        await _sleep(100);
+        await finishInteraction('fail');
+        resolve(true);
+        return;
+      }
+
+      updateLog(
+        `<span style="font-size: 25px;">Please don't change or close this tab.</span><br /><br />`
+      );
 
       updateLog(
         `Interacting with <b>${currentUser}</b>. ${followingListLoop + 1} / ${
@@ -773,16 +645,6 @@ const Follow = () => {
         TODO
         Must check if there are enough posts to like.
         */
-
-      const ignored = await actions.getIgnoredUser(currentUser);
-
-      if (ignored) {
-        updateLog(`You have unfollowed this user in the past.`);
-        await _sleep(100);
-        await finishInteraction('fail');
-        resolve(true);
-        return;
-      }
 
       const followType = await getTypeOfFollowButtonOnUserPage();
 
@@ -867,12 +729,8 @@ const Follow = () => {
 
       /* Followed all users from the list. Reset following */
       if (loop >= mustFollowUsers.length) {
-        updateLog(
-          `Interacted with all ${mustFollowUsers.length} users in the list!`
-        );
-        setFollowingListLoop(0);
-        setIsFollowingList('no');
-        finishInteraction('success');
+        finishInteraction('final');
+        resolve(true);
         return;
       }
 
@@ -881,13 +739,13 @@ const Follow = () => {
         delayBetweenUsersMax * 1000
       );
 
-      updateLog(`Moving to user number ${loop + 1}. Waiting ${delay} seconds.`);
+      updateLog(
+        `Moving to user number ${loop + 1}. Waiting ${delay / 1000} seconds.`
+      );
 
       await _sleep(delay);
 
       await finishInteraction('success');
-
-      await goToURLThatMustBeFollowed(loop);
 
       return;
 
@@ -956,7 +814,9 @@ const Follow = () => {
           {state.mustFollowUsers.hasOwnProperty('mustFollowUsers')
             ? state.mustFollowUsers.mustFollowUsers.length
             : state.mustFollowUsers.length}{' '}
-          user(s) to follow):
+          users to follow. Next on list is user number
+          {followingListLoop + 1}
+          ):
         </Form.Label>
 
         <Form.Control

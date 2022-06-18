@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
 import './Homepage.css';
+
+import React, { useEffect, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import { Tabs, Tab } from 'react-bootstrap-tabs';
 import Draggable from 'react-draggable'; // The default
@@ -18,12 +19,14 @@ import {
   LOCAL_STORAGE,
   _sleep,
 } from './utils';
-import Unfollow from './Unfollow';
-import { useDatabase } from '../store/databaseStore';
 
+import { useDatabase } from '../store/databaseStore';
+import { useLocalStore } from './../store/localStore';
+
+import Unfollow from './Unfollow';
 import Data from './Data';
 import Follow from './Follow';
-import { useLocalStore } from './../store/localStore';
+import List from './List';
 
 const Homepage = () => {
   const [isMinimized, setIsMinimized] = useStickyState('@isMinimized', false);
@@ -131,19 +134,13 @@ const Homepage = () => {
     }
 
     function handleUrlChange() {
-      var target = document.querySelector('body > div:nth-child(1)');
+      const $links = document.querySelectorAll(`body a[href]`);
 
-      var observer = new MutationObserver(function (mutations) {
-        mutations.forEach(async function (mutation) {
-          if (window.location.pathname !== '/') {
-            preventFollowingIgnoredUser();
-          }
+      for (var each of $links) {
+        each.addEventListener(`click`, function () {
+          alert('change');
         });
-      });
-
-      var config = { attributes: true, childList: true, characterData: true };
-
-      observer.observe(target, config);
+      }
     }
 
     initState();
@@ -201,6 +198,9 @@ const Homepage = () => {
             className="Homepage-tabs"
             onSelect={(index, label) => console.log(label + ' selected')}
           >
+            <Tab eventKey={0} className="Homepage-tab" label="List">
+              <List></List>
+            </Tab>
             <Tab
               disabled={localState.isExecuting}
               eventKey={0}

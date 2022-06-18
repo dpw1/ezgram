@@ -37,11 +37,7 @@ export const CSS_SELECTORS = {
   userPagePostsNumber: `header section ul li:nth-child(1) >span >span, header section ul li:nth-child(1) span, main header + div + ul li:nth-child(1) > div > span, section > main > div > header + * + * + ul li:nth-child(1) > div > span`,
   userPageFollowersNumber: `header section ul li:nth-child(2) >span >span, ul li [href*='followers'] > *,  header section ul li:nth-child(2) span, main header + div + ul li:nth-child(2) > * > span`,
   userPageFollowingNumber: `header section ul li:nth-child(3) >span >span, ul li [href*='following'] > *, header section ul li:nth-child(3) span, main header + div + ul li:nth-child(3) > * > span`,
-  userPageFollowButton: `header section h2 + div:first-of-type  > div > div > button,
-  header section h2 + div:first-of-type > div > div > div > span:nth-child(1) > *:nth-child(1) button, 
-  header section h1 + div:first-of-type  > div > div > button,
-  main header div+ section > div:nth-child(2)  > * > * > * > span > span:nth-child(1) button,
-  section > main > div > header > section > div > div > div > button`,
+  userPageFollowButton: `main header section div span > span:nth-child(1) > button > div`,
   userPageUnfollowButton: `main header section div span > span:nth-child(1) > button svg`,
   userPagePosts: `main div >article a[href*='/p']`,
   userPageActionBlocked: `#fb-root + div > div > div > div > div  + div > button + button`,
@@ -87,24 +83,14 @@ private = private account.
 
 */
 export async function getTypeOfFollowButtonOnUserPage() {
-  let $buttons;
   return new Promise(async (resolve, reject) => {
     /* Private */
     const $message = document.querySelector(
       CSS_SELECTORS.userPagePrivateAccountMessage
     );
-    $buttons = document.querySelectorAll(`header section h2 + div button`);
 
     if ($message) {
       resolve('private');
-      return;
-    }
-
-    $buttons = document.querySelectorAll(CSS_SELECTORS.userPageFollowButton);
-
-    /* Follow */
-    if ($buttons && $buttons.length === 1) {
-      resolve('follow');
       return;
     }
 
@@ -118,7 +104,7 @@ export async function getTypeOfFollowButtonOnUserPage() {
       return;
     }
 
-    resolve(null);
+    resolve('follow');
     return;
   });
 }
@@ -501,47 +487,6 @@ export async function getUserName() {
       return;
     }
 
-    /* Checks whether we're currently at the user's page. */
-
-    //
-
-    /* Get username by clicking on profile image > href */
-
-    /*
-    const $image = await _waitForElement(
-      CSS_SELECTORS.profileDropdownImage,
-      50,
-      10
-    );
-
-    if (!$image) {
-      resolve(null);
-      return;
-    }
-
-    $image.click();
-
-    const $link = await _waitForElement(
-      CSS_SELECTORS.profileDropdownLink,
-      50,
-      10
-    );
-
-    if (!$link) {
-      resolve(null);
-      return;
-    }
-
-    const _user = $link.getAttribute(`href`);
-    const user = _user.split('?')[0].replaceAll(`/`, '').trim();
-
-    document.elementFromPoint(0, 0).click();
-
-    window.ezfyCurrentUser = user;
-
-    resolve(user);
-    */
-
     /* Trying to get username from window's script */
 
     const $script = await _waitForElement(
@@ -549,6 +494,12 @@ export async function getUserName() {
       50,
       10
     );
+
+    if (!$script) {
+      alert('This page does not exist.');
+      resolve();
+      return;
+    }
 
     const script = $script.innerHTML.toLowerCase().trim();
     const hasUsername = script.includes(`username\\":\\"`);

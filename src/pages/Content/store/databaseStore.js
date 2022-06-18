@@ -65,14 +65,36 @@ const Store = createStore({
       (data) =>
       async ({ setState, getState }) => {
         return new Promise(async (resolve, reject) => {
-          if (!Array.isArray(data) || data.length <= 0) {
+          if (!Array.isArray(data)) {
             throw new Error("Invalid data. 'users' array required.");
+          }
+
+          const updated = [...new Set([...data])];
+
+          const users = await overwriteChromeStorageData(
+            'mustFollowUsers',
+            updated
+          );
+
+          setState(users.mustFollowUsers);
+
+          resolve(users.mustFollowUsers);
+        });
+      },
+
+    removeOneMustFollowUsers:
+      (user) =>
+      async ({ setState, getState }) => {
+        return new Promise(async (resolve, reject) => {
+          if (!user || user.length <= 0 || user === '') {
+            throw new Error("'user' is required.");
           }
 
           const _previous = await getChromeStorageData('mustFollowUsers');
           const previous = _previous && _previous.length >= 1 ? _previous : [];
-
-          const updated = [...new Set([...data])];
+          const updated = previous.filter(
+            (e) => e.toLowerCase() !== user.toLowerCase()
+          );
 
           const users = await overwriteChromeStorageData(
             'mustFollowUsers',
@@ -198,13 +220,12 @@ const Store = createStore({
       (user) =>
       async ({ setState, getState }) => {
         return new Promise(async (resolve, reject) => {
-          const _users = await getChromeStorageData('ignoredUsers');
+          const users = await getChromeStorageData('ignoredUsers');
 
-          if (!_users || isObjectEmpty(_users)) {
+          if (!users || isObjectEmpty(users)) {
             resolve(null);
             return;
           }
-          const users = _users.ignoredUsers;
 
           const found =
             users && users.length > 0
