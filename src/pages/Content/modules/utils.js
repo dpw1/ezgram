@@ -9,25 +9,15 @@ export function randomIntFromInterval(min, max) {
   );
 }
 
-export function getInstagramUsernames(list) {
-  if (!list || list.length <= 0) {
-    return [];
+export function getInstagramURL(username) {
+  if (!username || username === '') {
+    return undefined;
+  }
+  if (username.includes('instagram.com')) {
+    return username;
   }
 
-  const _regex =
-    /^(?:@|(?:https?:\/\/)?(?:www\.)?instagr(?:\.am|am\.com)\/)?(\w+)\/?$/;
-
-  let results = [];
-
-  for (const each of list) {
-    let match = _regex.exec(each);
-    if (match) {
-      results.push(match[1]);
-      console.log(match[1]);
-    }
-  }
-
-  return results;
+  return `https://instagram.com/${username}`;
 }
 
 export const CSS_SELECTORS = {
@@ -52,7 +42,7 @@ export const CSS_SELECTORS = {
   header section h1 + div:first-of-type  > div > div > button,
   main header div+ section > div:nth-child(2)  > * > * > * > span > span:nth-child(1) button,
   section > main > div > header > section > div > div > div > button`,
-  userPageUnfollowButton: `header section h2 + div:first-of-type  > div > div:nth-child(2) > * > * > *:nth-child(1) > button`,
+  userPageUnfollowButton: `main header section div span > span:nth-child(1) > button svg`,
   userPagePosts: `main div >article a[href*='/p']`,
   userPageActionBlocked: `#fb-root + div > div > div > div > div  + div > button + button`,
   userPagePrivateAccountMessage: `section main article > div > div > h2`,
@@ -118,8 +108,12 @@ export async function getTypeOfFollowButtonOnUserPage() {
       return;
     }
 
+    const $unfollow = document.querySelector(
+      CSS_SELECTORS.userPageUnfollowButton
+    );
+
     /* unfollow */
-    if ($buttons && $buttons.length === 2) {
+    if ($unfollow) {
       resolve('unfollow');
       return;
     }
@@ -883,6 +877,33 @@ export async function importChromeStorage(data) {
 
     chrome.storage.local.set(obj, function () {
       resolve(obj);
+    });
+  });
+}
+
+export async function overwriteChromeStorageData(key, data) {
+  if (!key) {
+    throw new Error('Key is needed.');
+    resolve(null);
+    return;
+  }
+
+  const user = await getUserName();
+  let previous = (await getChromeStorageData()) || {};
+
+  let updated = [data].flat();
+  let obj = {
+    [user]: {
+      ...previous,
+      [key]: updated,
+    },
+  };
+
+  console.log('saving this obejct:', obj);
+
+  return new Promise(async (resolve, reject) => {
+    chrome.storage.local.set(obj, function () {
+      resolve(obj[user]);
     });
   });
 }

@@ -5,6 +5,7 @@ import {
   getChromeStorageData,
   getUserName,
   isObjectEmpty,
+  overwriteChromeStorageData,
   removeChromeStorageData,
   _waitForElement,
 } from '../modules/utils';
@@ -47,11 +48,38 @@ const Store = createStore({
             throw new Error("Invalid data. 'users' array required.");
           }
 
-          const users = await addChromeStorageData('mustFollowUsers', data);
+          const _previous = await getChromeStorageData('mustFollowUsers');
+          const previous = _previous && _previous.length >= 1 ? _previous : [];
 
-          setState({
-            mustFollowUsers: users,
-          });
+          const updated = [...new Set([...previous, ...data])];
+
+          const users = await addChromeStorageData('mustFollowUsers', updated);
+
+          setState(users.mustFollowUsers);
+
+          resolve(users.mustFollowUsers);
+        });
+      },
+
+    overwriteMustFollowUsers:
+      (data) =>
+      async ({ setState, getState }) => {
+        return new Promise(async (resolve, reject) => {
+          if (!Array.isArray(data) || data.length <= 0) {
+            throw new Error("Invalid data. 'users' array required.");
+          }
+
+          const _previous = await getChromeStorageData('mustFollowUsers');
+          const previous = _previous && _previous.length >= 1 ? _previous : [];
+
+          const updated = [...new Set([...data])];
+
+          const users = await overwriteChromeStorageData(
+            'mustFollowUsers',
+            updated
+          );
+
+          setState(users.mustFollowUsers);
 
           resolve(users.mustFollowUsers);
         });
@@ -103,6 +131,16 @@ const Store = createStore({
       async ({ setState, getState }) => {
         if (!data.hasOwnProperty('user')) {
           throw new Error("Invalid data. 'user' required.");
+        }
+
+        const users = (await getChromeStorageData('ignoredUsers')) || [];
+
+        if (
+          users.filter((e) => e.user.toLowerCase() === data.user.toLowerCase())
+            .length >= 1
+        ) {
+          console.log('User already exists.');
+          return;
         }
 
         const user = await addChromeStorageData('ignoredUsers', {

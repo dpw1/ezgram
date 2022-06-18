@@ -41,7 +41,7 @@ import {
   randomUniqueIntegers,
   createBackupFile,
   removeChromeStorageData,
-  getInstagramUsernames,
+  getInstagramURL,
 } from './utils';
 
 import { resolveConfig } from 'prettier';
@@ -61,7 +61,6 @@ const Follow = () => {
 
   const [localState, localActions] = useLocalStore();
   const [state, actions] = useDatabase();
-  const [username, setUsername] = useState('');
 
   /* Settings 
   ===================================== */
@@ -85,6 +84,8 @@ const Follow = () => {
     2
   );
 
+  const [followUser, setFollowUser] = useStickyState('@followUser', 'yes'); //follow user before ending interaction?
+
   /* Liking posts 
   ==================================== */
   const [likePosts, setLikePosts] = useStickyState('@likePosts', 'yes'); //like posts?
@@ -105,7 +106,7 @@ const Follow = () => {
     5
   );
 
-  const [usersList, setUsersList] = useStickyState('@usersList', '');
+  const [usersList, setUsersList] = useState('');
 
   /* Loading user error
   ===================================== */
@@ -192,12 +193,12 @@ const Follow = () => {
 
     const page = window.location.pathname.replaceAll(`/`, '');
 
-    if (page !== username) {
-      setIsRefreshingPage(true);
-      updateLog(`Redirecting to <b>${username}</b> page, please wait...`);
-      window.location.href = `https://www.instagram.com/${username}`;
-      return;
-    }
+    // if (page !== username) {
+    //   setIsRefreshingPage(true);
+    //   updateLog(`Redirecting to <b>${username}</b> page, please wait...`);
+    //   window.location.href = `https://www.instagram.com/${username}`;
+    //   return;
+    // }
   }
 
   /* Clicks on each user of the "followers" list. */
@@ -551,7 +552,10 @@ const Follow = () => {
 
       await _sleep(delay);
 
-      if (storeSkippedUser === 'yes') {
+      if (
+        (storeSkippedUser === 'yes' && result === 'fail') ||
+        result === 'success'
+      ) {
         await actions.addIgnoredUser({ user });
       }
 
@@ -584,14 +588,38 @@ const Follow = () => {
     }
   }
 
-  async function start() {
-    const users = await storeUsersThatMustBeFollowed();
+  /* Return URL of the current user that must be followed */
+  async function goToURLThatMustBeFollowed(loop = followingListLoop) {
+    return new Promise(async (resolve, reject) => {
+      const users = await actions.getMustFollowUsers();
 
+      console.log('look at me', users, loop);
+
+      const url = getInstagramURL(users[loop]);
+
+      if (!url || url === undefined || url === 'undefined') {
+        alert('error - user undefined');
+        setIsFollowingList('no');
+        resolve();
+        return;
+      }
+
+      window.location.href = url;
+    });
+  }
+
+  async function start() {
+    const result = await getTypeOfFollowButtonOnUserPage();
+
+    console.log('resssssss', result);
     return;
+    await storeUsersThatMustBeFollowed();
+
     setIsFollowingList('yes');
     setFollowingListLoop(0);
     await _sleep(25);
-    window.location.href = users[0];
+
+    await goToURLThatMustBeFollowed(0);
 
     /* The function responsible to follow users is:
     
@@ -621,7 +649,7 @@ const Follow = () => {
     return new Promise(async (resolve, reject) => {
       const users = [...new Set(usersList.split('\n'))];
 
-      const res = await actions.addMustFollowUsers(users);
+      const res = await actions.overwriteMustFollowUsers(users);
 
       resolve(res);
     });
@@ -674,6 +702,15 @@ const Follow = () => {
     return new Promise(async (resolve, reject) => {
       /* Checks whether is currently set to follow */
 
+      /*
+  TODO:
+
+  
+  - remove from "mustFollow" list after following
+  - check if the current page is the current user in "mustFollow", if not,  setIsFollowingList('no');
+
+      */
+
       const $currentUser = await _waitForElement(
         CSS_SELECTORS.userPageUsername,
         200,
@@ -688,7 +725,7 @@ const Follow = () => {
       }
 
       /* Checks whether is currently following */
-      if (isFollowingList !== 'yes' && followingListLoop > 0) {
+      if (isFollowingList === 'yes') {
         const mustFollowUsers = await actions.getMustFollowUsers();
 
         if (!mustFollowUsers || mustFollowUsers.length <= 0) {
@@ -696,13 +733,15 @@ const Follow = () => {
           return;
         }
 
-        const url = mustFollowUsers[followingListLoop];
+        // const url = mustFollowUsers[followingListLoop];
 
-        const currentUser = getInstagramUsernames(url)[0];
+        // const currentUser = getInstagramURL(url)[0];
 
-        if (!window.location.href.includes(currentUser)) {
-          window.location.href = url;
-        }
+        // if (!currentU)
+
+        // if (!window.location.href.includes(currentUser)) {
+        //   // window.location.href = url;
+        // }
       }
 
       /* Starts following */
@@ -725,7 +764,9 @@ const Follow = () => {
       }
 
       updateLog(
-        `Interacting with <b>${currentUser}</b>. ${followingListLoop} / ${mustFollowUsers.length}`
+        `Interacting with <b>${currentUser}</b>. ${followingListLoop + 1} / ${
+          mustFollowUsers.length
+        }`
       );
 
       /* 
@@ -776,10 +817,8 @@ const Follow = () => {
       const followers = await getFollowersNumberIframe();
 
       updateLog(
-        `Post: ${posts} -- followers: ${followers} -- following: ${following}`
+        `Posts: ${posts} | Followers: ${followers} | Following: ${following}`
       );
-
-      updateLog(`Checking posts number...`);
 
       if (posts <= 0 && SKIP_ACCOUNTS_WITH_NO_POSTS) {
         updateLog(`<b>${currentUser}</b> has no posts. Skipping...`);
@@ -788,8 +827,6 @@ const Follow = () => {
         resolve(true);
         return;
       }
-
-      updateLog(`Checking following number...`);
 
       if (!(await isFollowingEnough(following))) {
         updateLog(
@@ -800,8 +837,6 @@ const Follow = () => {
         resolve(true);
         return;
       }
-
-      updateLog(`Checking followers number...`);
 
       if (!(await isFollowersEnough(followers))) {
         updateLog(
@@ -817,7 +852,7 @@ const Follow = () => {
 
       if (posts >= 1 && !isPrivate && likePosts === 'yes') {
         try {
-          await likeRandomPosts();
+          // await likeRandomPosts();
         } catch (err) {
           updateLog(`No posts found.`);
           await finishInteraction('fail');
@@ -830,16 +865,29 @@ const Follow = () => {
 
       setFollowingListLoop(loop);
 
-      if (loop > mustFollowUsers.length) {
-        updateLog(`Followed all ${mustFollowUsers.length} users!`);
-      } else {
-        updateLog(`Moving to user nubmer ${loop + 1}`);
-        window.location.href = mustFollowUsers[loop];
+      /* Followed all users from the list. Reset following */
+      if (loop >= mustFollowUsers.length) {
+        updateLog(
+          `Interacted with all ${mustFollowUsers.length} users in the list!`
+        );
+        setFollowingListLoop(0);
+        setIsFollowingList('no');
+        finishInteraction('success');
+        return;
       }
 
-      await _sleep(randomIntFromInterval(800, 1200));
+      const delay = randomIntFromInterval(
+        delayBetweenUsersMin * 1000,
+        delayBetweenUsersMax * 1000
+      );
+
+      updateLog(`Moving to user number ${loop + 1}. Waiting ${delay} seconds.`);
+
+      await _sleep(delay);
 
       await finishInteraction('success');
+
+      await goToURLThatMustBeFollowed(loop);
 
       return;
 
@@ -870,22 +918,31 @@ const Follow = () => {
     });
   }
 
+  function syncFollowingListTextareWithDatabase() {
+    const _users = state.mustFollowUsers;
+
+    if (_users.length <= 0) {
+      return;
+    }
+
+    const users = _users.hasOwnProperty('mustFollowUsers')
+      ? state.mustFollowUsers.mustFollowUsers
+      : state.mustFollowUsers;
+
+    console.log('usersss', users);
+    setUsersList(users.join('\n'));
+  }
+
   useEffect(() => {
     (async () => {
-      // await _sleep(1000);
-      // const $html = document.querySelector(`html`);
-      // likeRandomPosts($html);
+      syncFollowingListTextareWithDatabase();
+    })();
+  }, [state.mustFollowUsers]);
 
-      // return;
-
+  useEffect(() => {
+    (async () => {
       checkIfMustRestartFollow();
       startInteractingWithUserInNewTab();
-
-      const _user = window.location.pathname.replaceAll('/', '');
-
-      if (_user) {
-        setUsername(_user);
-      }
     })();
   }, []);
 
@@ -893,7 +950,6 @@ const Follow = () => {
     <div className="Follow">
       <h4 className="Follow-label h6">Follow user's followers</h4>
       <hr />
-
       <InputGroup className="mb-3">
         <Form.Label style={{ display: 'block' }}>
           Users list (
@@ -927,7 +983,6 @@ const Follow = () => {
           aria-describedby="basic-addon1"
         /> */}
       </InputGroup>
-
       {/* ## Follow limit
       ============================================== */}
       <Form.Group className="Follow-option mb-3">
@@ -943,19 +998,15 @@ const Follow = () => {
           placeholder="Stop following after reaching this number."
         />
       </Form.Group>
-
       {/* 
       ==============================================
       ==============================================
       */}
-
       <p className="h4 Follow-text-separator">Delays</p>
-
       {/* 
       ==============================================
       ==============================================
       */}
-
       {/* ## Clicking on user delay
       ============================================== */}
       <Form.Group className="Follow-option Follow-option--click-delay mb-3">
@@ -982,12 +1033,9 @@ const Follow = () => {
               />
             }
           </b>
-          <span>
-            seconds before clicking on each user at the "following" page.
-          </span>
+          <span>seconds before moving to the next user in the list.</span>
         </Form.Label>
       </Form.Group>
-
       {/* ## Close user page delay
       ============================================== */}
       <Form.Group className="Follow-option Follow-option--click-delay mb-3">
@@ -1022,7 +1070,6 @@ const Follow = () => {
 
         <hr className="Follow-hr" />
       </Form.Group>
-
       {/* ## Close user page delay
       ============================================== */}
       <Form.Group className="Follow-option Follow-option--click-delay mb-3">
@@ -1056,22 +1103,26 @@ const Follow = () => {
 
         <hr className="Follow-hr" />
       </Form.Group>
-
       {/* 
       ==============================================
       ==============================================
       */}
-
       <p className="h4 Follow-text-separator">Posts</p>
-
       {/* 
       ==============================================
       ==============================================
       */}
-
       {/* ## Like posts delay
       ============================================== */}
-
+      <Form.Check
+        type="switch"
+        id="followUser"
+        checked={followUser === 'yes' ? true : false}
+        onChange={(e) => {
+          setFollowUser(e.target.checked ? 'yes' : 'no');
+        }}
+        label={`Follow user`}
+      />
       <Form.Check
         type="switch"
         id="likePostsInput"
@@ -1079,9 +1130,8 @@ const Follow = () => {
         onChange={(e) => {
           setLikePosts(e.target.checked ? 'yes' : 'no');
         }}
-        label={`Randomly like posts`}
+        label={`Like random posts`}
       />
-
       <Form.Group
         style={{ display: likePosts === 'yes' ? 'block' : 'none' }}
         className="Follow-option Follow-option--click-delay mb-3"
@@ -1177,9 +1227,7 @@ const Follow = () => {
 
         <hr className="Follow-hr" />
       </Form.Group>
-
       <p className="h4 Follow-text-separator">Exclusion rules</p>
-
       <div>
         <div className="Follow-options Follow-options--following">
           <Form.Group className="Follow-group mb-3">
@@ -1264,7 +1312,6 @@ const Follow = () => {
           </Form.Group>
         </div>
       </div>
-
       <div>
         <Form.Check
           type="switch"
@@ -1276,7 +1323,6 @@ const Follow = () => {
           label={`Download backup file after completion`}
         />
       </div>
-
       <hr />
       <Button
         onClick={() => {
@@ -1289,14 +1335,6 @@ const Follow = () => {
         }}
       >
         {localState.isExecuting ? 'Stop' : 'Start'}
-      </Button>
-
-      <Button
-        onClick={async () => {
-          await removeChromeStorageData();
-        }}
-      >
-        Delete
       </Button>
     </div>
   );
