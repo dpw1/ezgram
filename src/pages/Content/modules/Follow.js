@@ -408,6 +408,8 @@ const Follow = () => {
       const mustFollowUsers = await actions.getMustFollowUsers();
       const loop = followingListLoop + 1;
 
+      updateLog(`${loop} -- ${mustFollowUsers.length}`);
+
       if (loop >= mustFollowUsers.length) {
         updateLog(
           `Interacted with all ${mustFollowUsers.length} users in the list!`
@@ -419,7 +421,7 @@ const Follow = () => {
         await actions.overwriteMustFollowUsers([]);
         setFollowingListLoop(0);
         setIsFollowingList('no');
-        updateLog(`Please refresh the page.`);
+        updateLog(`List successfully deleted. Please refresh the page.`);
         resolve();
         return;
       }
@@ -439,10 +441,6 @@ const Follow = () => {
       ) {
         await actions.addIgnoredUser({ user });
       }
-
-      updateLog(
-        `Interacted with all ${mustFollowUsers.length} users in the list!`
-      );
 
       await goToURLThatMustBeFollowed(loop);
 
@@ -605,27 +603,41 @@ const Follow = () => {
         return;
       }
 
-      const ignored = await actions.getIgnoredUser(currentUser);
+      /* Check whether following list is filled */
+      await _waitForElement(CSS_SELECTORS.userPageProfileImage, 30, 10);
 
-      if (ignored) {
-        updateLog(`You have unfollowed this user in the past.`);
+      const mustFollowUsers = await actions.getMustFollowUsers();
+
+      updateLog(
+        `Automatic following enabled. Progress: <b>${followingListLoop + 1} / ${
+          mustFollowUsers.length
+        }</b>`
+      );
+
+      if (!mustFollowUsers || mustFollowUsers <= 0) {
+        updateLog(`The users list is empty.`);
+        setIsFollowingList('no');
         await _sleep(100);
         await finishInteraction('fail');
         resolve(true);
         return;
       }
 
-      /* Checks whether is currently following */
-      const mustFollowUsers = await actions.getMustFollowUsers();
+      /* Start following */
+      const delay = randomIntFromInterval(
+        delayBetweenUsersMin * 1000,
+        delayBetweenUsersMax * 1000
+      );
+      const loop = followingListLoop + 1;
 
-      /* Starts following */
+      setFollowingListLoop(loop);
 
-      await _waitForElement(CSS_SELECTORS.userPageProfileImage, 30, 10);
+      const ignored = await actions.getIgnoredUser(currentUser);
 
-      if (!mustFollowUsers || mustFollowUsers <= 0) {
-        updateLog(`The users list is empty.`);
-        setIsFollowingList('no');
-        await _sleep(100);
+      if (ignored) {
+        updateLog(`You have unfollowed <b>${currentUser}</b> in the past.`);
+        setFollowingListLoop(loop);
+        await _sleep(randomIntFromInterval(100, 200));
         await finishInteraction('fail');
         resolve(true);
         return;
@@ -650,16 +662,20 @@ const Follow = () => {
 
       if (!followType) {
         updateLog('ERROR: Unable to identify type of follow button.');
+
+        await _sleep(randomIntFromInterval(100, 200));
+        await finishInteraction('fail');
         resolve(true);
         return;
       }
 
       if (followType === 'unfollow') {
         updateLog(`You are already following this user.`);
-        // await _sleep(100);
-        // await finishInteraction('fail');
-        // resolve(true);
-        // return;
+
+        await _sleep(randomIntFromInterval(100, 200));
+        await finishInteraction('fail');
+        resolve(true);
+        return;
       }
 
       const isPrivate = await isPrivateAccount();
@@ -667,7 +683,8 @@ const Follow = () => {
       if (SKIP_PRIVATE_ACCOUNT) {
         if (isPrivate) {
           updateLog(`This is a private account. Skipping...`);
-          await _sleep(100);
+
+          await _sleep(randomIntFromInterval(100, 200));
           await finishInteraction('fail');
           resolve(true);
           return;
@@ -685,6 +702,7 @@ const Follow = () => {
       if (posts <= 0 && SKIP_ACCOUNTS_WITH_NO_POSTS) {
         updateLog(`<b>${currentUser}</b> has no posts. Skipping...`);
 
+        await _sleep(randomIntFromInterval(100, 200));
         await finishInteraction('fail');
         resolve(true);
         return;
@@ -695,6 +713,7 @@ const Follow = () => {
           `<b>${currentUser}</b> is following <b>${following}</b> user(s), this is off your limits.`
         );
 
+        await _sleep(randomIntFromInterval(100, 200));
         await finishInteraction('fail');
         resolve(true);
         return;
@@ -705,6 +724,7 @@ const Follow = () => {
           `<b>${currentUser}</b> has <b>${followers}</b> follower(s), this is off your limits.`
         );
 
+        await _sleep(randomIntFromInterval(100, 200));
         await finishInteraction('fail');
         resolve(true);
         return;
@@ -717,15 +737,13 @@ const Follow = () => {
           // await likeRandomPosts();
         } catch (err) {
           updateLog(`No posts found.`);
+
+          await _sleep(randomIntFromInterval(100, 200));
           await finishInteraction('fail');
           resolve(true);
           return;
         }
       }
-
-      const loop = followingListLoop + 1;
-
-      setFollowingListLoop(loop);
 
       /* Followed all users from the list. Reset following */
       if (loop >= mustFollowUsers.length) {
@@ -733,11 +751,6 @@ const Follow = () => {
         resolve(true);
         return;
       }
-
-      const delay = randomIntFromInterval(
-        delayBetweenUsersMin * 1000,
-        delayBetweenUsersMax * 1000
-      );
 
       updateLog(
         `Moving to user number ${loop + 1}. Waiting ${delay / 1000} seconds.`
@@ -814,8 +827,8 @@ const Follow = () => {
           {state.mustFollowUsers.hasOwnProperty('mustFollowUsers')
             ? state.mustFollowUsers.mustFollowUsers.length
             : state.mustFollowUsers.length}{' '}
-          users to follow. Next on list is user number
-          {followingListLoop + 1}
+          users to follow. Next on list is user number {followingListLoop + 1},{' '}
+          {state.mustFollowUsers[followingListLoop]}
           ):
         </Form.Label>
 

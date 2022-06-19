@@ -60,19 +60,6 @@ const Homepage = () => {
       await actions.loadUsername();
       await actions.loadIgnoredUsers();
       await actions.getMustFollowUsers();
-
-      // if (
-      //   interactingWithUser !== window.location.pathname.replaceAll('/', '')
-      // ) {
-      //   setInteractingWithUser('');
-      // }
-
-      // if (
-      //   interactingWithUser === '' ||
-      //   interactingWithUser !== window.location.pathname.replaceAll('/', '')
-      // ) {
-      //   storeOriginalTabData();
-      // }
     }
 
     function storeOriginalTabData() {
@@ -198,9 +185,6 @@ const Homepage = () => {
             className="Homepage-tabs"
             onSelect={(index, label) => console.log(label + ' selected')}
           >
-            <Tab eventKey={0} className="Homepage-tab" label="List">
-              <List></List>
-            </Tab>
             <Tab
               disabled={localState.isExecuting}
               eventKey={0}
@@ -216,6 +200,9 @@ const Homepage = () => {
               label="Unfollow"
             >
               <Unfollow></Unfollow>
+            </Tab>
+            <Tab eventKey={0} className="Homepage-tab" label="List">
+              <List></List>
             </Tab>
             <Tab
               disabled={localState.isExecuting}

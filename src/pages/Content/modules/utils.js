@@ -30,10 +30,12 @@ export const CSS_SELECTORS = {
   followingListActionBlocked: `body > div+ div + div + div + div > div > div > div > div  + div > button + button`,
 
   followersList: `div[style] > div[style] > div + div`,
+  followersListItem: `div[style] > div[style] > div + div li`,
   followersNumber: `ul li [href*='followers'] > *`,
   followersListUsernames: `div > div > div > div:nth-child(2) li a[href] > span`,
   followersListButton: `div > div > div > div:nth-child(2) ul li button`,
 
+  userPageFollowestListOpenButton: `header > section  ul li:nth-child(2) a`,
   userPagePostsNumber: `header section ul li:nth-child(1) >span >span, header section ul li:nth-child(1) span, main header + div + ul li:nth-child(1) > div > span, section > main > div > header + * + * + ul li:nth-child(1) > div > span`,
   userPageFollowersNumber: `header section ul li:nth-child(2) >span >span, ul li [href*='followers'] > *,  header section ul li:nth-child(2) span, main header + div + ul li:nth-child(2) > * > span`,
   userPageFollowingNumber: `header section ul li:nth-child(3) >span >span, ul li [href*='following'] > *, header section ul li:nth-child(3) span, main header + div + ul li:nth-child(3) > * > span`,
@@ -475,6 +477,10 @@ export async function getFollowersNumberIframe() {
   });
 }
 
+function resetAutomaticFollowing() {
+  localStorage.setItem(`@useStatePerist:@isFollowingList`, `no`);
+}
+
 /* Gets the name of the currently logged user
 ============================= */
 export async function getUserName() {
@@ -496,8 +502,9 @@ export async function getUserName() {
     );
 
     if (!$script) {
-      alert('This page does not exist.');
-      resolve();
+      updateLog(`ERROR: This user does not exist.`);
+      resolve(null);
+      resetAutomaticFollowing();
       return;
     }
 
@@ -693,36 +700,73 @@ export function refreshPage() {
 
 /* Opens the follower list of a given user. */
 export async function openFollowersList(username) {
+  /* Updated version */
   return new Promise(async (resolve, reject) => {
-    let isOpen = false;
+    const $openList = await _waitForElement(
+      CSS_SELECTORS.followersList,
+      50,
+      10
+    );
 
-    if (!username || username === '') {
-      updateLog(`No username passed as parameter`);
+    if ($openList) {
+      resolve(true);
       return;
     }
 
-    while (!isOpen) {
-      updateLog(`<br />Opening followers list...`);
-      const $followers = document.querySelector(`a[href*="followers/"]`);
+    const $button = await _waitForElement(
+      CSS_SELECTORS.userPageFollowestListOpenButton,
+      50,
+      10
+    );
 
-      console.log('followers btn', $followers);
-
-      $followers.click();
-
-      await _sleep(50);
-
-      const $list = await _waitForElement(CSS_SELECTORS.followersList, 50, 50);
-
-      if ($list) {
-        isOpen = true;
-      }
+    if (!$button) {
+      resolve(null);
+      return;
     }
 
-    await _sleep(50);
+    $button.click();
 
-    updateLog('Followers page opened.');
+    const $list = await _waitForElement(CSS_SELECTORS.followersList, 50, 10);
+
+    if (!$list) {
+      resolve(null);
+      return;
+    }
+
     resolve(true);
   });
+
+  /* Old version */
+  // return new Promise(async (resolve, reject) => {
+  //   let isOpen = false;
+
+  //   if (!username || username === '') {
+  //     updateLog(`No username passed as parameter`);
+  //     return;
+  //   }
+
+  //   while (!isOpen) {
+  //     updateLog(`<br />Opening followers list...`);
+  //     const $followers = document.querySelector(`a[href*="followers/"]`);
+
+  //     console.log('followers btn', $followers);
+
+  //     $followers.click();
+
+  //     await _sleep(50);
+
+  //     const $list = await _waitForElement(CSS_SELECTORS.followersList, 50, 50);
+
+  //     if ($list) {
+  //       isOpen = true;
+  //     }
+  //   }
+
+  //   await _sleep(50);
+
+  //   updateLog('Followers page opened.');
+  //   resolve(true);
+  // });
 }
 
 export async function openFollowingPage(username) {

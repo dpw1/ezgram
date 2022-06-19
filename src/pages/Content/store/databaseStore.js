@@ -56,7 +56,6 @@ const Store = createStore({
           const users = await addChromeStorageData('mustFollowUsers', updated);
 
           setState(users.mustFollowUsers);
-
           resolve(users.mustFollowUsers);
         });
       },
@@ -191,12 +190,8 @@ const Store = createStore({
               )
             : [_users];
 
-          const obj = {
-            ignoredUsers: users,
-          };
-
-          setState(obj);
-          resolve(obj);
+          setState({ ignoredUsers: users });
+          resolve(users);
         });
       },
     clearIgnoredUsers:
