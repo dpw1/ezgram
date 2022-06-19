@@ -13,6 +13,7 @@ import InputGroup from 'react-bootstrap/InputGroup';
 
 // import getWindow from './modules/getWindow';
 import {
+  getFollowButton,
   getChromeStorageData,
   deleteChromeStorageData,
   addChromeStorageData,
@@ -26,7 +27,7 @@ import {
   refreshPage,
   LOCAL_STORAGE,
   openFollowersList,
-  isFollowButtonOnFollowerList,
+  isFollowButton,
   scrollDownFollowersList,
   openInNewTab,
   doesUserHaveProfileImage,
@@ -408,8 +409,6 @@ const Follow = () => {
       const mustFollowUsers = await actions.getMustFollowUsers();
       const loop = followingListLoop + 1;
 
-      updateLog(`${loop} -- ${mustFollowUsers.length}`);
-
       if (loop >= mustFollowUsers.length) {
         updateLog(
           `Interacted with all ${mustFollowUsers.length} users in the list!`
@@ -496,11 +495,13 @@ const Follow = () => {
 
     updateLog(`Stored users: ${stored.length}`);
 
+    const loop = followingListLoop;
+
     setIsFollowingList('yes');
-    setFollowingListLoop(0);
+    setFollowingListLoop(loop);
     await _sleep(25);
 
-    await goToURLThatMustBeFollowed(0);
+    await goToURLThatMustBeFollowed(loop);
 
     /* The function responsible to follow users is:
     
@@ -536,13 +537,9 @@ const Follow = () => {
     });
   }
 
-  async function clickOnFollowButton() {
+  async function clickOnFollowButton(user) {
     return new Promise(async (resolve, reject) => {
-      const $button = await _waitForElement(
-        CSS_SELECTORS.userPageFollowButton,
-        100,
-        10
-      );
+      const $button = await getFollowButton();
 
       if (!$button) {
         updateLog(`Follow button not found.`);
@@ -566,9 +563,9 @@ const Follow = () => {
       );
 
       if ($unfollow) {
-        actions.addIgnoredUser({ user: interactingWithUser });
+        actions.addIgnoredUser({ user });
         updateLog(
-          `<span style="color:green;"><b>You are now following ${interactingWithUser}</b>.</span>`
+          `<span style="color:green;"><b>You are now following ${user}</b>.</span>`
         );
 
         resolve(true);
@@ -609,9 +606,9 @@ const Follow = () => {
       const mustFollowUsers = await actions.getMustFollowUsers();
 
       updateLog(
-        `Automatic following enabled. Progress: <b>${followingListLoop + 1} / ${
-          mustFollowUsers.length
-        }</b>`
+        `<b>Automatic following enabled.<br/>Progress: ${
+          followingListLoop + 1
+        } / ${mustFollowUsers.length}</b><br/>`
       );
 
       if (!mustFollowUsers || mustFollowUsers <= 0) {
@@ -647,16 +644,7 @@ const Follow = () => {
         `<span style="font-size: 25px;">Please don't change or close this tab.</span><br /><br />`
       );
 
-      updateLog(
-        `Interacting with <b>${currentUser}</b>. ${followingListLoop + 1} / ${
-          mustFollowUsers.length
-        }`
-      );
-
-      /* 
-        TODO
-        Must check if there are enough posts to like.
-        */
+      updateLog(`Interacting with <b>${currentUser}</b>.`);
 
       const followType = await getTypeOfFollowButtonOnUserPage();
 
@@ -734,7 +722,7 @@ const Follow = () => {
 
       if (posts >= 1 && !isPrivate && likePosts === 'yes') {
         try {
-          // await likeRandomPosts();
+          await likeRandomPosts();
         } catch (err) {
           updateLog(`No posts found.`);
 
@@ -752,39 +740,30 @@ const Follow = () => {
         return;
       }
 
+      if (followUser) {
+        updateLog(`Clicking on the "follow" button...`);
+        try {
+          await clickOnFollowButton(currentUser);
+        } catch (err) {
+          updateLog(
+            `ERROR: Something went wrong while clicking on the follow button.`
+          );
+          await finishInteraction('fail');
+          resolve(true);
+          return;
+        }
+      }
+
       updateLog(
-        `Moving to user number ${loop + 1}. Waiting ${delay / 1000} seconds.`
+        `Completed. Moving to user number <b>${loop + 1} / ${
+          mustFollowUsers.length
+        }</b>. Waiting ${delay / 1000} seconds.`
       );
 
       await _sleep(delay);
 
       await finishInteraction('success');
 
-      return;
-
-      /*
-      TODO
-      Differentiate between requesting to follow & follow */
-
-      updateLog(`Clicking on the "follow" button...`);
-
-      try {
-        await clickOnFollowButton();
-      } catch (err) {
-        updateLog(`Something went wrong while clicking on the follow button.`);
-        await finishInteraction('fail');
-        resolve(true);
-        return;
-      }
-
-      updateLog(`Ending interaction...`);
-      /* Todo */
-
-      //watchStories()
-
-      await _sleep(randomIntFromInterval(800, 1200));
-
-      await finishInteraction('success');
       resolve(true);
     });
   }

@@ -35,7 +35,8 @@ export const CSS_SELECTORS = {
   followersListUsernames: `div > div > div > div:nth-child(2) li a[href] > span`,
   followersListButton: `div > div > div > div:nth-child(2) ul li button`,
 
-  userPageFollowestListOpenButton: `header > section  ul li:nth-child(2) a`,
+  userPageFollowButtons: `header > div + section > * button`,
+  userPageFollowerstListOpenButton: `header > section  ul li:nth-child(2) a`,
   userPagePostsNumber: `header section ul li:nth-child(1) >span >span, header section ul li:nth-child(1) span, main header + div + ul li:nth-child(1) > div > span, section > main > div > header + * + * + ul li:nth-child(1) > div > span`,
   userPageFollowersNumber: `header section ul li:nth-child(2) >span >span, ul li [href*='followers'] > *,  header section ul li:nth-child(2) span, main header + div + ul li:nth-child(2) > * > span`,
   userPageFollowingNumber: `header section ul li:nth-child(3) >span >span, ul li [href*='following'] > *, header section ul li:nth-child(3) span, main header + div + ul li:nth-child(3) > * > span`,
@@ -119,10 +120,12 @@ Following = I'm already following this user
 Follow = I'm not following this user.
 
 */
-export function isFollowButtonOnFollowerList($button) {
+export function isFollowButton($button) {
   const color = window.getComputedStyle($button).backgroundColor;
 
-  if (color !== 'rgba(0, 0, 0, 0)') {
+  const $svg = $button.querySelector(`svg`);
+
+  if (color !== 'rgba(0, 0, 0, 0)' && !$svg) {
     return true;
   }
 
@@ -205,6 +208,33 @@ export function readImportedFile(file) {
     reader.onerror = function (evt) {
       resolve(null);
     };
+  });
+}
+
+export async function getFollowButton() {
+  return new Promise(async (resolve, reject) => {
+    const $button = await _waitForElement(
+      CSS_SELECTORS.userPageFollowButtons,
+      100,
+      10
+    );
+
+    if (!$button) {
+      resolve(null);
+    }
+
+    const $buttons = await document.querySelectorAll(
+      CSS_SELECTORS.userPageFollowButtons
+    );
+
+    for (var [index, each] of $buttons.entries()) {
+      if (isFollowButton(each)) {
+        resolve($buttons[index]);
+        break;
+      }
+    }
+
+    resolve(null);
   });
 }
 
@@ -714,7 +744,7 @@ export async function openFollowersList(username) {
     }
 
     const $button = await _waitForElement(
-      CSS_SELECTORS.userPageFollowestListOpenButton,
+      CSS_SELECTORS.userPageFollowerstListOpenButton,
       50,
       10
     );

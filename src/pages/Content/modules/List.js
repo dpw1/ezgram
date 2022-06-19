@@ -2,6 +2,12 @@ import './List.css';
 
 import React, { useEffect, useState } from 'react';
 import Button from 'react-bootstrap/Button';
+import Form from 'react-bootstrap/Form';
+import { useStatePersist as useStickyState } from 'use-state-persist';
+
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/css/bootstrap.css'; // or include from a CDN
+import 'react-bootstrap-range-slider/dist/react-bootstrap-range-slider.css';
 
 // import getWindow from './modules/getWindow';
 import {
@@ -27,6 +33,8 @@ export default function List() {
   const [state, actions] = useDatabase();
   const [localState, localActions] = useLocalStore();
 
+  const [limit, setLimit] = useStickyState('@listLimit', 50);
+
   async function extractUsernamesFromFollowersList(_limit = 100) {
     return new Promise(async (resolve, reject) => {
       let list = [];
@@ -37,9 +45,14 @@ export default function List() {
 
       const limit = followers < _limit ? followers : _limit;
 
+      updateLog(`Preparing to extract ${limit} users...`);
+
+      await _waitForElement(CSS_SELECTORS.followersListUsernames, 100, 20);
+
       for (let i = 1; i <= limit + ignored; i++) {
         const index = i + 1;
         /* Scroll down, check if must end */
+
         const $visibleUsers = document.querySelectorAll(
           CSS_SELECTORS.followersListUsernames
         );
@@ -51,9 +64,16 @@ export default function List() {
         }
 
         /* Get current user */
-        const $user = document.querySelector(
-          `${CSS_SELECTORS.followersListItem}:nth-child(${index})`
+        const $user = await _waitForElement(
+          `${CSS_SELECTORS.followersListItem}:nth-child(${index})`,
+          100,
+          10
         );
+
+        if (!$user) {
+          alert(`no user found. ${index} -- `);
+          break;
+        }
 
         const $username = $user.querySelector(`a[href] > span`);
         const user = $username.textContent.trim();
@@ -75,8 +95,10 @@ export default function List() {
 
         console.log('visible: ', visible);
 
-        if (index >= visible) {
-          updateLog(`No more visible users. ${visible} users extracted.`);
+        if (index >= visible || index > limit + ignored) {
+          updateLog(
+            `Complete. ${list.length} users were extracted, ${ignored} users skipped.`
+          );
           resolve(list);
           break;
         }
@@ -100,15 +122,31 @@ export default function List() {
       alert('Unable to open followers list.');
     }
 
-    const list = await extractUsernamesFromFollowersList();
+    const list = await extractUsernamesFromFollowersList(limit);
     const result = await storeMustFollowUsersListToDatabase(list);
 
     console.log(result);
   }
 
   return (
-    <div>
-      list; {state.mustFollowUsers.length}
+    <div className="List">
+      <p>
+        There are currently {state.mustFollowUsers.length} users in your list.
+      </p>
+      <Form.Group className="List-option mb-3">
+        <Form.Label>Extract limit:</Form.Label>
+        <Form.Control
+          type="number"
+          min={1}
+          max={1000}
+          value={limit}
+          onChange={(e) => {
+            setLimit(e.target.value);
+          }}
+          placeholder="Stop following after reaching this number."
+        />
+      </Form.Group>
+
       <Button
         onClick={() => {
           start();

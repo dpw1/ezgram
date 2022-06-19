@@ -53,7 +53,10 @@ const Store = createStore({
 
           const updated = [...new Set([...previous, ...data])];
 
-          const users = await addChromeStorageData('mustFollowUsers', updated);
+          const users = await overwriteChromeStorageData(
+            'mustFollowUsers',
+            updated
+          );
 
           setState(users.mustFollowUsers);
           resolve(users.mustFollowUsers);
