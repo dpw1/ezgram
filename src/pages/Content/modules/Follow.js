@@ -501,17 +501,6 @@ const Follow = () => {
   }
 
   async function start() {
-    if (!(await isUserPage())) {
-      updateLog(`ERROR: Please go to a user page.`);
-      return;
-    }
-
-    await openFollowersList();
-
-    const stored = await storeUsersThatMustBeFollowed();
-
-    updateLog(`Stored users: ${stored.length}`);
-
     const loop = followingListLoop;
 
     setIsFollowingList('yes');
@@ -734,6 +723,22 @@ const Follow = () => {
         }
       }
 
+      if (followUser === 'yes') {
+        updateLog(`Clicking on the "follow" button...`);
+        try {
+          await clickOnFollowButton(currentUser);
+        } catch (err) {
+          updateLog(
+            `ERROR: Something went wrong while clicking on the follow button.`
+          );
+          await finishInteraction('fail');
+          resolve(true);
+          return;
+        }
+      }
+
+      updateLog(`Following completed.`);
+
       /* Followed all users from the list. Reset following */
       if (loop >= mustFollowUsers.length) {
         finishInteraction('final');
@@ -748,22 +753,8 @@ const Follow = () => {
         return;
       }
 
-      if (followUser) {
-        updateLog(`Clicking on the "follow" button...`);
-        try {
-          await clickOnFollowButton(currentUser);
-        } catch (err) {
-          updateLog(
-            `ERROR: Something went wrong while clicking on the follow button.`
-          );
-          await finishInteraction('fail');
-          resolve(true);
-          return;
-        }
-      }
-
       updateLog(
-        `Following completed. Moving to user number <b>${loop + 1} / ${
+        `Moving to user number <b>${loop + 1} / ${
           mustFollowUsers.length
         }</b>. Waiting ${delay / 1000} seconds.`
       );
