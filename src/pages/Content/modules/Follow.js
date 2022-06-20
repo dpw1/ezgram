@@ -321,7 +321,7 @@ const Follow = () => {
           await _sleep(randomIntFromInterval(400, 1500));
           updateLog(`Moving to next post.<br/>`);
 
-          if (i >= posts) {
+          if (i > posts) {
             updateLog(`No more posts to like.`);
             break;
           }
@@ -397,6 +397,8 @@ const Follow = () => {
  'success' = user followed successfully.
 
  'final' = final interaction, no more loop.
+
+ 'stop' = limit set by user reached. Stop following.
   */
   async function finishInteraction(result = 'fail') {
     return new Promise(async (resolve, reject) => {
@@ -415,6 +417,13 @@ const Follow = () => {
           `Interacted with all ${mustFollowUsers.length} users in the list!`
         );
         result = 'final';
+      }
+
+      if (result === 'stop') {
+        setIsFollowingList('no');
+        updateLog(`Reached follow limit set by user.`);
+        resolve();
+        return;
       }
 
       if (result === 'final') {
@@ -512,24 +521,8 @@ const Follow = () => {
     await goToURLThatMustBeFollowed(loop);
 
     /* The function responsible to follow users is:
-    
     startInteractingWithUserInNewTab()
     */
-
-    // const currentUsername = window.location.pathname.replaceAll(`/`, '').trim();
-
-    // if (!isRefreshingPage) {
-    //   redirectToUsernamePage();
-    // }
-
-    // if (isRefreshingPage && currentUsername === username) {
-    //   updateLog(`Successfully navigated to ${username}.`);
-    // }
-
-    /* TODO
-    check if is not open already */
-    // await openFollowersList(username);
-    // clickOnEachUser();
   }
 
   /**
@@ -748,6 +741,13 @@ const Follow = () => {
         return;
       }
 
+      /* Limit set by user reached. Stop */
+      if (loop >= limit) {
+        finishInteraction('stop');
+        resolve(true);
+        return;
+      }
+
       if (followUser) {
         updateLog(`Clicking on the "follow" button...`);
         try {
@@ -793,7 +793,7 @@ const Follow = () => {
 
   useEffect(() => {
     (async () => {
-      // syncFollowingListTextareWithDatabase();
+      syncFollowingListTextareWithDatabase();
     })();
   }, [state.mustFollowUsers]);
 
@@ -821,6 +821,7 @@ const Follow = () => {
 
         <Form.Control
           value={usersList}
+          id="mustFollowUsersList"
           as="textarea"
           onKeyDown={(e) => {
             if (e.key === ' ') {
@@ -832,6 +833,14 @@ const Follow = () => {
           }}
           rows={3}
         />
+
+        <Button
+          onClick={async () => {
+            await storeUsersThatMustBeFollowed();
+          }}
+        >
+          Update
+        </Button>
         {/* <InputGroup.Text id="basic-addon1">@</InputGroup.Text> */}
         {/* <FormControl
           value={username}

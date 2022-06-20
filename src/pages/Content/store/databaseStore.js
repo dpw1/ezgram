@@ -58,6 +58,8 @@ const Store = createStore({
             updated
           );
 
+          await Store.actions.getMustFollowUsers();
+
           setState(users.mustFollowUsers);
           resolve(users.mustFollowUsers);
         });
@@ -77,6 +79,8 @@ const Store = createStore({
             'mustFollowUsers',
             updated
           );
+
+          await Store.actions.getMustFollowUsers();
 
           setState(users.mustFollowUsers);
 
@@ -102,6 +106,8 @@ const Store = createStore({
             'mustFollowUsers',
             updated
           );
+
+          await Store.actions.getMustFollowUsers();
 
           setState(users.mustFollowUsers);
 
@@ -144,6 +150,8 @@ const Store = createStore({
           setState({
             mustFollowUsers: [],
           });
+
+          await Store.actions.getMustFollowUsers();
 
           resolve([]);
         });
