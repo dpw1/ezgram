@@ -43,6 +43,7 @@ import {
   createBackupFile,
   removeChromeStorageData,
   getInstagramURL,
+  isUserPage,
 } from './utils';
 
 import { resolveConfig } from 'prettier';
@@ -491,6 +492,13 @@ const Follow = () => {
   }
 
   async function start() {
+    if (!(await isUserPage())) {
+      updateLog(`ERROR: Please go to a user page.`);
+      return;
+    }
+
+    await openFollowersList();
+
     const stored = await storeUsersThatMustBeFollowed();
 
     updateLog(`Stored users: ${stored.length}`);
@@ -755,7 +763,7 @@ const Follow = () => {
       }
 
       updateLog(
-        `Completed. Moving to user number <b>${loop + 1} / ${
+        `Following completed. Moving to user number <b>${loop + 1} / ${
           mustFollowUsers.length
         }</b>. Waiting ${delay / 1000} seconds.`
       );
@@ -785,7 +793,7 @@ const Follow = () => {
 
   useEffect(() => {
     (async () => {
-      syncFollowingListTextareWithDatabase();
+      // syncFollowingListTextareWithDatabase();
     })();
   }, [state.mustFollowUsers]);
 

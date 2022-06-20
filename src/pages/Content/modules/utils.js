@@ -29,7 +29,7 @@ export const CSS_SELECTORS = {
   followingListUnfollowConfirmationButton: `div[style] > div > div > button[tabindex]:nth-child(1)`,
   followingListActionBlocked: `body > div+ div + div + div + div > div > div > div > div  + div > button + button`,
 
-  followersList: `div[style] > div[style] > div + div`,
+  followersList: `[style*='min-height'] div[style] > div + div`,
   followersListItem: `div[style] > div[style] > div + div li`,
   followersNumber: `ul li [href*='followers'] > *`,
   followersListUsernames: `div > div > div > div:nth-child(2) li a[href] > span`,
@@ -208,6 +208,29 @@ export function readImportedFile(file) {
     reader.onerror = function (evt) {
       resolve(null);
     };
+  });
+}
+
+export async function updateLogError() {
+  return updateLog(
+    `<span style="font-weight:bold;color:red;">ERROR: ${[...arguments]}</span>`
+  );
+}
+
+export async function isUserPage() {
+  return new Promise(async (resolve, reject) => {
+    const $buttons = _waitForElement(
+      CSS_SELECTORS.userPageFollowButtons,
+      100,
+      10
+    );
+
+    if (window.location.pathname.replaceAll('/', '').length >= 2 && $buttons) {
+      resolve(true);
+      return;
+    }
+
+    resolve(false);
   });
 }
 
@@ -729,23 +752,12 @@ export function refreshPage() {
 }
 
 /* Opens the follower list of a given user. */
-export async function openFollowersList(username) {
+export async function openFollowersList() {
   /* Updated version */
   return new Promise(async (resolve, reject) => {
-    const $openList = await _waitForElement(
-      CSS_SELECTORS.followersList,
-      50,
-      10
-    );
-
-    if ($openList) {
-      resolve(true);
-      return;
-    }
-
     const $button = await _waitForElement(
       CSS_SELECTORS.userPageFollowerstListOpenButton,
-      50,
+      100,
       10
     );
 

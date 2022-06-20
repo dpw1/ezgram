@@ -157,6 +157,10 @@ const Store = createStore({
           throw new Error("Invalid data. 'user' required.");
         }
 
+        if (data.user === '' || !data.user || data.user === undefined) {
+          throw new Error("Invalid data. 'user' is empty or undefined.");
+        }
+
         const users = (await getChromeStorageData('ignoredUsers')) || [];
 
         if (

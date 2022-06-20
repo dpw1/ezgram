@@ -24,6 +24,8 @@ import {
   openFollowersList,
   getFollowersNumber,
   scrollDownFollowersList,
+  isUserPage,
+  updateLogError,
 } from './utils';
 
 import { useDatabase } from '../store/databaseStore';
@@ -34,6 +36,10 @@ export default function List() {
   const [localState, localActions] = useLocalStore();
 
   const [limit, setLimit] = useStickyState('@listLimit', 50);
+  const [followingListLoop, setFollowingListLoop] = useStickyState(
+    '@followingListLoop',
+    0
+  ); //checks what user the bot is currently following
 
   async function extractUsernamesFromFollowersList(_limit = 100) {
     return new Promise(async (resolve, reject) => {
@@ -41,13 +47,24 @@ export default function List() {
       let ignored = 0;
 
       const ignoredUsers = await actions.loadIgnoredUsers();
+      const mustFollowUsers = await actions.getMustFollowUsers();
       const followers = await getFollowersNumber();
 
-      const limit = followers < _limit ? followers : _limit;
+      const limit = followers < _limit ? parseInt(followers) : parseInt(_limit);
 
       updateLog(`Preparing to extract ${limit} users...`);
 
-      await _waitForElement(CSS_SELECTORS.followersListUsernames, 100, 20);
+      const $list = await _waitForElement(
+        CSS_SELECTORS.followersListUsernames,
+        250,
+        20
+      );
+
+      if (!$list) {
+        updateLogError(`No list was found.`);
+        resolve(false);
+        return;
+      }
 
       for (let i = 1; i <= limit + ignored; i++) {
         const index = i + 1;
@@ -59,7 +76,7 @@ export default function List() {
 
         const visible = $visibleUsers.length;
 
-        if (i % 8 === 1 && visible <= followers) {
+        if (i % 5 === 1 && visible <= followers) {
           await scrollDownFollowersList();
         }
 
@@ -83,7 +100,10 @@ export default function List() {
             ? true
             : false;
 
-        if (isIgnored) {
+        const isInList =
+          mustFollowUsers.filter((e) => e === user).length >= 1 ? true : false;
+
+        if (isIgnored || isInList) {
           ignored += 1;
           continue;
         }
@@ -91,14 +111,16 @@ export default function List() {
         /* Save to list */
         list = [...list, user];
 
-        console.log('list: ', list[0], '--- index', i);
+        console.log('list: ', i, limit, ignored);
 
-        console.log('visible: ', visible);
+        // console.log('visible: ', visible);
 
-        if (index >= visible || index > limit + ignored) {
+        if (index >= visible || i >= limit + ignored) {
           updateLog(
             `Complete. ${list.length} users were extracted, ${ignored} users skipped.`
           );
+
+          updateLog(`Please refresh the page.`);
           resolve(list);
           break;
         }
@@ -116,6 +138,11 @@ export default function List() {
   }
 
   async function start() {
+    if (!(await isUserPage())) {
+      updateLog(`ERROR: Please go to a user page.`);
+      return;
+    }
+
     const res = await openFollowersList();
 
     if (!res) {
@@ -125,13 +152,14 @@ export default function List() {
     const list = await extractUsernamesFromFollowersList(limit);
     const result = await storeMustFollowUsersListToDatabase(list);
 
-    console.log(result);
+    console.log('stored users: ', result);
   }
 
   return (
     <div className="List">
       <p>
         There are currently {state.mustFollowUsers.length} users in your list.
+        You have already followed {followingListLoop + 1} of them.
       </p>
       <Form.Group className="List-option mb-3">
         <Form.Label>Extract limit:</Form.Label>
@@ -143,7 +171,7 @@ export default function List() {
           onChange={(e) => {
             setLimit(e.target.value);
           }}
-          placeholder="Stop following after reaching this number."
+          placeholder="Stop extracting after reaching this number."
         />
       </Form.Group>
 

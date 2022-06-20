@@ -103,7 +103,7 @@ const Homepage = () => {
 
         const ignored = await actions.getIgnoredUser(user);
 
-        if (!ignored) {
+        if (!ignored || user === '' || !user) {
           return;
         }
 
