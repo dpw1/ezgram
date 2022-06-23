@@ -18,6 +18,7 @@ import {
   downloadFile,
   LOCAL_STORAGE,
   _sleep,
+  isObject,
 } from './utils';
 
 import { useDatabase } from '../store/databaseStore';
@@ -60,6 +61,7 @@ const Homepage = () => {
       await actions.loadUsername();
       await actions.loadIgnoredUsers();
       await actions.getMustFollowUsers();
+      await actions.getFollowingListLoop();
     }
 
     function storeOriginalTabData() {
@@ -257,6 +259,42 @@ const Homepage = () => {
                   }}
                 >
                   delete
+                </Button>
+              </fieldset>
+              <hr />
+              <fieldset>
+                <p>
+                  Following List Loop{' '}
+                  {!isObject(state.followingListLoop) &&
+                    state.followingListLoop}
+                </p>
+                <input id="followingListLoop" type="text" />
+
+                <Button
+                  onClick={async () => {
+                    const $mustFollow =
+                      document.querySelector(`#followingListLoop`);
+                    const num = parseInt($mustFollow.value);
+
+                    actions.updateFollowingListLoop(num);
+                  }}
+                >
+                  add
+                </Button>
+                <Button
+                  onClick={() => {
+                    actions.clearFollowingListLoop();
+                  }}
+                >
+                  delete
+                </Button>
+
+                <Button
+                  onClick={async () => {
+                    await actions.getFollowingListLoop();
+                  }}
+                >
+                  get
                 </Button>
               </fieldset>
             </Tab>

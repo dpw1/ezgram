@@ -172,10 +172,12 @@ const Follow = () => {
     'no'
   ); //checks whether the bot is currently following a list of users
 
-  const [followingListLoop, setFollowingListLoop] = useStickyState(
-    '@followingListLoop',
-    0
-  ); //checks what user the bot is currently following
+  // const [followingListLoop, setFollowingListLoop] = useStickyState(
+  //   '@followingListLoop',
+  //   0
+  // );
+
+  //checks what user the bot is currently following
 
   /* === */
   const INTERACTION_DELAY_MIN = 800;
@@ -311,7 +313,7 @@ const Follow = () => {
         );
 
         if (!$unlike) {
-          updateLog(`Post liked.`);
+          updateLog(`<br/>Post liked.`);
           liked += 1;
           $like.click();
         } else {
@@ -410,7 +412,7 @@ const Follow = () => {
       /* ===== */
 
       const mustFollowUsers = await actions.getMustFollowUsers();
-      const loop = followingListLoop + 1;
+      const loop = state.followingListLoop + 1;
 
       if (loop >= mustFollowUsers.length) {
         updateLog(
@@ -421,14 +423,16 @@ const Follow = () => {
 
       if (result === 'stop') {
         setIsFollowingList('no');
-        updateLog(`Reached follow limit set by user.`);
+        updateLog(
+          `Reached follow limit set by user, stopping automated following.`
+        );
         resolve();
         return;
       }
 
       if (result === 'final') {
         await actions.overwriteMustFollowUsers([]);
-        setFollowingListLoop(0);
+        await actions.updateFollowingListLoop(0);
         setIsFollowingList('no');
         updateLog(`List successfully deleted. Please refresh the page.`);
         resolve();
@@ -481,8 +485,10 @@ const Follow = () => {
   }
 
   /* Return URL of the current user that must be followed */
-  async function goToURLThatMustBeFollowed(loop = followingListLoop) {
+  async function goToURLThatMustBeFollowed(_loop = null) {
     return new Promise(async (resolve, reject) => {
+      const loop = _loop ? await actions.getFollowingListLoop() : _loop;
+
       const users = await actions.getMustFollowUsers();
 
       console.log('look at me', users, loop);
@@ -501,10 +507,12 @@ const Follow = () => {
   }
 
   async function start() {
-    const loop = followingListLoop;
+    const loop = state.followingListLoop;
 
     setIsFollowingList('yes');
-    setFollowingListLoop(loop);
+
+    await actions.updateFollowingListLoop(loop);
+
     await _sleep(25);
 
     await goToURLThatMustBeFollowed(loop);
@@ -590,15 +598,16 @@ const Follow = () => {
         return;
       }
 
+      const loop = await actions.addFollowingListLoop();
+
       /* Check whether following list is filled */
+
       await _waitForElement(CSS_SELECTORS.userPageProfileImage, 30, 10);
 
       const mustFollowUsers = await actions.getMustFollowUsers();
 
       updateLog(
-        `<b>Automatic following enabled.<br/>Progress: ${
-          followingListLoop + 1
-        } / ${mustFollowUsers.length}</b><br/>`
+        `<b>Automatic following enabled.<br/>Progress: ${loop} / ${mustFollowUsers.length}</b><br/>`
       );
 
       if (!mustFollowUsers || mustFollowUsers <= 0) {
@@ -615,15 +624,14 @@ const Follow = () => {
         delayBetweenUsersMin * 1000,
         delayBetweenUsersMax * 1000
       );
-      const loop = followingListLoop + 1;
-
-      setFollowingListLoop(loop);
 
       const ignored = await actions.getIgnoredUser(currentUser);
 
       if (ignored) {
-        updateLog(`You have unfollowed <b>${currentUser}</b> in the past.`);
-        setFollowingListLoop(loop);
+        updateLog(
+          `You have unfollowed <b>${currentUser}</b> in the past. Skipping...`
+        );
+
         await _sleep(randomIntFromInterval(100, 200));
         await finishInteraction('fail');
         resolve(true);
@@ -737,7 +745,7 @@ const Follow = () => {
         }
       }
 
-      updateLog(`Following completed.`);
+      updateLog(`Interaction completed.`);
 
       /* Followed all users from the list. Reset following */
       if (loop >= mustFollowUsers.length) {
@@ -790,6 +798,12 @@ const Follow = () => {
 
   useEffect(() => {
     (async () => {
+      console.log('loop:', state.followingListLoop);
+    })();
+  }, [state.followingListLoop]);
+
+  useEffect(() => {
+    (async () => {
       checkIfMustRestartFollow();
       startInteractingWithUserInNewTab();
     })();
@@ -797,7 +811,7 @@ const Follow = () => {
 
   return (
     <div className="Follow">
-      <h4 className="Follow-label h6">Follow user's followers</h4>
+      <h4 className="Follow-label h6">Follow a list of users</h4>
       <hr />
       <InputGroup className="mb-3">
         <Form.Label style={{ display: 'block' }}>
@@ -805,8 +819,9 @@ const Follow = () => {
           {state.mustFollowUsers.hasOwnProperty('mustFollowUsers')
             ? state.mustFollowUsers.mustFollowUsers.length
             : state.mustFollowUsers.length}{' '}
-          users to follow. Next on list is user number {followingListLoop + 1},{' '}
-          {state.mustFollowUsers[followingListLoop]}
+          users to follow. Next on list is user number{' '}
+          {state.followingListLoop + 1},{' '}
+          {state.mustFollowUsers[state.followingListLoop]}
           ):
         </Form.Label>
 
@@ -858,18 +873,11 @@ const Follow = () => {
           placeholder="Stop following after reaching this number."
         />
       </Form.Group>
-      {/* 
-      ==============================================
-      ==============================================
-      */}
-      <p className="h4 Follow-text-separator">Delays</p>
-      {/* 
-      ==============================================
-      ==============================================
-      */}
+
       {/* ## Clicking on user delay
       ============================================== */}
       <Form.Group className="Follow-option Follow-option--click-delay mb-3">
+        <p className="h6">Next user pause</p>
         <Form.Label>
           <span>Wait between</span>{' '}
           {
@@ -930,39 +938,7 @@ const Follow = () => {
 
         <hr className="Follow-hr" />
       </Form.Group>
-      {/* ## Close user page delay
-      ============================================== */}
-      <Form.Group className="Follow-option Follow-option--click-delay mb-3">
-        <p className="h6">Restart</p>
 
-        <Form.Label>
-          Wait{' '}
-          {
-            <Form.Control
-              type="number"
-              min={1}
-              value={iframeWaitLimit}
-              onChange={(e) => {
-                setIframeWaitLimit(e.target.value);
-              }}
-            />
-          }{' '}
-          seconds to load an user page. If it fails, wait{' '}
-          {
-            <Form.Control
-              type="number"
-              min={1}
-              value={iframeRestartTime}
-              onChange={(e) => {
-                setIframeRestartTime(e.target.value);
-              }}
-            />
-          }{' '}
-          minutes, reload the page and restart.
-        </Form.Label>
-
-        <hr className="Follow-hr" />
-      </Form.Group>
       {/* 
       ==============================================
       ==============================================
@@ -1189,7 +1165,6 @@ const Follow = () => {
           if (localState.isExecuting) {
             stopExecuting();
           } else {
-            // localActions.setIsExecuting(true);
             start();
           }
         }}

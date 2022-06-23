@@ -921,8 +921,10 @@ export async function importChromeStorage(data) {
 export async function overwriteChromeStorageData(key, data) {
   if (!key) {
     throw new Error('Key is needed.');
-    resolve(null);
-    return;
+  }
+
+  if ((data && data.length <= 0)) {
+    throw new Error('Data is needed.');
   }
 
   const user = await getUserName();
@@ -935,6 +937,10 @@ export async function overwriteChromeStorageData(key, data) {
       [key]: updated,
     },
   };
+
+  if (!isObject(data)) {
+    obj[user][key] = data;
+  }
 
   console.log('saving this obejct:', obj);
 
@@ -1000,7 +1006,7 @@ export async function addChromeStorageData(key, data) {
   });
 }
 
-function isObject(obj) {
+export function isObject(obj) {
   var type = typeof obj;
   return (
     obj === Object(obj) &&
@@ -1019,6 +1025,8 @@ export async function getChromeStorageData(key = null) {
     }
 
     chrome.storage.local.get(user, function (result) {
+      console.log('result: ', result);
+
       if (chrome.runtime.lastError) {
         console.log('errrr', chrome.runtime.lastError);
         updateLog('error getting data from Database.');

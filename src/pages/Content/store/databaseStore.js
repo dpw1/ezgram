@@ -17,9 +17,84 @@ const Store = createStore({
       [] /* Users that were already interacted with (followed and/or unfollowed) */,
     mustFollowUsers: [] /* List of users that must be followed */,
     username: '',
+    followingListLoop: 0,
   },
   // actions that trigger store mutation
   actions: {
+    /* ## Following list loop variable
+      ======================== */
+    getFollowingListLoop:
+      () =>
+      async ({ setState, getState }) => {
+        return new Promise(async (resolve, reject) => {
+          const _loop = await getChromeStorageData('followingListLoop');
+
+          const loop = _loop ? _loop : 0;
+
+          setState({ followingListLoop: loop });
+          resolve(loop);
+        });
+      },
+
+    addFollowingListLoop:
+      () =>
+      async ({ setState, getState }) => {
+        return new Promise(async (resolve, reject) => {
+          const _previous = await getChromeStorageData('followingListLoop');
+          const previous = _previous ? parseInt(_previous) : 0;
+
+          const updated = previous + 1;
+          const _loop = await overwriteChromeStorageData(
+            'followingListLoop',
+            updated
+          );
+
+          debugger;
+
+          setState({ followingListLoop: updated });
+          resolve(updated);
+        });
+      },
+
+    updateFollowingListLoop:
+      (num) =>
+      async ({ setState, getState }) => {
+        return new Promise(async (resolve, reject) => {
+          const response = await overwriteChromeStorageData(
+            'followingListLoop',
+            parseInt(num)
+          );
+
+          const loop = response.followingListLoop;
+
+          console.log(loop);
+          debugger;
+
+          setState({ followingListLoop: loop });
+          resolve(loop);
+        });
+      },
+
+    clearFollowingListLoop:
+      () =>
+      async ({ setState, getState }) => {
+        return new Promise(async (resolve, reject) => {
+          const remove = await removeChromeStorageData('followingListLoop');
+
+          if (!remove) {
+            throw new Error('Unable to delete storage.');
+          }
+
+          setState({
+            followingListLoop: 0,
+          });
+
+          resolve(0);
+        });
+      },
+
+    /* ## Get current user
+      ======================== */
     loadUsername:
       (_) =>
       async ({ setState, getState }) => {
