@@ -25,12 +25,16 @@ import {
   scrollDownFollowingList,
   stopExecuting,
   createBackupFile,
+  getUnfollowConfirmationButton,
 } from './utils';
 
 import { useDatabase } from '../store/databaseStore';
 import { useLocalStore } from './../store/localStore';
 
 const Unfollow = () => {
+  const [localState, localActions] = useLocalStore();
+  const [state, actions] = useDatabase();
+
   const [unfollowLimit, setUnfollowLimit] = useStickyState(
     '@unfollowLimit',
     50
@@ -51,9 +55,7 @@ const Unfollow = () => {
     'yes'
   );
 
-  const [localState, localActions] = useLocalStore();
-  const [state, actions] = useDatabase();
-
+  /* Clicks on the "unfollow" button and then on the "confirm unfollow" button. */
   async function handleClickOnUnfollowButton() {
     await _waitForElement(CSS_SELECTORS.followingListUnfollowButton);
 
@@ -74,7 +76,7 @@ const Unfollow = () => {
     for (let i = 1; i <= unfollowLimit + ignored; i++) {
       await _sleep(randomIntFromInterval(40, 70));
 
-      if (i % 6 === 1) {
+      if (i % 4 === 1) {
         await scrollDownFollowingList();
       }
 
@@ -92,7 +94,7 @@ const Unfollow = () => {
 
       const found = followers.filter((e) => e === user);
 
-      if (found.length > 0) {
+      if (found.length > 0 && unfollowNonFollowers === 'yes') {
         updateLog(`<b>${user}</b> is following you back. Skipping...`);
         ignored += 1;
         await _sleep(randomIntFromInterval(95, 300));
@@ -100,16 +102,14 @@ const Unfollow = () => {
       }
 
       updateLog(
-        `<br />Unfollowing <a target="_blank" href="/${user}">${user}</a>...`
+        `<br />Unfollowing <a target="_blank" href="/${user}">${user}</a>`
       );
 
       await _sleep(100);
 
       $button.click();
 
-      const $unfollow = await _waitForElement(
-        CSS_SELECTORS.followingListUnfollowConfirmationButton
-      );
+      const $unfollow = await getUnfollowConfirmationButton();
 
       const unfollowDelay = randomIntFromInterval(1003, 3808);
       await _sleep(unfollowDelay);
@@ -147,9 +147,9 @@ const Unfollow = () => {
       );
 
       updateLog(
-        `Awaiting ${
+        `Waiting ${
           delay / 1000
-        } seconds before moving to the next one...<br />`
+        } seconds before moving to the next user...<br />`
       );
       await _sleep(delay);
     }

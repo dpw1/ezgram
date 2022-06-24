@@ -24,7 +24,7 @@ export const CSS_SELECTORS = {
   profileDropdownImage: 'nav div > div > div > div:nth-child(3) img[alt]',
   profileDropdownLink: `div[aria-hidden] > div[style] + * a[href]:nth-child(1)`,
 
-  followingList: `[aria-label][role="dialog"] > div  > div > div:nth-child(3), div[style] > div[role]+ div`,
+  followingList: `[style*='signup'] div[style] > div[role]+ div`,
   followingListUnfollowButton: `div[role="presentation"] ul li button, div[role="tablist"] + div > ul > div > li button`,
   followingListUnfollowConfirmationButton: `div[style] > div > div > button[tabindex]:nth-child(1)`,
   followingListActionBlocked: `body > div+ div + div + div + div > div > div > div > div  + div > button + button`,
@@ -811,6 +811,22 @@ export async function openFollowersList() {
   // });
 }
 
+export async function getUnfollowConfirmationButton() {
+  return new Promise(async (resolve, reject) => {
+    const $buttons = await _waitForElement(`div > button + button`, 100, 50);
+
+    if (!$buttons) {
+      resolve(null);
+      return;
+    }
+
+    const $parent = $buttons.closest('div');
+    const $button = $parent.querySelector(`button:nth-child(1)`);
+
+    resolve($button);
+  });
+}
+
 export async function openFollowingPage(username) {
   return new Promise(async (resolve, reject) => {
     updateLog('\nNavigating to following page...');
@@ -829,22 +845,8 @@ export async function openFollowingPage(username) {
     const $followingButton = await _waitForElement(css, 50, 50);
 
     $followingButton.click();
-    $followingButton.click();
 
     updateLog(`Opening Following page.`);
-    await _sleep(50);
-
-    const $unfollowButton = await _waitForElement(
-      CSS_SELECTORS.followingListUnfollowButton
-    );
-
-    await _sleep(50);
-
-    if ($unfollowButton) {
-      updateLog('Following page opened.');
-    } else {
-      updateLog(`Something went wrong.`);
-    }
 
     resolve();
   });

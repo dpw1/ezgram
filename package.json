@@ -1,7 +1,7 @@
 {
   "name": "ezgram-instagram-automation",
-  "version": "0.0.1",
-  "description": "Instagram automation tool to make your life easier.",
+  "version": "0.2.0",
+  "description": "Instagram automation tool to follow, unfollow and like.",
   "license": "MIT",
   "repository": {
     "type": "git",
