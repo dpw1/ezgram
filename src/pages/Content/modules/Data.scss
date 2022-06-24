@@ -6,6 +6,11 @@
     margin-bottom: 20px;
   }
 
+  table {
+    max-height: 1000px;
+    overflow-y: scroll;
+  }
+
   &-button {
     max-width: 150px;
     width: 100%;

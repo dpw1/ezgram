@@ -904,14 +904,17 @@ export async function doesUserHaveProfileImage($image) {
 }
 
 /* Overwrites all data to import new one. */
-export async function importChromeStorage(data) {
+export async function importChromeStorage(data, initialState = {}) {
   return new Promise(async (resolve, reject) => {
     const user = await getUserName();
 
     const obj = {
-      [user]: data,
+      [user]: { ...initialState, ...data },
     };
 
+    console.log('importing this:', obj);
+
+    debugger;
     chrome.storage.local.set(obj, function () {
       resolve(obj);
     });
@@ -923,7 +926,7 @@ export async function overwriteChromeStorageData(key, data) {
     throw new Error('Key is needed.');
   }
 
-  if ((data && data.length <= 0)) {
+  if (data && data.length <= 0) {
     throw new Error('Data is needed.');
   }
 

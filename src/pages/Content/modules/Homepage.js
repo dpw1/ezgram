@@ -212,6 +212,13 @@ const Homepage = () => {
               className="Homepage-tab"
               label="Testing"
             >
+              <Button
+                onClick={() => {
+                  console.log(state);
+                }}
+              >
+                Testing
+              </Button>
               <fieldset>
                 <p>Ignored users</p>
                 <input id="okok" type="text" />

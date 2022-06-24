@@ -137,7 +137,7 @@ const Data = () => {
 
             const data = await readImportedFile(file);
 
-            await importChromeStorage(data);
+            await importChromeStorage(data, state);
             actions.loadIgnoredUsers();
             setUsers(
               state.ignoredUsers.hasOwnProperty('ignoredUsers')
@@ -151,7 +151,6 @@ const Data = () => {
         />
       </div>
 
-      {console.log('xx', users)}
       {users && users.length > 0 ? (
         <Table striped bordered hover>
           <thead>

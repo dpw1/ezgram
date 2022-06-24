@@ -95,19 +95,24 @@ export default function List() {
         const $username = $user.querySelector(`a[href] > span`);
         const user = $username.textContent.trim();
 
-        const isIgnored =
-          ignoredUsers.filter((e) => e.user === user).length >= 1
-            ? true
-            : false;
+        console.log('iggg', ignoredUsers);
 
-        const isInList =
-          mustFollowUsers.filter((e) => e === user).length >= 1 ? true : false;
+        if (ignoredUsers && ignoredUsers.length > 0) {
+          const isIgnored =
+            ignoredUsers.filter((e) => e.user === user).length >= 1
+              ? true
+              : false;
 
-        if (isIgnored || isInList) {
-          ignored += 1;
-          continue;
+          const isInList =
+            mustFollowUsers.filter((e) => e === user).length >= 1
+              ? true
+              : false;
+
+          if (isIgnored || isInList) {
+            ignored += 1;
+            continue;
+          }
         }
-
         /* Save to list */
         list = [...list, user];
 
