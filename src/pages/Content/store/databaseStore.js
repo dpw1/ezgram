@@ -49,8 +49,6 @@ const Store = createStore({
             updated
           );
 
-          debugger;
-
           setState({ followingListLoop: updated });
           resolve(updated);
         });
@@ -66,9 +64,6 @@ const Store = createStore({
           );
 
           const loop = response.followingListLoop;
-
-          console.log(loop);
-          debugger;
 
           setState({ followingListLoop: loop });
           resolve(loop);
@@ -133,7 +128,7 @@ const Store = createStore({
             updated
           );
 
-          await Store.actions.getMustFollowUsers();
+          await this.actions.getMustFollowUsers();
 
           setState(users.mustFollowUsers);
           resolve(users.mustFollowUsers);
@@ -182,7 +177,9 @@ const Store = createStore({
             updated
           );
 
-          await Store.actions.getMustFollowUsers();
+          const res = await Store.actions.getMustFollowUsers();
+
+          console.log('123', res);
 
           setState(users.mustFollowUsers);
 

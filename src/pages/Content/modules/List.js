@@ -30,16 +30,24 @@ import {
 
 import { useDatabase } from '../store/databaseStore';
 import { useLocalStore } from './../store/localStore';
+import { InputGroup } from 'react-bootstrap';
 
 export default function List() {
   const [state, actions] = useDatabase();
   const [localState, localActions] = useLocalStore();
+  const [usersList, setUsersList] = useState('');
 
   const [limit, setLimit] = useStickyState('@listLimit', 50);
   const [followingListLoop, setFollowingListLoop] = useStickyState(
     '@followingListLoop',
     0
   ); //checks what user the bot is currently following
+
+  useEffect(() => {
+    (async () => {
+      syncFollowingListTextareWithDatabase();
+    })();
+  }, [state.mustFollowUsers]);
 
   async function extractUsernamesFromFollowersList(_limit = 100) {
     return new Promise(async (resolve, reject) => {
@@ -113,10 +121,11 @@ export default function List() {
             continue;
           }
         }
+
         /* Save to list */
         list = [...list, user];
 
-        console.log('list: ', i, limit, ignored);
+        updateLog(`Extracted ${list.length} users.`);
 
         // console.log('visible: ', visible);
 
@@ -142,6 +151,21 @@ export default function List() {
     });
   }
 
+  /**
+   * Adds users on the "To-follow" list to the database
+   */
+  async function storeUsersThatMustBeFollowed() {
+    return new Promise(async (resolve, reject) => {
+      const users = [...new Set(usersList.split('\n'))];
+
+      const res = await actions.overwriteMustFollowUsers(users);
+
+      await actions.getMustFollowUsers();
+
+      resolve(res);
+    });
+  }
+
   async function start() {
     if (!(await isUserPage())) {
       updateLog(`ERROR: Please go to a user page.`);
@@ -160,12 +184,63 @@ export default function List() {
     console.log('stored users: ', result);
   }
 
+  function syncFollowingListTextareWithDatabase() {
+    const _users = state.mustFollowUsers;
+
+    if (_users.length <= 0) {
+      return;
+    }
+
+    const users = _users.hasOwnProperty('mustFollowUsers')
+      ? state.mustFollowUsers.mustFollowUsers
+      : state.mustFollowUsers;
+
+    console.log('usersss', users);
+    setUsersList(users.join('\n'));
+  }
+
   return (
     <div className="List">
       <p>
         There are currently {state.mustFollowUsers.length} users in your list.
-        You have already followed {followingListLoop + 1} of them.
+        You have already interacted with {state.followingListLoop} of them.
       </p>
+      <InputGroup className="mb-3">
+        <Form.Label style={{ display: 'block' }}></Form.Label>
+
+        <Form.Control
+          value={usersList}
+          id="mustFollowUsersList"
+          as="textarea"
+          onKeyDown={(e) => {
+            if (e.key === ' ') {
+              e.preventDefault();
+            }
+          }}
+          onChange={(e) => {
+            setUsersList(e.target.value);
+          }}
+          rows={3}
+        />
+
+        <Button
+          onClick={async () => {
+            await storeUsersThatMustBeFollowed();
+          }}
+        >
+          Update
+        </Button>
+        {/* <InputGroup.Text id="basic-addon1">@</InputGroup.Text> */}
+        {/* <FormControl
+          value={username}
+          placeholder="Username"
+          aria-label="Username"
+          onChange={(e) => {
+            setUsername(e.target.value);
+          }}
+          aria-describedby="basic-addon1"
+        /> */}
+      </InputGroup>
       <Form.Group className="List-option mb-3">
         <Form.Label>Extract limit:</Form.Label>
         <Form.Control

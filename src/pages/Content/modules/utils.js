@@ -30,10 +30,10 @@ export const CSS_SELECTORS = {
   followingListActionBlocked: `body > div+ div + div + div + div > div > div > div > div  + div > button + button`,
 
   followersList: `[style*='min-height'] div[style] > div + div`,
-  followersListItem: `div[style] > div[style] > div + div li`,
+  followersListItem: `div[style] > div[style] > div + div li,  div[style*='min-height'] > div[class] > div[style*='auto'] > div > div`,
   followersNumber: `ul li [href*='followers'] > *`,
-  followersListUsernames: `div > div > div > div:nth-child(2) li a[href] > span`,
-  followersListButton: `div > div > div > div:nth-child(2) ul li button`,
+  followersListUsernames: `div > div > div > div:nth-child(2) li a[href] > span, div[style*='min-height'] > div[class] > div[style*='auto'] a[href] > span >*`,
+  followersListButton: `div > div > div > div:nth-child(2) ul li button, div[style*='min-height'] > div[class] > div[style*='auto'] button`,
 
   userPageFollowButtons: `header > div + section > * button`,
   userPageFollowerstListOpenButton: `header > section  ul li:nth-child(2) a`,
@@ -47,6 +47,7 @@ export const CSS_SELECTORS = {
   userPagePrivateAccountMessage: `section main article > div > div > h2`,
   userPageProfileImage: `main > div > header canvas + span > img[alt][src], main > div > header button > img[src]`,
   userPageUsername: `main header section > * > h2, main header section > * > h1`,
+  userPageDoesNotExist404: `main [style*='height'][style*='100'] > div > h2 + div a[href='/']`,
 
   postPageLikeButton: `section > span:nth-child(1) > button`,
   postPageCloseButton: `div[role="presentation"] > div > button[type], div[style] > div > div > div > div[role='button']`,
@@ -54,7 +55,7 @@ export const CSS_SELECTORS = {
 
   /* There are script tags containing the current user data in each page. 
   This CSS selector finds all of them. */
-  scriptTagWithUserData: `link + link + script + script + script + script:not([src]) + script + script + script + script`,
+  scriptTagWithUserData: `body > script:not([src]):not([type]):not([data-content-len]):not([data-sjs])`,
 };
 
 export const LOCAL_STORAGE = {
@@ -308,8 +309,6 @@ type = 'once' or 'all';
 */
 export async function scrollDownFollowersList(type = 'once') {
   return new Promise(async (resolve, reject) => {
-    updateLog(`Scrolling down followers list...`);
-
     const limit = type === 'once' ? 1 : await getFollowersNumber();
 
     let $list = await _waitForElement(CSS_SELECTORS.followersList);
@@ -496,7 +495,8 @@ export async function getFollowersNumber() {
       .trim()
       .replace('.', '')
       .replace(',', '')
-      .replace('m', '000000');
+      .replace('m', '000000')
+      .replace('k', '000');
 
     const followers = parseInt(_followers);
 
@@ -551,7 +551,7 @@ export async function getUserName() {
     const $script = await _waitForElement(
       CSS_SELECTORS.scriptTagWithUserData,
       50,
-      10
+      50
     );
 
     if (!$script) {
@@ -561,31 +561,27 @@ export async function getUserName() {
       return;
     }
 
-    const script = $script.innerHTML.toLowerCase().trim();
-    const hasUsername = script.includes(`username\\":\\"`);
+    const $scripts = document.querySelectorAll(
+      CSS_SELECTORS.scriptTagWithUserData
+    );
 
-    if (hasUsername) {
+    for (var each of $scripts) {
+      const script = each.innerHTML.toLowerCase().trim();
+      const hasUsername = script.includes(`username\\":\\"`);
+
+      if (!hasUsername) {
+        continue;
+      }
+
       const regex = /username\\\":\\\"(.+?)"/gm;
 
       let m;
       while ((m = regex.exec(script)) !== null) {
-        console.log('test');
         if (m.index === regex.lastIndex) {
           regex.lastIndex++;
         }
 
         const _username = m[1];
-
-        // Checking if the username found in the JSON is the same as the user's profile image ALT tag
-        // const $profile = await _waitForElement(
-        //   CSS_SELECTORS.profileDropdownImage,
-        //   50,
-        //   50
-        // );
-
-        // const user = $profile.getAttribute('alt').trim();
-
-        // console.log('usss', username, user);
 
         const username = _username.replace('/', '').replace('\\', '');
         window.ezfyCurrentUser = username;
@@ -916,7 +912,6 @@ export async function importChromeStorage(data, initialState = {}) {
 
     console.log('importing this:', obj);
 
-    debugger;
     chrome.storage.local.set(obj, function () {
       resolve(obj);
     });

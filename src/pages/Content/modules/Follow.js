@@ -407,12 +407,14 @@ const Follow = () => {
       const $currentUser = document.querySelector(
         CSS_SELECTORS.userPageUsername
       );
-      const user = $currentUser.textContent.trim();
+      const user = $currentUser ? $currentUser.textContent.trim() : null;
 
-      /* ===== */
+      /* ================ */
 
       const mustFollowUsers = await actions.getMustFollowUsers();
       const loop = state.followingListLoop + 1;
+
+      updateLog(`Finishing interaction. ${loop}`);
 
       if (loop >= mustFollowUsers.length) {
         updateLog(
@@ -428,9 +430,7 @@ const Follow = () => {
         );
         resolve();
         return;
-      }
-
-      if (result === 'final') {
+      } else if (result === 'final') {
         await actions.overwriteMustFollowUsers([]);
         await actions.updateFollowingListLoop(0);
         setIsFollowingList('no');
@@ -449,7 +449,7 @@ const Follow = () => {
       await _sleep(delay);
 
       if (
-        (storeSkippedUser === 'yes' && result === 'fail') ||
+        (storeSkippedUser === 'yes' && result === 'fail' && user) ||
         result === 'success'
       ) {
         await actions.addIgnoredUser({ user });
@@ -491,8 +491,6 @@ const Follow = () => {
 
       const users = await actions.getMustFollowUsers();
 
-      console.log('look at me', users, loop);
-
       const url = getInstagramURL(users[loop]);
 
       if (!url || url === undefined || url === 'undefined') {
@@ -511,28 +509,16 @@ const Follow = () => {
 
     setIsFollowingList('yes');
 
-    await actions.updateFollowingListLoop(loop);
-
     await _sleep(25);
 
     await goToURLThatMustBeFollowed(loop);
 
-    /* The function responsible to follow users is:
+    /* 
+    ATTENTION!
+
+    The function responsible to follow users is:
     startInteractingWithUserInNewTab()
     */
-  }
-
-  /**
-   * Adds users on the "To-follow" list to the database
-   */
-  async function storeUsersThatMustBeFollowed() {
-    return new Promise(async (resolve, reject) => {
-      const users = [...new Set(usersList.split('\n'))];
-
-      const res = await actions.overwriteMustFollowUsers(users);
-
-      resolve(res);
-    });
   }
 
   async function clickOnFollowButton(user) {
@@ -576,39 +562,11 @@ const Follow = () => {
 
   async function startInteractingWithUserInNewTab() {
     return new Promise(async (resolve, reject) => {
-      /* Checks whether is currently set to follow */
-
-      const $currentUser = await _waitForElement(
-        CSS_SELECTORS.userPageUsername,
-        200,
-        20
-      );
-
-      /* Checks whether is on a user page */
-      if (!$currentUser) {
-        setIsFollowingList('no');
-        resolve();
-        return;
-      }
-
-      const currentUser = $currentUser.textContent.trim();
-
-      if (isFollowingList !== 'yes') {
-        resolve();
-        return;
-      }
-
       const loop = await actions.addFollowingListLoop();
-
-      /* Check whether following list is filled */
-
-      await _waitForElement(CSS_SELECTORS.userPageProfileImage, 30, 10);
 
       const mustFollowUsers = await actions.getMustFollowUsers();
 
-      updateLog(
-        `<b>Automatic following enabled.<br/>Progress: ${loop} / ${mustFollowUsers.length}</b><br/>`
-      );
+      updateLog(`Following? ${isFollowingList}`);
 
       if (!mustFollowUsers || mustFollowUsers <= 0) {
         updateLog(`The users list is empty.`);
@@ -618,6 +576,44 @@ const Follow = () => {
         resolve(true);
         return;
       }
+
+      /* Checks whether is currently set to follow */
+      const $currentUser = await _waitForElement(
+        CSS_SELECTORS.userPageUsername,
+        100,
+        20
+      );
+
+      /* Checks whether is on a user page */
+      if (!$currentUser) {
+        /* Checks whether user doesn't exist. 
+        If inexistent, go to next user */
+        const $inexistent = document.querySelector(
+          CSS_SELECTORS.userPageDoesNotExist404
+        );
+
+        if ($inexistent) {
+          updateLog(`This user does not exist.`);
+          await finishInteraction('fail');
+          resolve();
+          return;
+        } else {
+          setIsFollowingList('no');
+          resolve();
+          return;
+        }
+      }
+
+      const currentUser = $currentUser.textContent.trim();
+
+      if (isFollowingList !== 'yes') {
+        resolve();
+        return;
+      }
+
+      updateLog(
+        `<b>Automatic following enabled.<br/>Progress: ${loop} / ${mustFollowUsers.length}</b><br/>`
+      );
 
       /* Start following */
       const delay = randomIntFromInterval(
@@ -756,6 +752,7 @@ const Follow = () => {
 
       /* Limit set by user reached. Stop */
       if (loop >= limit) {
+        console.log(`LIMIT: ${limit} --- Loop ${loop}`);
         finishInteraction('stop');
         resolve(true);
         return;
@@ -775,27 +772,6 @@ const Follow = () => {
     });
   }
 
-  function syncFollowingListTextareWithDatabase() {
-    const _users = state.mustFollowUsers;
-
-    if (_users.length <= 0) {
-      return;
-    }
-
-    const users = _users.hasOwnProperty('mustFollowUsers')
-      ? state.mustFollowUsers.mustFollowUsers
-      : state.mustFollowUsers;
-
-    console.log('usersss', users);
-    setUsersList(users.join('\n'));
-  }
-
-  useEffect(() => {
-    (async () => {
-      syncFollowingListTextareWithDatabase();
-    })();
-  }, [state.mustFollowUsers]);
-
   useEffect(() => {
     (async () => {
       console.log('loop:', state.followingListLoop);
@@ -812,52 +788,16 @@ const Follow = () => {
   return (
     <div className="Follow">
       <h4 className="Follow-label h6">Follow a list of users</h4>
+
       <hr />
-      <InputGroup className="mb-3">
-        <Form.Label style={{ display: 'block' }}>
-          Users list (
-          {state.mustFollowUsers.hasOwnProperty('mustFollowUsers')
-            ? state.mustFollowUsers.mustFollowUsers.length
-            : state.mustFollowUsers.length}{' '}
-          users to follow. Next on list is user number{' '}
-          {state.followingListLoop + 1},{' '}
-          {state.mustFollowUsers[state.followingListLoop]}
-          ):
-        </Form.Label>
+      <p>
+        (
+        {state.mustFollowUsers.hasOwnProperty('mustFollowUsers')
+          ? state.mustFollowUsers.mustFollowUsers.length
+          : state.mustFollowUsers.length}{' '}
+        users to follow.)
+      </p>
 
-        <Form.Control
-          value={usersList}
-          id="mustFollowUsersList"
-          as="textarea"
-          onKeyDown={(e) => {
-            if (e.key === ' ') {
-              e.preventDefault();
-            }
-          }}
-          onChange={(e) => {
-            setUsersList(e.target.value);
-          }}
-          rows={3}
-        />
-
-        <Button
-          onClick={async () => {
-            await storeUsersThatMustBeFollowed();
-          }}
-        >
-          Update
-        </Button>
-        {/* <InputGroup.Text id="basic-addon1">@</InputGroup.Text> */}
-        {/* <FormControl
-          value={username}
-          placeholder="Username"
-          aria-label="Username"
-          onChange={(e) => {
-            setUsername(e.target.value);
-          }}
-          aria-describedby="basic-addon1"
-        /> */}
-      </InputGroup>
       {/* ## Follow limit
       ============================================== */}
       <Form.Group className="Follow-option mb-3">

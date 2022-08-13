@@ -73,6 +73,8 @@ const Unfollow = () => {
     let count = 0;
     let ignored = 0;
 
+    /* Todo: get current numbers of "following", if it's larger than "unfollowLimit", replace*/
+
     for (let i = 1; i <= unfollowLimit + ignored; i++) {
       await _sleep(randomIntFromInterval(40, 70));
 
