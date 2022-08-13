@@ -167,6 +167,9 @@ const Store = createStore({
           }
 
           const _previous = await getChromeStorageData('mustFollowUsers');
+
+          debugger;
+
           const previous = _previous && _previous.length >= 1 ? _previous : [];
           const updated = previous.filter(
             (e) => e.toLowerCase() !== user.toLowerCase()
@@ -178,8 +181,6 @@ const Store = createStore({
           );
 
           const res = await Store.actions.getMustFollowUsers();
-
-          console.log('123', res);
 
           setState(users.mustFollowUsers);
 

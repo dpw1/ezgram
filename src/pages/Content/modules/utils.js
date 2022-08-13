@@ -556,7 +556,8 @@ export async function getUserName() {
 
     if (!$script) {
       updateLog(`ERROR: This user does not exist.`);
-      resolve(null);
+
+      if (xxx) resolve(null);
       resetAutomaticFollowing();
       return;
     }
@@ -923,7 +924,7 @@ export async function overwriteChromeStorageData(key, data) {
     throw new Error('Key is needed.');
   }
 
-  if (data && data.length <= 0) {
+  if (!data) {
     throw new Error('Data is needed.');
   }
 
@@ -1017,6 +1018,7 @@ export function isObject(obj) {
 /* Gets the chrome storage data for the current user. */
 export async function getChromeStorageData(key = null) {
   return new Promise(async (resolve, reject) => {
+    debugger;
     const user = await getUserName();
 
     if (!user) {

@@ -391,6 +391,17 @@ const Follow = () => {
     });
   }
 
+  async function removeInteractedUserFromList() {
+    return new Promise(async (resolve, reject) => {
+      const $currentUser = document.querySelector(
+        CSS_SELECTORS.userPageUsername
+      );
+      const user = $currentUser ? $currentUser.textContent.trim() : null;
+
+      resolve(false);
+    });
+  }
+
   /* 
  Completes an interaction on a new user's tab. You can complete the interaction with a result of "fail" or "success".
 
@@ -402,24 +413,30 @@ const Follow = () => {
 
  'stop' = limit set by user reached. Stop following.
   */
-  async function finishInteraction(result = 'fail') {
+  async function finishInteraction(result = 'fail', waitingTIme = 1000) {
     return new Promise(async (resolve, reject) => {
+      const mustFollowUsers = await actions.getMustFollowUsers();
+
       const $currentUser = document.querySelector(
         CSS_SELECTORS.userPageUsername
       );
-      const user = $currentUser ? $currentUser.textContent.trim() : null;
+      const user = $currentUser
+        ? $currentUser.textContent.trim()
+        : mustFollowUsers[0];
 
       /* ================ */
 
-      const mustFollowUsers = await actions.getMustFollowUsers();
-      const loop = state.followingListLoop + 1;
+      updateLog(`Finishing interaction.`);
 
-      updateLog(`Finishing interaction. ${loop}`);
+      if (user) {
+        updateLog(`Removing <b>${user}</b> from the list...`);
+        await actions.removeOneMustFollowUsers(user);
 
-      if (loop >= mustFollowUsers.length) {
-        updateLog(
-          `Interacted with all ${mustFollowUsers.length} users in the list!`
-        );
+        resolve(true);
+      }
+
+      if (mustFollowUsers.length <= 0) {
+        updateLog(`Interacted with all users in the list!`);
         result = 'final';
       }
 
@@ -432,7 +449,6 @@ const Follow = () => {
         return;
       } else if (result === 'final') {
         await actions.overwriteMustFollowUsers([]);
-        await actions.updateFollowingListLoop(0);
         setIsFollowingList('no');
         updateLog(`List successfully deleted. Please refresh the page.`);
         resolve();
@@ -444,18 +460,19 @@ const Follow = () => {
         closeIframeDelayMax * 1000
       );
 
-      updateLog(`<br />Closing user page in <b>${delay / 1000}</b> seconds.`);
-
-      await _sleep(delay);
-
       if (
         (storeSkippedUser === 'yes' && result === 'fail' && user) ||
         result === 'success'
       ) {
+        await _sleep(waitingTIme);
         await actions.addIgnoredUser({ user });
       }
 
-      await goToURLThatMustBeFollowed(loop);
+      updateLog(`<br />Closing user page in <b>${delay / 1000}</b> seconds.`);
+
+      await _sleep(delay);
+
+      await goToURLThatMustBeFollowed();
 
       resolve(true);
     });
@@ -485,13 +502,17 @@ const Follow = () => {
   }
 
   /* Return URL of the current user that must be followed */
-  async function goToURLThatMustBeFollowed(_loop = null) {
+  async function goToURLThatMustBeFollowed() {
     return new Promise(async (resolve, reject) => {
-      const loop = _loop ? await actions.getFollowingListLoop() : _loop;
-
       const users = await actions.getMustFollowUsers();
 
-      const url = getInstagramURL(users[loop]);
+      if (users.length <= 0) {
+        updateLog(`Interacted with all users!`);
+        setIsFollowingList('no');
+      }
+      debugger;
+
+      const url = getInstagramURL(users[0]);
 
       if (!url || url === undefined || url === 'undefined') {
         setIsFollowingList('no');
@@ -505,13 +526,11 @@ const Follow = () => {
   }
 
   async function start() {
-    const loop = state.followingListLoop;
-
     setIsFollowingList('yes');
 
     await _sleep(25);
 
-    await goToURLThatMustBeFollowed(loop);
+    await goToURLThatMustBeFollowed();
 
     /* 
     ATTENTION!
@@ -562,11 +581,19 @@ const Follow = () => {
 
   async function startInteractingWithUserInNewTab() {
     return new Promise(async (resolve, reject) => {
-      const loop = await actions.addFollowingListLoop();
-
       const mustFollowUsers = await actions.getMustFollowUsers();
 
-      updateLog(`Following? ${isFollowingList}`);
+      updateLog(
+        `${
+          isFollowingList === 'yes'
+            ? `Automatic following is on.`
+            : `Automatic following is off.`
+        }`
+      );
+
+      if (isFollowingList === 'no') {
+        return;
+      }
 
       if (!mustFollowUsers || mustFollowUsers <= 0) {
         updateLog(`The users list is empty.`);
@@ -612,7 +639,7 @@ const Follow = () => {
       }
 
       updateLog(
-        `<b>Automatic following enabled.<br/>Progress: ${loop} / ${mustFollowUsers.length}</b><br/>`
+        `<b>Automatic following enabled.<br/>${mustFollowUsers.length}</b><br/>`
       );
 
       /* Start following */
@@ -744,29 +771,23 @@ const Follow = () => {
       updateLog(`Interaction completed.`);
 
       /* Followed all users from the list. Reset following */
-      if (loop >= mustFollowUsers.length) {
+      if (mustFollowUsers.length <= 0) {
         finishInteraction('final');
         resolve(true);
         return;
       }
 
       /* Limit set by user reached. Stop */
-      if (loop >= limit) {
-        console.log(`LIMIT: ${limit} --- Loop ${loop}`);
-        finishInteraction('stop');
-        resolve(true);
-        return;
-      }
+      // if (loop >= limit) {
+      //   console.log(`LIMIT: ${limit} --- Loop ${loop}`);
+      //   finishInteraction('stop');
+      //   resolve(true);
+      //   return;
+      // }
 
-      updateLog(
-        `Moving to user number <b>${loop + 1} / ${
-          mustFollowUsers.length
-        }</b>. Waiting ${delay / 1000} seconds.`
-      );
+      updateLog(`<b>Waiting ${delay / 1000} seconds</b> before moving on.`);
 
-      await _sleep(delay);
-
-      await finishInteraction('success');
+      await finishInteraction('success', delay);
 
       resolve(true);
     });
@@ -791,16 +812,16 @@ const Follow = () => {
 
       <hr />
       <p>
-        (
+        You have{' '}
         {state.mustFollowUsers.hasOwnProperty('mustFollowUsers')
           ? state.mustFollowUsers.mustFollowUsers.length
           : state.mustFollowUsers.length}{' '}
-        users to follow.)
+        users on your list.
       </p>
 
       {/* ## Follow limit
       ============================================== */}
-      <Form.Group className="Follow-option mb-3">
+      {/* <Form.Group className="Follow-option mb-3">
         <Form.Label>Follow limit:</Form.Label>
         <Form.Control
           type="number"
@@ -812,7 +833,7 @@ const Follow = () => {
           }}
           placeholder="Stop following after reaching this number."
         />
-      </Form.Group>
+      </Form.Group> */}
 
       {/* ## Clicking on user delay
       ============================================== */}

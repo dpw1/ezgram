@@ -109,7 +109,7 @@ const Homepage = () => {
           return;
         }
 
-        updateLog(`<b>${user}</b> is in your ignore list.`);
+        updateLog(`<b>${user}</b> is in your "interacted users" list.`);
 
         $follow.addEventListener('click', function (e) {
           e.preventDefault();
