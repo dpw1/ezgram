@@ -87,10 +87,12 @@ const Unfollow = () => {
         delayBetweenUnfollowMax * 1000
       );
 
-      const $button = await _waitForElement(
-        `div[role="tablist"] + div > ul li:nth-child(${i}) button`
-      );
-      const $parent = $button.closest(`li`);
+      const selector =
+        CSS_SELECTORS.followingListUnfollowButtonNthChild.replaceAll('xx', i);
+
+      const $button = await _waitForElement(selector);
+
+      const $parent = $button.closest(`li,  [aria-labelledby]`);
       const $user = $parent.querySelector(`a[href]`);
       const user = $user.getAttribute(`href`).replaceAll(`/`, '').trim();
 
@@ -177,7 +179,7 @@ const Unfollow = () => {
       }
 
       if (usernames.length > 0) {
-        updateLog(`Successfully stored followers.`);
+        updateLog(`\nFollowers list stored successfully.`);
       }
 
       localStorage.setItem('ezgram_followers_list', JSON.stringify(usernames));

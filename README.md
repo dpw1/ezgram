@@ -27,7 +27,7 @@ Easy Insta Bot is an automation tool for Instagram that mimics human behaviour. 
 
 1. Backup the database often
 
-Easy Insta Bot saves all users you have followed and unfollowed in a local database. This prevents that you keep following the same person over and over again. However, if you remove the app, this database will be permanently deleted.
+IGDroid saves all users you have followed and unfollowed in a local database. This prevents that you keep following the same person over and over again. However, **if you remove the app, this database will be permanently deleted.**
 
 Make sure to do regular backups by navigating to Database > Export.
 
@@ -37,7 +37,7 @@ As far as our tests can tell, Instagram does not recognize this tool as a bot, b
 
 To play it safe, we recommend not following or un-following more than 80 accounts per day. Make sure you have at least 40 seconds of delay between actions.
 
-You're more than welcome to play around with these numbers and see what works best for you, but kindly be mindful that this can potentially result in timeouts, bans or shadow bans.
+You're more than welcome to play around with these numbers and see what works best for you, but kindly be mindful that this can potentially result in timeouts, bans and/or shadow bans.
 
 3. Feedback
 

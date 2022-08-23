@@ -25,7 +25,12 @@ export const CSS_SELECTORS = {
   profileDropdownLink: `div[aria-hidden] > div[style] + * a[href]:nth-child(1)`,
 
   followingList: `[style*='signup'] div[style] > div[role]+ div`,
-  followingListUnfollowButton: `div[role="presentation"] ul li button, div[role="tablist"] + div > ul > div > li button`,
+  followingListUnfollowButton: `div[role="presentation"] ul li button, 
+  div[role="tablist"] + div > ul > div > li button,
+  [style*='signup'] div[style] > div[role]+ div button
+  `,
+  followingListUnfollowButtonNthChild: `div[role="tablist"] + div > ul li:nth-child(xx) button,
+  [style*='signup'] div[style] > div[role]+ div [aria-labelledby]:nth-child(xx) button`,
   followingListUnfollowConfirmationButton: `div[style] > div > div > button[tabindex]:nth-child(1)`,
   followingListActionBlocked: `body > div+ div + div + div + div > div > div > div > div  + div > button + button`,
 

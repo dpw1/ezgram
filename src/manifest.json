@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "EZgram - Instagram Automation",
-  "description": "Instagram Automation",
+  "name": "IGDroid - Instagram Automation",
+  "description": "Automatically liking, following, unfollowing and much more.",
   "options_page": "options.html",
   "background": { "service_worker": "background.bundle.js" },
   "action": {
@@ -12,15 +12,10 @@
   "icons": {
     "128": "icon-128.png"
   },
-  "permissions": [
-    "storage",
-    "unlimitedStorage",
-    
-    "tabs"
-  ],
+  "permissions": ["storage", "unlimitedStorage", "tabs"],
   "content_scripts": [
     {
-      "matches": [ "https://www.instagram.com/", "https://www.instagram.com/*"],
+      "matches": ["https://www.instagram.com/", "https://www.instagram.com/*"],
       "js": ["contentScript.bundle.js"],
       "css": ["content.styles.css"]
     }

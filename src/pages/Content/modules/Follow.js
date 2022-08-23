@@ -429,8 +429,8 @@ const Follow = () => {
       updateLog(`Finishing interaction.`);
 
       if (user) {
-        updateLog(`Removing <b>${user}</b> from the list...`);
         await actions.removeOneMustFollowUsers(user);
+        updateLog(`<b>${user}</b> removed from the list.`);
 
         resolve(true);
       }

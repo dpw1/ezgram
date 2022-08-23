@@ -127,7 +127,7 @@ const Homepage = () => {
 
       for (var each of $links) {
         each.addEventListener(`click`, function () {
-          alert('change');
+          // alert('change');
         });
       }
     }
@@ -163,7 +163,11 @@ const Homepage = () => {
         <header className="Homepage-header">
           <p>
             <b>
-              EZGram - Easy Instagram Automation | Welcome, {state.username}.
+              IGDroid - Instagram Automation |{' '}
+              {state.username !== ''
+                ? `Welcome, ${state.username}`
+                : `No user detected. Please refresh the page.`}
+              .
             </b>
           </p>
           <div className="Homepage-buttons">

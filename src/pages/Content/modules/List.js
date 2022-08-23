@@ -203,7 +203,6 @@ export default function List() {
     <div className="List">
       <p>
         There are currently {state.mustFollowUsers.length} users in your list.
-        You have already interacted with {state.followingListLoop} of them.
       </p>
       <InputGroup className="mb-3">
         <Form.Label style={{ display: 'block' }}></Form.Label>
