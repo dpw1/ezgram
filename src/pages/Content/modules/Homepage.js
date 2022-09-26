@@ -28,6 +28,7 @@ import Unfollow from './Unfollow';
 import Data from './Data';
 import Follow from './Follow';
 import List from './List';
+import Whitelist from './Whitelist';
 
 const Homepage = () => {
   const [isMinimized, setIsMinimized] = useStickyState('@isMinimized', false);
@@ -61,7 +62,7 @@ const Homepage = () => {
       await actions.loadUsername();
       await actions.loadIgnoredUsers();
       await actions.getMustFollowUsers();
-      await actions.getFollowingListLoop();
+      await actions.getWhiteListUsers();
     }
 
     function storeOriginalTabData() {
@@ -207,6 +208,14 @@ const Homepage = () => {
             >
               <Unfollow></Unfollow>
             </Tab>
+            <Tab
+              disabled={localState.isExecuting}
+              eventKey={1}
+              className="Homepage-tab"
+              label="Whitelist"
+            >
+              <Whitelist />
+            </Tab>
             <Tab eventKey={0} className="Homepage-tab" label="List">
               <List></List>
             </Tab>
@@ -247,6 +256,14 @@ const Homepage = () => {
                 >
                   delete
                 </Button>
+              </fieldset>
+
+              <hr />
+              <fieldset>
+                <p>asldkalskd</p>
+                <input id="whiteListUsers" type="text" />
+
+                <Button onClick={async () => {}}>get</Button>
               </fieldset>
               <hr />
               <fieldset>
@@ -298,14 +315,6 @@ const Homepage = () => {
                   }}
                 >
                   delete
-                </Button>
-
-                <Button
-                  onClick={async () => {
-                    await actions.getFollowingListLoop();
-                  }}
-                >
-                  get
                 </Button>
               </fieldset>
             </Tab>

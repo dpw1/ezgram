@@ -815,7 +815,11 @@ export async function openFollowersList() {
 
 export async function getUnfollowConfirmationButton() {
   return new Promise(async (resolve, reject) => {
-    const $buttons = await _waitForElement(`div > button + button`, 100, 50);
+    const $buttons = await _waitForElement(
+      `[style] > div > div > button + button`,
+      100,
+      50
+    );
 
     if (!$buttons) {
       resolve(null);

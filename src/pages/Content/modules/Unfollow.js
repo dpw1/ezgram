@@ -34,6 +34,7 @@ import { useLocalStore } from './../store/localStore';
 const Unfollow = () => {
   const [localState, localActions] = useLocalStore();
   const [state, actions] = useDatabase();
+  const [whiteListUsers, setWhiteListUsers] = useState('');
 
   const [unfollowLimit, setUnfollowLimit] = useStickyState(
     '@unfollowLimit',
@@ -55,6 +56,14 @@ const Unfollow = () => {
     'yes'
   );
 
+  useEffect(() => {
+    (async () => {
+      const users = await actions.getWhiteListUsers();
+
+      setWhiteListUsers(users);
+    })();
+  }, []);
+
   /* Clicks on the "unfollow" button and then on the "confirm unfollow" button. */
   async function handleClickOnUnfollowButton() {
     await _waitForElement(CSS_SELECTORS.followingListUnfollowButton);
@@ -72,8 +81,6 @@ const Unfollow = () => {
 
     let count = 0;
     let ignored = 0;
-
-    /* Todo: get current numbers of "following", if it's larger than "unfollowLimit", replace*/
 
     for (let i = 1; i <= unfollowLimit + ignored; i++) {
       await _sleep(randomIntFromInterval(40, 70));
@@ -94,7 +101,16 @@ const Unfollow = () => {
 
       const $parent = $button.closest(`li,  [aria-labelledby]`);
       const $user = $parent.querySelector(`a[href]`);
-      const user = $user.getAttribute(`href`).replaceAll(`/`, '').trim();
+      const user = $user.getAttribute(`href`).replaceAll(`/`, '').trim(); //@username_123
+
+      const isWhiteListed = whiteListUsers.filter((e) => e === user);
+
+      if (isWhiteListed.length > 0) {
+        updateLog(`<b>${user}</b> is white listed. Skipping...`);
+        ignored += 1;
+        await _sleep(randomIntFromInterval(95, 300));
+        continue;
+      }
 
       const found = followers.filter((e) => e === user);
 
@@ -108,6 +124,9 @@ const Unfollow = () => {
       updateLog(
         `<br />Unfollowing <a target="_blank" href="/${user}">${user}</a>`
       );
+
+      /* Todo *
+      Make sure unfollowed successfully */
 
       await _sleep(100);
 

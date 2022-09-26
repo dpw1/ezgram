@@ -1,0 +1,40 @@
+.CustomTable {
+  max-width: 100%;
+  overflow-x: scroll;
+  height: 80vh;
+  max-width: 1200px;
+  width: 95%;
+  margin: 0 auto;
+  padding-bottom: 30px;
+
+  table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+    border: 1px solid #ddd;
+    margin-bottom: 40px;
+    height: 100%;
+  }
+
+  th,
+  td {
+    text-align: left;
+    padding: 8px;
+    border-bottom: 1px solid #ffffff2b;
+    height: auto;
+    vertical-align: top;
+  }
+
+  tr {
+    width: 100%;
+  }
+
+  tr:nth-child(even) {
+    background-color: #1717175c;
+  }
+
+  .search {
+    margin-bottom: 20px;
+    text-align: left;
+  }
+}

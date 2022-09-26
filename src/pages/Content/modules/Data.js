@@ -37,7 +37,7 @@ const Data = () => {
     const loadIgnoredUsers = (async () => {
       actions.loadIgnoredUsers();
 
-      const _users = () => {
+      const getUsers = () => {
         if (!state.hasOwnProperty(`ignoredUsers`)) {
           return {};
         }
@@ -47,7 +47,9 @@ const Data = () => {
           : state.ignoredUsers;
       };
 
-      setUsers(_users());
+      const _users = getUsers().splice(0, 100);
+
+      // setUsers(_users);
     })();
 
     const loadMustFollowUsers = (async () => {
@@ -69,12 +71,11 @@ const Data = () => {
 
   useEffect(() => {
     console.log('xxx ignored users', state);
-    setUsers(state.ignoredUsers);
-  }, [state]);
 
-  // useEffect(() => {
-  //   setUsers(state.mustFollowUsers);
-  // }, [state.mustFollowUsers]);
+    const _users = state.ignoredUsers.splice(0, 50);
+
+    setUsers(_users);
+  }, [state]);
 
   const ConfirmButton = () => {
     const display = async () => {
@@ -139,6 +140,7 @@ const Data = () => {
 
             await importChromeStorage(data, state);
             actions.loadIgnoredUsers();
+
             setUsers(
               state.ignoredUsers.hasOwnProperty('ignoredUsers')
                 ? state.ignoredUsers.ignoredUsers
@@ -152,63 +154,75 @@ const Data = () => {
       </div>
 
       {users && users.length > 0 ? (
-        <Table striped bordered hover>
-          <thead>
-            <tr>
-              <th>#</th>
-              {users &&
-                users.length > 0 &&
-                Object.keys(users[0]).map((e, i) => (
-                  <th key={e + i + 3}>{e}</th>
-                ))}
-            </tr>
-          </thead>
-          <tbody>
-            {users
-              .sort((a, b) => (b.date > a.date ? 1 : a.date > b.date ? -1 : 0))
-              .map((item, i) => {
-                return (
-                  <tr key={item + i}>
-                    {Object.values(item).map((val, index) => {
-                      const column = Object.keys(users[0])[index];
-                      let content = val;
+        <>
+          <Table striped bordered hover>
+            <thead>
+              <tr>
+                <th>#</th>
+                {users &&
+                  users.length > 0 &&
+                  Object.keys(users[0]).map((e, i) => (
+                    <th key={e + i + 3}>{e}</th>
+                  ))}
+              </tr>
+            </thead>
+            <tbody>
+              {users
+                .sort((a, b) =>
+                  b.date > a.date ? 1 : a.date > b.date ? -1 : 0
+                )
+                .map((item, i) => {
+                  return (
+                    <tr key={item + i}>
+                      {Object.values(item).map((val, index) => {
+                        const column = Object.keys(users[0])[index];
+                        let content = val;
 
-                      const date = new Date(val);
+                        const date = new Date(val);
 
-                      if (column === 'date') {
-                        content = `${date.toDateString()}, ${timeAgo.format(
-                          date,
-                          'round-minute'
-                        )}`;
-                      }
+                        if (column === 'date') {
+                          content = `${date.toDateString()}, ${timeAgo.format(
+                            date,
+                            'round-minute'
+                          )}`;
+                        }
 
-                      if (column === 'user') {
-                        content = (
-                          <a
-                            target="_blank"
-                            rel="noreferrer"
-                            href={`https://www.instagram.com/${val}`}
-                          >
-                            {val}
-                          </a>
+                        if (column === 'user') {
+                          content = (
+                            <a
+                              target="_blank"
+                              rel="noreferrer"
+                              href={`https://www.instagram.com/${val}`}
+                            >
+                              {val}
+                            </a>
+                          );
+                        }
+
+                        return (
+                          <React.Fragment>
+                            {index === 0 && (
+                              <td key={val + index + 1}>{i + 1}</td>
+                            )}
+
+                            <td key={val + index + 2}>{content}</td>
+                          </React.Fragment>
                         );
-                      }
-
-                      return (
-                        <React.Fragment>
-                          {index === 0 && (
-                            <td key={val + index + 1}>{i + 1}</td>
-                          )}
-
-                          <td key={val + index + 2}>{content}</td>
-                        </React.Fragment>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-          </tbody>
-        </Table>
+                      })}
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </Table>
+          <Button
+            onClick={async () => {
+              alert('not working yet');
+            }}
+            className="Data-button"
+          >
+            Load More
+          </Button>
+        </>
       ) : (
         <p>You don't have any ignored users yet.</p>
       )}

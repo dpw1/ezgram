@@ -195,15 +195,12 @@ export default function List() {
       ? state.mustFollowUsers.mustFollowUsers
       : state.mustFollowUsers;
 
-    console.log('usersss', users);
     setUsersList(users.join('\n'));
   }
 
   return (
     <div className="List">
-      <p>
-        There are currently {state.mustFollowUsers.length} users in your list.
-      </p>
+      <p>There are {state.mustFollowUsers.length} users in your list.</p>
       <InputGroup className="mb-3">
         <Form.Label style={{ display: 'block' }}></Form.Label>
 
