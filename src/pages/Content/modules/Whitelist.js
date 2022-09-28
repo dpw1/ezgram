@@ -11,6 +11,10 @@ import {
   readImportedFile,
   importChromeStorage,
   createBackupFile,
+  openFollowingList,
+  CSS_SELECTORS,
+  _waitForElement,
+  isFollowingPage,
 } from './utils';
 
 import Unfollow from './Unfollow';
@@ -33,7 +37,6 @@ const Whitelist = () => {
   useEffect(() => {
     (async () => {
       const users = await actions.getWhiteListUsers();
-
       setWhiteListUsers(users);
     })();
   }, []);
@@ -86,6 +89,97 @@ const Whitelist = () => {
     });
   }
 
+  async function addWhiteListButtonToFollowingListUsers() {
+    /* Enlarge list 
+      ============================= */
+    const $list = await _waitForElement(CSS_SELECTORS.followingListParent);
+
+    if (!$list) {
+      return;
+    }
+
+    window.isExtractingUser = false;
+
+    $list.setAttribute(`style`, `min-width:500px;`);
+
+    /* Add buttons 
+      ============================= */
+
+    await _sleep(100);
+
+    const selector = `[aria-labelledby]:not([data-has-button])`;
+
+    const $users = $list.querySelectorAll(selector);
+
+    async function _addButtons(_$users) {
+      console.log('llll', $users);
+
+      for (var [index, each] of _$users.entries()) {
+        window.isExtractingUser = true;
+        const $button = each.querySelector(`button`);
+
+        const $hasButton = each.querySelector(`[data-whitelist]`);
+
+        if ($hasButton) {
+          return;
+        }
+
+        const $user = each.querySelector(`a[href]`);
+        const user = $user.getAttribute(`href`).replaceAll(`/`, ``).trim();
+
+        const text = (await actions.getWhiteListUser(user))
+          ? `Whitelisted ✔️`
+          : `Add to white list`;
+
+        const html = `<span data-whitelist="${user}">${text}</span>`;
+
+        $button.insertAdjacentHTML(`beforebegin`, html);
+
+        each.setAttribute(`data-has-button`, `true`);
+
+        /* Handle click on white list buttons 
+          ============================= */
+
+        const $whitelist = document.querySelector(`[data-whitelist="${user}"]`);
+
+        $whitelist.addEventListener(`click`, async function (e) {
+          const user = e.target.getAttribute(`data-whitelist`);
+
+          await actions.addWhiteListUser(user);
+          await actions.getWhiteListUsers();
+
+          e.target.textContent = `Whitelisted ✔️`;
+        });
+      }
+
+      window.isExtractingUser = false;
+    }
+
+    _addButtons($users);
+
+    /* Handle scrolling
+      ============================= */
+    const $scrollable = document.querySelector(
+      `${CSS_SELECTORS.followingList} > *`
+    );
+
+    function outputsize() {
+      if (window.isExtractingUser) {
+        return;
+      }
+      console.log(`SCROLLABLE`, $scrollable.offsetHeight);
+
+      var $newUsers = document.querySelectorAll(selector);
+
+      _addButtons($newUsers);
+    }
+    outputsize();
+
+    new ResizeObserver(outputsize).observe($scrollable);
+  }
+
+  async function viewAllWhiteListedUsers() {}
+
   return (
     <div className="Whitelist">
       <Form.Label style={{ display: 'block' }}>hello</Form.Label>
@@ -127,7 +221,15 @@ const Whitelist = () => {
         ></CustomTable>
       )} */}
 
-      <Button onClick={async () => {}}>View all</Button>
+      <Button
+        id="whiteListFilter"
+        onClick={async () => {
+          await openFollowingList();
+          addWhiteListButtonToFollowingListUsers();
+        }}
+      >
+        View list
+      </Button>
     </div>
   );
 };

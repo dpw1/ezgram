@@ -19,6 +19,7 @@ import {
   LOCAL_STORAGE,
   _sleep,
   isObject,
+  isFollowingPage,
 } from './utils';
 
 import { useDatabase } from '../store/databaseStore';
@@ -91,6 +92,15 @@ const Homepage = () => {
         }
       );
     }
+
+    /* Star the whitelist code automatically*/
+    // if (isFollowingPage()) {
+    //   try {
+    //     const $tab = document.querySelector(`.Homepage-tab--whitelist`);
+
+    //     $tab.click();
+    //   } catch (err) {}
+    // }
 
     async function preventFollowingIgnoredUser() {
       let $follow;
@@ -211,7 +221,7 @@ const Homepage = () => {
             <Tab
               disabled={localState.isExecuting}
               eventKey={1}
-              className="Homepage-tab"
+              className="Homepage-tab Homepage-tab--whitelist"
               label="Whitelist"
             >
               <Whitelist />

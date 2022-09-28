@@ -1,3 +1,25 @@
 .Whitelist {
   // background: lightblue;
 }
+
+/* Injected button style */
+[id] [data-whitelist] {
+  background: gray;
+  background: white;
+  border: 1px solid #8080804d;
+  padding: 5px 10px;
+  margin-right: 10px;
+  border-radius: 3px;
+  font-weight: 500;
+  width: 120px;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer !important;
+
+  &:hover {
+    background: #2e2929;
+    color: white;
+  }
+}

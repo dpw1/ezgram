@@ -508,7 +508,6 @@ const Follow = () => {
         updateLog(`Interacted with all users!`);
         setIsFollowingList('no');
       }
-      debugger;
 
       const url = getInstagramURL(users[0]);
 

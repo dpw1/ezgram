@@ -338,25 +338,46 @@ const Store = createStore({
           resolve(users);
         });
       },
-    addWhiteListUser:
-      (data) =>
+    getWhiteListUser:
+      (user) =>
       async ({ setState, getState }) => {
         return new Promise(async (resolve, reject) => {
-          if (!Array.isArray(data) || data.length <= 0) {
-            throw new Error("Invalid data. 'users' array required.");
+          const users = await getChromeStorageData('whiteListUsers');
+
+          if (!users || isObjectEmpty(users)) {
+            resolve(null);
+            return;
+          }
+
+          const found =
+            users && users.length > 0 ? users.filter((e) => e === user) : [];
+
+          if (found && found.length > 0) {
+            resolve(found[0]);
+          }
+
+          resolve(null);
+        });
+      },
+    addWhiteListUser:
+      (user) =>
+      async ({ setState, getState }) => {
+        return new Promise(async (resolve, reject) => {
+          if (!user || user.length <= 0) {
+            throw new Error("Invalid data. 'user' required.");
           }
 
           const _previous = await getChromeStorageData('whiteListUsers');
           const previous = _previous && _previous.length >= 1 ? _previous : [];
 
-          const updated = [...new Set([...previous, ...data])];
+          debugger;
+
+          const updated = [...new Set([...previous, user])];
 
           const users = await overwriteChromeStorageData(
             'whiteListUsers',
             updated
           );
-
-          await this.actions.getWhiteListUsers();
 
           setState(users.whiteListUsers);
           resolve(users.whiteListUsers);
@@ -399,8 +420,6 @@ const Store = createStore({
           }
 
           const updated = [...new Set([...data])];
-
-          debugger;
 
           const users = await overwriteChromeStorageData(
             'whiteListUsers',

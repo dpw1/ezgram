@@ -24,6 +24,7 @@ export const CSS_SELECTORS = {
   profileDropdownImage: 'nav div > div > div > div:nth-child(3) img[alt]',
   profileDropdownLink: `div[aria-hidden] > div[style] + * a[href]:nth-child(1)`,
 
+  followingListParent: `[role='dialog'] > div:not([style])`,
   followingList: `[style*='signup'] div[style] > div[role]+ div`,
   followingListUnfollowButton: `div[role="presentation"] ul li button, 
   div[role="tablist"] + div > ul > div > li button,
@@ -32,7 +33,7 @@ export const CSS_SELECTORS = {
   followingListUnfollowButtonNthChild: `div[role="tablist"] + div > ul li:nth-child(xx) button,
   [style*='signup'] div[style] > div[role]+ div [aria-labelledby]:nth-child(xx) button`,
   followingListUnfollowConfirmationButton: `div[style] > div > div > button[tabindex]:nth-child(1)`,
-  followingListActionBlocked: `body > div+ div + div + div + div > div > div > div > div  + div > button + button`,
+  followingListActionBlocked: `body div > div > div > div > div  + div > button + button`,
 
   followersList: `[style*='min-height'] div[style] > div + div`,
   followersListItem: `div[style] > div[style] > div + div li,  div[style*='min-height'] > div[class] > div[style*='auto'] > div > div`,
@@ -42,13 +43,15 @@ export const CSS_SELECTORS = {
 
   userPageFollowButtons: `header > div + section > * button`,
   userPageFollowerstListOpenButton: `header > section  ul li:nth-child(2) a`,
+  userPageFollowingtListOpenButton: `header > section  ul li:nth-child(3) a`,
+
   userPagePostsNumber: `header section ul li:nth-child(1) >span >span, header section ul li:nth-child(1) span, main header + div + ul li:nth-child(1) > div > span, section > main > div > header + * + * + ul li:nth-child(1) > div > span`,
   userPageFollowersNumber: `header section ul li:nth-child(2) >span >span, ul li [href*='followers'] > *,  header section ul li:nth-child(2) span, main header + div + ul li:nth-child(2) > * > span`,
   userPageFollowingNumber: `header section ul li:nth-child(3) >span >span, ul li [href*='following'] > *, header section ul li:nth-child(3) span, main header + div + ul li:nth-child(3) > * > span`,
   userPageFollowButton: `main header section div span > span:nth-child(1) > button > div`,
   userPageUnfollowButton: `main header section div span > span:nth-child(1) > button svg`,
   userPagePosts: `main div >article a[href*='/p']`,
-  userPageActionBlocked: `#fb-root + div > div > div > div > div  + div > button + button`,
+  userPageActionBlocked: `div > div > div > div > div  + div > button + button`,
   userPagePrivateAccountMessage: `section main article > div > div > h2`,
   userPageProfileImage: `main > div > header canvas + span > img[alt][src], main > div > header button > img[src]`,
   userPageUsername: `main header section > * > h2, main header section > * > h1`,
@@ -182,9 +185,11 @@ export function createBackupFile() {
     ];
 
     const _date = new Date();
+
     const date = `${_date.getDate()}_${
       months[_date.getMonth()]
     }_${_date.getFullYear()}`;
+
     const hours = _date
       .toLocaleTimeString('en-US', {
         // en-US can be set to 'default' to use user's browser settings
@@ -539,6 +544,10 @@ function resetAutomaticFollowing() {
   localStorage.setItem(`@useStatePerist:@isFollowingList`, `no`);
 }
 
+export function isFollowingPage() {
+  return /following\/?$/gim.test(window.location.pathname);
+}
+
 /* Gets the name of the currently logged user
 ============================= */
 export async function getUserName() {
@@ -562,7 +571,6 @@ export async function getUserName() {
     if (!$script) {
       updateLog(`ERROR: This user does not exist.`);
 
-      if (xxx) resolve(null);
       resetAutomaticFollowing();
       return;
     }
@@ -753,7 +761,7 @@ export function refreshPage() {
   window.location.reload();
 }
 
-/* Opens the follower list of a given user. */
+/* Opens the follower list of the current user. */
 export async function openFollowersList() {
   /* Updated version */
   return new Promise(async (resolve, reject) => {
@@ -779,38 +787,33 @@ export async function openFollowersList() {
 
     resolve(true);
   });
+}
 
-  /* Old version */
-  // return new Promise(async (resolve, reject) => {
-  //   let isOpen = false;
+/* Opens the following list of the current user. */
+export async function openFollowingList() {
+  return new Promise(async (resolve, reject) => {
+    const $button = await _waitForElement(
+      CSS_SELECTORS.userPageFollowingtListOpenButton,
+      100,
+      10
+    );
 
-  //   if (!username || username === '') {
-  //     updateLog(`No username passed as parameter`);
-  //     return;
-  //   }
+    if (!$button) {
+      resolve(null);
+      return;
+    }
 
-  //   while (!isOpen) {
-  //     updateLog(`<br />Opening followers list...`);
-  //     const $followers = document.querySelector(`a[href*="followers/"]`);
+    $button.click();
 
-  //     console.log('followers btn', $followers);
+    const $list = await _waitForElement(CSS_SELECTORS.followersList, 50, 10);
 
-  //     $followers.click();
+    if (!$list) {
+      resolve(null);
+      return;
+    }
 
-  //     await _sleep(50);
-
-  //     const $list = await _waitForElement(CSS_SELECTORS.followersList, 50, 50);
-
-  //     if ($list) {
-  //       isOpen = true;
-  //     }
-  //   }
-
-  //   await _sleep(50);
-
-  //   updateLog('Followers page opened.');
-  //   resolve(true);
-  // });
+    resolve(true);
+  });
 }
 
 export async function getUnfollowConfirmationButton() {
@@ -1027,7 +1030,6 @@ export function isObject(obj) {
 /* Gets the chrome storage data for the current user. */
 export async function getChromeStorageData(key = null) {
   return new Promise(async (resolve, reject) => {
-    debugger;
     const user = await getUserName();
 
     if (!user) {

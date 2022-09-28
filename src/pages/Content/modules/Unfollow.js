@@ -138,6 +138,13 @@ const Unfollow = () => {
       await _sleep(unfollowDelay);
 
       $unfollow.click();
+
+      /* 
+      
+      TODO
+      
+      Make sure selector "followingListActionBlocked" does not appear here.
+      */
       count += 1;
 
       await _sleep(20);
