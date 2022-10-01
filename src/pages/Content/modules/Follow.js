@@ -67,6 +67,10 @@ const Follow = () => {
   /* Settings 
   ===================================== */
   const [limit, setLimit] = useStickyState('@followLimit', 10);
+  const [stopFollowingLimit, setStopFollowingLimit] = useStickyState(
+    '@stopFollowingLimit',
+    0
+  ); //stop automatic following once you reach a specific number of users.
 
   const [delayBetweenUsersMin, setDelayBetweenUsersMin] = useStickyState(
     '@delayBetweenUsersMin',
@@ -426,6 +430,15 @@ const Follow = () => {
 
       /* ================ */
 
+      if (result === 'stop') {
+        setIsFollowingList('no');
+        updateLog(
+          `<br/>Reached follow limit set by user, stopping automated following.`
+        );
+        resolve();
+        return;
+      }
+
       if (user) {
         await actions.removeOneMustFollowUsers(user);
         updateLog(`\n<b>${user}</b> removed from the list.`);
@@ -436,15 +449,6 @@ const Follow = () => {
       if (mustFollowUsers.length <= 0) {
         updateLog(`Interacted with all users in the list!`);
         result = 'final';
-      }
-
-      if (result === 'stop') {
-        setIsFollowingList('no');
-        updateLog(
-          `Reached follow limit set by user, stopping automated following.`
-        );
-        resolve();
-        return;
       } else if (result === 'final') {
         await actions.overwriteMustFollowUsers([]);
         setIsFollowingList('no');
@@ -592,7 +596,16 @@ const Follow = () => {
         return;
       }
 
-      if (!mustFollowUsers || mustFollowUsers <= 0) {
+      if (stopFollowingLimit >= mustFollowUsers.length) {
+        updateLog(`Limit reached! Stopping at user ${stopFollowingLimit}`);
+        setIsFollowingList('no');
+        await _sleep(100);
+        await finishInteraction('stop');
+        resolve(true);
+        return;
+      }
+
+      if (!mustFollowUsers || mustFollowUsers.length <= 0) {
         updateLog(`The users list is empty.`);
         setIsFollowingList('no');
         await _sleep(100);
@@ -790,6 +803,18 @@ const Follow = () => {
     });
   }
 
+  function shouldDisableStartButton() {
+    const value = state.mustFollowUsers.hasOwnProperty('mustFollowUsers')
+      ? state.mustFollowUsers.mustFollowUsers.length
+      : state.mustFollowUsers.length;
+
+    if (value === 0) {
+      return true;
+    }
+
+    return false;
+  }
+
   useEffect(() => {
     (async () => {
       console.log('loop:', state.followingListLoop);
@@ -802,6 +827,34 @@ const Follow = () => {
       startInteractingWithUserInNewTab();
     })();
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      const value = state.mustFollowUsers.hasOwnProperty('mustFollowUsers')
+        ? state.mustFollowUsers.mustFollowUsers.length
+        : state.mustFollowUsers.length;
+
+      if (value <= 0) {
+        return;
+      }
+
+      setStopFollowingLimit(value - limit);
+    })();
+  }, [limit]);
+
+  function getStopFollowingNumber() {
+    const value = state.mustFollowUsers.hasOwnProperty('mustFollowUsers')
+      ? state.mustFollowUsers.mustFollowUsers.length
+      : state.mustFollowUsers.length;
+
+    if (value <= 0) {
+      return 0;
+    } else if (stopFollowingLimit !== 0) {
+      return stopFollowingLimit;
+    }
+
+    return value;
+  }
 
   return (
     <div className="Follow">
@@ -818,19 +871,26 @@ const Follow = () => {
 
       {/* ## Follow limit
       ============================================== */}
-      {/* <Form.Group className="Follow-option mb-3">
-        <Form.Label>Follow limit:</Form.Label>
+      <Form.Group className="Follow-option mb-3">
+        <Form.Label>
+          Limit (stop following once you reach the user number{' '}
+          <span>{getStopFollowingNumber()} </span>)
+        </Form.Label>
         <Form.Control
           type="number"
           min={1}
-          max={1000}
+          max={
+            state.mustFollowUsers.hasOwnProperty('mustFollowUsers')
+              ? state.mustFollowUsers.mustFollowUsers.length
+              : state.mustFollowUsers.length
+          }
           value={limit}
           onChange={(e) => {
             setLimit(e.target.value);
           }}
           placeholder="Stop following after reaching this number."
         />
-      </Form.Group> */}
+      </Form.Group>
 
       {/* ## Clicking on user delay
       ============================================== */}
@@ -1119,6 +1179,7 @@ const Follow = () => {
       </div>
       <hr />
       <Button
+        disabled={shouldDisableStartButton()}
         onClick={() => {
           if (localState.isExecuting) {
             stopExecuting();

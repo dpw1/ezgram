@@ -172,11 +172,7 @@ export default function List() {
       return;
     }
 
-    const res = await openFollowersList();
-
-    if (!res) {
-      alert('Unable to open followers list.');
-    }
+    await openFollowersList();
 
     const list = await extractUsernamesFromFollowersList(limit);
     const result = await storeMustFollowUsersListToDatabase(list);
