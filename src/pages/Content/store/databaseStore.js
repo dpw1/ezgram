@@ -235,14 +235,19 @@ const Store = createStore({
           throw new Error("Invalid data. 'user' is empty or undefined.");
         }
 
-        const users = (await getChromeStorageData('ignoredUsers')) || [];
+        const _users = await getChromeStorageData('ignoredUsers');
 
-        if (
-          users.filter((e) => e.user.toLowerCase() === data.user.toLowerCase())
-            .length >= 1
-        ) {
-          console.log('User already exists.');
-          return;
+        const users = _users ? _users : [];
+
+        if (users.length >= 1) {
+          if (
+            users.filter(
+              (e) => e.user.toLowerCase() === data.user.toLowerCase()
+            ).length >= 1
+          ) {
+            console.log('User already exists.');
+            return;
+          }
         }
 
         const user = await addChromeStorageData('ignoredUsers', {

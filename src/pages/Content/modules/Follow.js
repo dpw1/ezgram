@@ -474,7 +474,11 @@ const Follow = () => {
 
       await _sleep(delay);
 
-      await goToURLThatMustBeFollowed();
+      if (mustFollowUsers.length >= 1) {
+        await goToURLThatMustBeFollowed();
+      } else {
+        updateLog(`Interaction completed.`);
+      }
 
       resolve(true);
     });
@@ -511,10 +515,13 @@ const Follow = () => {
       if (users.length <= 0) {
         updateLog(`Interacted with all users!`);
         setIsFollowingList('no');
+        resolve();
+        return;
       }
 
       const url = getInstagramURL(users[0]);
 
+      /* No more users to interact with */
       if (!url || url === undefined || url === 'undefined') {
         setIsFollowingList('no');
         alert('error - user undefined');
