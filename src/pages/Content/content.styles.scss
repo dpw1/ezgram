@@ -4,7 +4,7 @@
     flex-direction: row;
   }
 
-  & ~ .modal{
+  & ~ .modal {
     z-index: 99999;
   }
 }
@@ -17,4 +17,38 @@
   width: 500px;
   height: 500px;
   border: 1px solid gray;
+}
+
+.Toastify__toast-container {
+  z-index: 999999 !important;
+}
+
+/* Add counter to following list users */
+[style*='signup']
+  div[style]
+  > div[role]
+  + div
+  [style*='position'][style*='padding'] {
+  counter-reset: followinglist;
+}
+
+[style*='signup']
+  div[style]
+  > div[role]
+  + div
+  [style*='position'][style*='padding']
+  > * {
+  position: relative;
+}
+
+[style*='signup']
+  div[style]
+  > div[role]
+  + div
+  [style*='position'][style*='padding']
+  > *:before {
+  margin-right: 10px;
+  font-size: 14px;
+  counter-increment: followinglist;
+  content: counter(followinglist);
 }

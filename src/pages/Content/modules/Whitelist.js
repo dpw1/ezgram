@@ -15,6 +15,8 @@ import {
   CSS_SELECTORS,
   _waitForElement,
   isFollowingPage,
+  isCurrentPageMyUserPage,
+  toastMessage,
 } from './utils';
 
 import Unfollow from './Unfollow';
@@ -92,15 +94,20 @@ const Whitelist = () => {
   async function addWhiteListButtonToFollowingListUsers() {
     /* Enlarge list 
       ============================= */
-    const $list = await _waitForElement(CSS_SELECTORS.followingListParent);
+    const $list = await _waitForElement(
+      `${CSS_SELECTORS.followingListParent}, .followingList`
+    );
 
     if (!$list) {
       return;
     }
 
+    debugger;
+
     window.isExtractingUser = false;
 
     $list.setAttribute(`style`, `min-width:500px;`);
+    $list.classList.add(`followingList`);
 
     /* Add buttons 
       ============================= */
@@ -112,8 +119,6 @@ const Whitelist = () => {
     const $users = $list.querySelectorAll(selector);
 
     async function _addButtons(_$users) {
-      console.log('llll', $users);
-
       for (var [index, each] of _$users.entries()) {
         window.isExtractingUser = true;
         const $button = each.querySelector(`button`);
@@ -145,10 +150,33 @@ const Whitelist = () => {
         $whitelist.addEventListener(`click`, async function (e) {
           const user = e.target.getAttribute(`data-whitelist`);
 
-          await actions.addWhiteListUser(user);
-          await actions.getWhiteListUsers();
+          const exists = await actions.getWhiteListUser(user);
 
-          e.target.textContent = `Whitelisted ✔️`;
+          if (exists) {
+            await actions.removeOneWhiteListUser(user);
+            toastMessage(
+              <p>
+                Removed <b>{user}</b> from white list successfully.
+              </p>,
+              3000,
+              'success'
+            );
+
+            e.target.textContent = `Add to white list`;
+          } else {
+            await actions.addWhiteListUser(user);
+            toastMessage(
+              <p>
+                Added <b>{user}</b> to the white list successfully.
+              </p>,
+              3000,
+              'success'
+            );
+
+            e.target.textContent = `Whitelisted ✔️`;
+          }
+
+          await actions.getWhiteListUsers();
         });
       }
 
@@ -178,7 +206,28 @@ const Whitelist = () => {
     new ResizeObserver(outputsize).observe($scrollable);
   }
 
-  async function viewAllWhiteListedUsers() {}
+  async function injectUpdateButton() {
+    const $header = await _waitForElement(`div[style*='height'] > h1`);
+
+    if (!$header) {
+      return;
+    }
+
+    if (!$header.getAttribute(`style`)) {
+      $header.setAttribute(`style`, `display: flex;flex-direction: row;`);
+    }
+
+    const html = `<button id="updateWhiteListButton" class="ig-button">Update Buttons</button>`;
+
+    $header.insertAdjacentHTML(`beforeend`, html);
+
+    const $button = document.querySelector(`#updateWhiteListButton`);
+
+    $button.addEventListener(`click`, function (e) {
+      e.preventDefault();
+      addWhiteListButtonToFollowingListUsers();
+    });
+  }
 
   return (
     <div className="Whitelist">
@@ -227,8 +276,24 @@ const Whitelist = () => {
       <Button
         id="whiteListFilter"
         onClick={async () => {
+          if (!isCurrentPageMyUserPage(state.username)) {
+            toastMessage(
+              <p>
+                Please go to your profile page to see the whitelist.{' '}
+                <a href={`https://instagram.com/${state.username}/following`}>
+                  Click here for a shortcut.
+                </a>
+              </p>,
+              5000,
+              'error'
+            );
+
+            return;
+          }
+
           await openFollowingList();
           addWhiteListButtonToFollowingListUsers();
+          injectUpdateButton();
         }}
       >
         View list

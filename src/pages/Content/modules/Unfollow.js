@@ -30,6 +30,7 @@ import {
   createBackupFile,
   getUnfollowConfirmationButton,
   toastMessage,
+  isCurrentPageMyUserPage,
 } from './utils';
 
 import { useDatabase } from '../store/databaseStore';
@@ -321,12 +322,29 @@ const Unfollow = () => {
             onChange={(e) => {
               setUnfollowNonFollowers(e.target.checked ? 'yes' : 'no');
             }}
-            label="Unfollow only who is not following me back"
+            label="Unfollow only who is not following me back. (this process can take a long time if you have too many followers)"
           />
 
           <hr />
           <Button
             onClick={() => {
+              if (!isCurrentPageMyUserPage(state.username)) {
+                toastMessage(
+                  <p>
+                    Please go to your profile page before unfollowing.{' '}
+                    <a
+                      href={`https://instagram.com/${state.username}/following`}
+                    >
+                      Click here for a shortcut.
+                    </a>
+                  </p>,
+                  5000,
+                  'error'
+                );
+
+                return;
+              }
+
               if (localState.isExecuting) {
                 stopExecuting();
               } else {
@@ -340,14 +358,6 @@ const Unfollow = () => {
           </Button>
         </div>
       </div>
-
-      <button
-        onClick={() => {
-          return toastMessage(() => <p>ok</p>, 5000, 'light');
-        }}
-      >
-        Notify!
-      </button>
     </div>
   );
 };

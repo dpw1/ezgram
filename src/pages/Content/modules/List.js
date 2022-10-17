@@ -177,6 +177,16 @@ export default function List() {
   async function start() {
     if (!(await isUserPage())) {
       updateLog(`ERROR: Please go to a user page.`);
+
+      toastMessage(
+        <p>
+          Please go to a user page. There is nothing that can be extracted in
+          this page.
+        </p>,
+        5000,
+        'error'
+      );
+
       return;
     }
 
@@ -242,16 +252,6 @@ export default function List() {
         >
           Update
         </Button>
-        {/* <InputGroup.Text id="basic-addon1">@</InputGroup.Text> */}
-        {/* <FormControl
-          value={username}
-          placeholder="Username"
-          aria-label="Username"
-          onChange={(e) => {
-            setUsername(e.target.value);
-          }}
-          aria-describedby="basic-addon1"
-        /> */}
       </InputGroup>
       <Form.Group className="List-option mb-3">
         <Form.Label>Extract limit:</Form.Label>

@@ -48,6 +48,7 @@ import {
   getInstagramURL,
   isUserPage,
   toastMessage,
+  isCurrentPageMyUserPage,
 } from './utils';
 
 import { resolveConfig } from 'prettier';
@@ -298,10 +299,12 @@ const Follow = () => {
         $post.click();
 
         updateLog(
-          `<b>Post ${each} opened.</b>  Awaiting <b>${
+          `<b>Post ${each} opened.</b> Waiting <b>${
             LIKING_POSTS_DELAY / 1000
           }</b> seconds.`
         );
+
+        toastMessage(<p>Post {each} opened.</p>, LIKING_POSTS_DELAY, 'light');
 
         await _sleep(LIKING_POSTS_DELAY);
 
@@ -327,12 +330,17 @@ const Follow = () => {
         } else {
           ignored += 1;
           updateLog(`This post has already been liked.`);
+
+          toastMessage(<p>This post has already been liked.</p>, 3000, 'info');
+
           $close.click();
           await _sleep(randomIntFromInterval(400, 1500));
           updateLog(`Moving to next post.<br/>`);
 
           if (i > posts) {
             updateLog(`No more posts to like.`);
+
+            toastMessage(<p>No more posts to like.</p>, 3000, 'info');
             break;
           }
           continue;
@@ -345,12 +353,33 @@ const Follow = () => {
 
         updateLog(`Waiting <b>${LIKING_POSTS_DELAY / 1000}</b> seconds.<br/>`);
 
+        toastMessage(
+          <p>
+            Waiting <b>{LIKING_POSTS_DELAY / 1000}</b> seconds.
+            <br />
+          </p>,
+          LIKING_POSTS_DELAY,
+          'light'
+        );
+
         await _sleep(randomIntFromInterval(900, 3000));
 
         $close.click();
 
         updateLog(`Moving to the next post... <br />`);
         updateLog(`Posts liked: <b>${liked} / ${LIKING_POSTS_LIMIT}</b><br />`);
+
+        toastMessage(
+          <p>
+            Posts liked:{' '}
+            <b>
+              {liked} / {LIKING_POSTS_LIMIT}
+            </b>
+          </p>,
+          LIKING_POSTS_DELAY,
+          'light'
+        );
+
         await _sleep(randomIntFromInterval(500, 800));
       }
 
@@ -476,7 +505,7 @@ const Follow = () => {
 
       toastMessage(
         <p>
-          Closing user page in <b>${delay / 1000}</b> seconds.
+          Closing user page in <b>{delay / 1000}</b> seconds.
         </p>,
         delay
       );
@@ -829,7 +858,7 @@ const Follow = () => {
 
       toastMessage(
         <p>
-          Waiting <b>{delay / 1000}</b>seconds before moving on.
+          Waiting <b>{delay / 1000}</b> seconds before moving on.
         </p>,
         delay
       );
@@ -1216,14 +1245,14 @@ const Follow = () => {
       <Button
         disabled={shouldDisableStartButton()}
         onClick={() => {
-          if (localState.isExecuting) {
+          if (isFollowingList === 'yes') {
             stopExecuting();
           } else {
             start();
           }
         }}
       >
-        {localState.isExecuting ? 'Stop' : 'Start'}
+        {isFollowingList === 'yes' ? 'Stop' : 'Start'}
       </Button>
     </div>
   );

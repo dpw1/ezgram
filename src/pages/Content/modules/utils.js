@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { useDatabase } from '../store/databaseStore';
-import { useLocalStore } from './../store/localStore';
 
 const replaceAll = require('string.prototype.replaceall');
 const striptags = require('striptags');
@@ -60,7 +58,7 @@ export const CSS_SELECTORS = {
   userPageActionBlocked: `div > div > div > div > div  + div > button + button`,
   userPagePrivateAccountMessage: `section main article > div > div > h2`,
   userPageProfileImage: `main > div > header canvas + span > img[alt][src], main > div > header button > img[src]`,
-  userPageUsername: `main header section > * > h2, main header section > * > h1`,
+  userPageUsername: `main header section > * > h2, main header section > * > h1,main header section a>h2`,
   userPageDoesNotExist404: `main [style*='height'][style*='100'] > div > h2 + div a[href='/']`,
 
   postPageLikeButton: `section > span:nth-child(1) > button`,
@@ -96,16 +94,6 @@ export const LOCAL_STORAGE = {
   restartFollow: 'ezgram_restart_follow',
 };
 
-export async function refreshState() {
-  const [state, actions] = useDatabase();
-  const [localState, localActions] = useLocalStore();
-
-  await actions.loadUsername();
-  await actions.loadIgnoredUsers();
-  await actions.getMustFollowUsers();
-  await actions.getWhiteListUsers();
-}
-
 export function randomUniqueIntegers(total, quantity) {
   const numbers = Array(parseInt(total))
     .fill(null)
@@ -116,6 +104,24 @@ export function randomUniqueIntegers(total, quantity) {
     .sort((a, b) => a.sort - b.sort)
     .map(({ value }) => value)
     .slice(0, quantity);
+}
+
+/**
+ * Checks whether the current URL is a profile page of the logged in user.
+ *
+ * Example:
+ *
+ * - Username is "A1".
+ *
+ * - instagram.com/user_xx => false
+ * - instagram.com/a1 => true
+ * - instagram.com/ => false
+ */
+export function isCurrentPageMyUserPage(username) {
+  if (!window.location.href.includes(username)) {
+    return false;
+  }
+  return true;
 }
 
 /* Checks what type of follow button the user page has. It retusn:
@@ -336,6 +342,8 @@ export async function scrollDownFollowingList() {
 
 export function stopExecuting() {
   updateLog(`<b style="font-size:30px;">Stopping...</b>`);
+  toastMessage(<b>Pausing automatic following...</b>, 3000, 'warning');
+  localStorage.removeItem(`@useStatePerist:@isFollowingList`);
   window.location.reload();
   return;
 }
