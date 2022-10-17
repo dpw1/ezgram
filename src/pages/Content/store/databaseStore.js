@@ -123,7 +123,9 @@ const Store = createStore({
             updated
           );
 
-          await this.actions.getMustFollowUsers();
+          try {
+            await this.actions.getMustFollowUsers();
+          } catch (err) {}
 
           setState(users.mustFollowUsers);
           resolve(users.mustFollowUsers);

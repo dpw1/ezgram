@@ -173,8 +173,6 @@ const Homepage = () => {
         bounds="body[class]"
       >
         <div className="Homepage">
-          {/* <h1>My value: {JSON.stringify(key)}</h1> */}
-
           <header className="Homepage-header">
             <p>
               <b>

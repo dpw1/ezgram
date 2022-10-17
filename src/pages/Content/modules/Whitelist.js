@@ -182,7 +182,10 @@ const Whitelist = () => {
 
   return (
     <div className="Whitelist">
-      <Form.Label style={{ display: 'block' }}>hello</Form.Label>
+      <Form.Label style={{ display: 'block' }}>
+        You have {whiteListUsers && whiteListUsers.length} users in your white
+        list.
+      </Form.Label>
 
       <Form.Control
         value={whiteListUsers}

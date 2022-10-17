@@ -47,6 +47,7 @@ import {
   removeChromeStorageData,
   getInstagramURL,
   isUserPage,
+  toastMessage,
 } from './utils';
 
 import { resolveConfig } from 'prettier';
@@ -473,7 +474,12 @@ const Follow = () => {
         await actions.addIgnoredUser({ user });
       }
 
-      updateLog(`<br />Closing user page in <b>${delay / 1000}</b> seconds.`);
+      toastMessage(
+        <p>
+          Closing user page in <b>${delay / 1000}</b> seconds.
+        </p>,
+        delay
+      );
 
       await _sleep(delay);
 
@@ -602,13 +608,25 @@ const Follow = () => {
         }`
       );
 
-      if (isFollowingList === 'no') {
-        return;
+      if (isFollowingList === 'yes') {
+        toastMessage(
+          <p>
+            Automatic following is <b>on</b>.{' '}
+            <b>Please don't change tabs or interact with the page.</b>
+          </p>,
+          3000,
+          'info'
+        );
       }
 
       if (stopFollowingLimit >= mustFollowUsers.length) {
         updateLog(`Limit reached! Stopping at user ${stopFollowingLimit}`);
         setIsFollowingList('no');
+
+        /* Reset limit */
+        const currentLimit = limit;
+        setLimit(0);
+        setLimit(currentLimit);
         await _sleep(100);
         await finishInteraction('stop');
         resolve(true);
@@ -682,7 +700,7 @@ const Follow = () => {
       }
 
       updateLog(
-        `<span style="font-size: 25px;">Please don't change or close this tab.</span><br /><br />`
+        `<span style="font-size: 25px;">Please don't change tabs. Don't interact with the page.</span><br /><br />`
       );
 
       updateLog(`Interacting with <b>${currentUser}</b>.`);
@@ -790,6 +808,8 @@ const Follow = () => {
 
       updateLog(`Interaction completed.`);
 
+      toastMessage(<p>Interaction completed!</p>, 3000, 'success');
+
       /* Followed all users from the list. Reset following */
       if (mustFollowUsers.length <= 0) {
         finishInteraction('final');
@@ -806,6 +826,13 @@ const Follow = () => {
       // }
 
       updateLog(`<b>Waiting ${delay / 1000} seconds</b> before moving on.`);
+
+      toastMessage(
+        <p>
+          Waiting <b>{delay / 1000}</b>seconds before moving on.
+        </p>,
+        delay
+      );
 
       await finishInteraction('success', delay);
 
@@ -1032,7 +1059,6 @@ const Follow = () => {
               <Form.Control
                 type="number"
                 min={1}
-                max={likePostsMax}
                 value={likePostsMin}
                 onChange={(e) => {
                   setLikePostsMin(e.target.value);
@@ -1045,8 +1071,7 @@ const Follow = () => {
             {
               <Form.Control
                 type="number"
-                min={1}
-                max={likeFirstXPosts}
+                min={likePostsMin}
                 value={likePostsMax}
                 onChange={(e) => {
                   setLikePostsMax(e.target.value);

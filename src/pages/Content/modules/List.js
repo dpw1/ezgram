@@ -26,6 +26,8 @@ import {
   scrollDownFollowersList,
   isUserPage,
   updateLogError,
+  toastMessage,
+  refreshState,
 } from './utils';
 
 import { useDatabase } from '../store/databaseStore';
@@ -137,7 +139,11 @@ export default function List() {
             `Complete. ${list.length} users were extracted, ${ignored} users skipped.`
           );
 
-          updateLog(`Please refresh the page.`);
+          toastMessage(
+            <p>
+              {list.length} users were extracted, {ignored} users were skiped.
+            </p>
+          );
           resolve(list);
           break;
         }
@@ -149,7 +155,6 @@ export default function List() {
   async function storeMustFollowUsersListToDatabase(list) {
     return new Promise(async (resolve, reject) => {
       const res = await actions.addMustFollowUsers(list);
-
       resolve(res);
     });
   }
@@ -178,9 +183,21 @@ export default function List() {
     await openFollowersList();
 
     const list = await extractUsernamesFromFollowersList(limit);
-    const result = await storeMustFollowUsersListToDatabase(list);
 
-    console.log('stored users: ', result);
+    await storeMustFollowUsersListToDatabase(list);
+    await actions.getMustFollowUsers();
+
+    toastMessage(
+      <p>
+        Refreshing the page in <b>3</b> seconds.
+      </p>,
+      3000,
+      'light'
+    );
+
+    await _sleep(3000);
+
+    window.location.reload();
   }
 
   function syncFollowingListTextareWithDatabase() {
@@ -199,7 +216,7 @@ export default function List() {
 
   return (
     <div className="List">
-      <p>There are {state.mustFollowUsers.length} users in your list.</p>
+      <p>You have {state.mustFollowUsers.length} users in your list.</p>
       <InputGroup className="mb-3">
         <Form.Label style={{ display: 'block' }}></Form.Label>
 

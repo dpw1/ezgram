@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useDatabase } from '../store/databaseStore';
+import { useLocalStore } from './../store/localStore';
+
 const replaceAll = require('string.prototype.replaceall');
 const striptags = require('striptags');
 
@@ -69,12 +72,8 @@ export const CSS_SELECTORS = {
   scriptTagWithUserData: `body > script:not([src]):not([type]):not([data-content-len]):not([data-sjs])`,
 };
 
-export function toastMessage(
-  Text = (_) => <p></p>,
-  autoClose = 5000,
-  type = 'info'
-) {
-  return toast(<Text />, {
+export function toastMessage(Text = <p></p>, autoClose = 5000, type = 'light') {
+  return toast(Text, {
     position: 'bottom-right',
     autoClose,
     hideProgressBar: false,
@@ -96,6 +95,16 @@ export const LOCAL_STORAGE = {
   newTab: 'ezgram_new_tab',
   restartFollow: 'ezgram_restart_follow',
 };
+
+export async function refreshState() {
+  const [state, actions] = useDatabase();
+  const [localState, localActions] = useLocalStore();
+
+  await actions.loadUsername();
+  await actions.loadIgnoredUsers();
+  await actions.getMustFollowUsers();
+  await actions.getWhiteListUsers();
+}
 
 export function randomUniqueIntegers(total, quantity) {
   const numbers = Array(parseInt(total))
@@ -944,8 +953,6 @@ export async function importChromeStorage(data, initialState = {}) {
     const obj = {
       [user]: { ...initialState, ...data },
     };
-
-    console.log('importing this:', obj);
 
     chrome.storage.local.set(obj, function () {
       resolve(obj);
