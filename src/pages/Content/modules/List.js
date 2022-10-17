@@ -53,6 +53,7 @@ export default function List() {
     return new Promise(async (resolve, reject) => {
       let list = [];
       let ignored = 0;
+      const EXTRACT_EVERY_X_USERS = 7;
 
       const ignoredUsers = await actions.loadIgnoredUsers();
       const mustFollowUsers = await actions.getMustFollowUsers();
@@ -84,7 +85,7 @@ export default function List() {
 
         const visible = $visibleUsers.length;
 
-        if (i % 5 === 1 && visible <= followers) {
+        if (i % EXTRACT_EVERY_X_USERS === 1 && visible <= followers) {
           await scrollDownFollowersList();
         }
 
@@ -103,17 +104,19 @@ export default function List() {
         const $username = $user.querySelector(`a[href] > span`);
         const user = $username.textContent.trim();
 
-        console.log('iggg', ignoredUsers);
-
         if (ignoredUsers && ignoredUsers.length > 0) {
           const isIgnored =
-            ignoredUsers.filter((e) => e.user === user).length >= 1
-              ? true
+            ignoredUsers && ignoredUsers.length >= 1
+              ? ignoredUsers.filter((e) => e.user === user).length >= 1
+                ? true
+                : false
               : false;
 
           const isInList =
-            mustFollowUsers.filter((e) => e === user).length >= 1
-              ? true
+            mustFollowUsers && mustFollowUsers.length >= 1
+              ? mustFollowUsers.filter((e) => e === user).length >= 1
+                ? true
+                : false
               : false;
 
           if (isIgnored || isInList) {

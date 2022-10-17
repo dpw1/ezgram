@@ -1,3 +1,6 @@
+import React, { useState, useEffect } from 'react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 const replaceAll = require('string.prototype.replaceall');
 const striptags = require('striptags');
 
@@ -65,6 +68,25 @@ export const CSS_SELECTORS = {
   This CSS selector finds all of them. */
   scriptTagWithUserData: `body > script:not([src]):not([type]):not([data-content-len]):not([data-sjs])`,
 };
+
+export function toastMessage(
+  Text = (_) => <p></p>,
+  autoClose = 5000,
+  type = 'info'
+) {
+  return toast(<Text />, {
+    position: 'bottom-right',
+    autoClose,
+    hideProgressBar: false,
+    closeOnClick: false,
+    pauseOnHover: false,
+    type,
+    draggable: false,
+    progress: undefined,
+    pauseOnFocusLoss: false,
+    theme: 'light',
+  });
+}
 
 export const LOCAL_STORAGE = {
   followersList: 'ezgram_followers_list',
@@ -335,7 +357,7 @@ export async function scrollDownFollowersList(type = 'once') {
       updateLog(`Error: followers list not found.`);
     }
 
-    const delay = randomIntFromInterval(1800, 2041);
+    const delay = randomIntFromInterval(800, 1300);
 
     const repeatLimit = 10;
 

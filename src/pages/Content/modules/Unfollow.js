@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
-import RangeSlider from 'react-bootstrap-range-slider';
+
 import { useStatePersist as useStickyState } from 'use-state-persist';
 
-import './Unfollow.css';
+import { ToastContainer, toast } from 'react-toastify';
+
+import 'react-toastify/dist/ReactToastify.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/css/bootstrap.css';
 import 'react-bootstrap-range-slider/dist/react-bootstrap-range-slider.css';
+import './Unfollow.css';
 
 // import getWindow from './modules/getWindow';
 import {
@@ -26,6 +29,7 @@ import {
   stopExecuting,
   createBackupFile,
   getUnfollowConfirmationButton,
+  toastMessage,
 } from './utils';
 
 import { useDatabase } from '../store/databaseStore';
@@ -181,6 +185,20 @@ const Unfollow = () => {
           delay / 1000
         } seconds before moving to the next user...<br />`
       );
+
+      toastMessage(
+        () => (
+          <>
+            <p>
+              Unfollowed <b>{user}</b> successfully.
+            </p>
+            <p> Waiting {delay / 1000} seconds.</p>
+          </>
+        ),
+        delay,
+        'success'
+      );
+
       await _sleep(delay);
     }
   }
@@ -230,6 +248,14 @@ const Unfollow = () => {
     handleClickOnUnfollowButton();
   }
 
+  const Message = () => {
+    return (
+      <p>
+        asdkjas <b>aksjdkj</b>
+      </p>
+    );
+  };
+
   return (
     <div className="Unfollow">
       <h3 className="Unfollow-title">Unfollow</h3>
@@ -255,23 +281,6 @@ const Unfollow = () => {
 
           <Form.Group className="Unfollow-option Unfollow-option--click-delay mb-3">
             <div className="Unfollow-inputfields">
-              {/*               
-              <RangeSlider
-                min={5}
-                max={delayBetweenUnfollowMax}
-                value={delayBetweenUnfollowMin}
-                onChange={(e) => setDelayBetweenUnfollowMin(e.target.value)}
-              />
-              <RangeSlider
-                min={
-                  delayBetweenUnfollowMin && delayBetweenUnfollowMin >= 10
-                    ? delayBetweenUnfollowMin
-                    : 10
-                }
-                max={200}
-                value={delayBetweenUnfollowMax}
-                onChange={(e) => setDelayBetweenUnfollowMax(e.target.value)}
-              /> */}
               <Form.Label>
                 <span>Wait between</span>{' '}
                 {
@@ -331,6 +340,14 @@ const Unfollow = () => {
           </Button>
         </div>
       </div>
+
+      <button
+        onClick={() => {
+          return toastMessage(() => <p>ok</p>, 5000, 'light');
+        }}
+      >
+        Notify!
+      </button>
     </div>
   );
 };

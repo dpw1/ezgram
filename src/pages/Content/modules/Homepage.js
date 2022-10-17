@@ -6,6 +6,9 @@ import { Tabs, Tab } from 'react-bootstrap-tabs';
 import Draggable from 'react-draggable'; // The default
 
 import { useStatePersist as useStickyState } from 'use-state-persist';
+import { ToastContainer, toast } from 'react-toastify';
+
+import 'react-toastify/dist/ReactToastify.css';
 
 // import getWindow from './modules/getWindow';
 import {
@@ -163,212 +166,215 @@ const Homepage = () => {
   }, [interactingWithUser]);
 
   return (
-    <Draggable
-      disabled={isMinimized}
-      handle={'.Homepage-header'}
-      bounds="body[class]"
-    >
-      <div className="Homepage">
-        {/* <h1>My value: {JSON.stringify(key)}</h1> */}
+    <>
+      <Draggable
+        disabled={isMinimized}
+        handle={'.Homepage-header'}
+        bounds="body[class]"
+      >
+        <div className="Homepage">
+          {/* <h1>My value: {JSON.stringify(key)}</h1> */}
 
-        <header className="Homepage-header">
-          <p>
-            <b>
-              IGDroid - Instagram Automation |{' '}
-              {state.username !== ''
-                ? `Welcome, ${state.username}`
-                : `No user detected. Please refresh the page.`}
-              .
-            </b>
-          </p>
-          <div className="Homepage-buttons">
-            <button
-              className="Homepage-minimize"
-              onClick={() => {
-                setIsMinimized(!isMinimized);
-              }}
-            >
-              {isMinimized ? 'Open' : 'Minimize'}
-            </button>
-          </div>
-        </header>
-        <div
-          className={`Homepage-body ${
-            isMinimized && `Homepage-body--minimized`
-          }`}
-        >
-          <Tabs
-            defaultActiveKey={2}
-            className="Homepage-tabs"
-            onSelect={(index, label) => console.log(label + ' selected')}
-          >
-            <Tab
-              disabled={localState.isExecuting}
-              eventKey={0}
-              className="Homepage-tab"
-              label="Follow"
-            >
-              <Follow></Follow>
-            </Tab>
-            <Tab
-              disabled={localState.isExecuting}
-              eventKey={1}
-              className="Homepage-tab"
-              label="Unfollow"
-            >
-              <Unfollow></Unfollow>
-            </Tab>
-            <Tab
-              disabled={localState.isExecuting}
-              eventKey={1}
-              className="Homepage-tab Homepage-tab--whitelist"
-              label="Whitelist"
-            >
-              <Whitelist />
-            </Tab>
-            <Tab eventKey={0} className="Homepage-tab" label="List">
-              <List></List>
-            </Tab>
-            <Tab
-              disabled={localState.isExecuting}
-              eventKey={2}
-              className="Homepage-tab"
-              label="Testing"
-            >
-              <Button
+          <header className="Homepage-header">
+            <p>
+              <b>
+                IGDroid - Instagram Automation |{' '}
+                {state.username !== ''
+                  ? `Welcome, ${state.username}`
+                  : `No user detected. Please refresh the page.`}
+                .
+              </b>
+            </p>
+            <div className="Homepage-buttons">
+              <button
+                className="Homepage-minimize"
                 onClick={() => {
-                  console.log(state);
+                  setIsMinimized(!isMinimized);
                 }}
               >
-                Testing
-              </Button>
-              <fieldset>
-                <p>Ignored users</p>
-                <input id="okok" type="text" />
-
-                <Button
-                  onClick={async () => {
-                    const $okok = document.querySelector(`#okok`);
-                    const user = $okok.value;
-
-                    actions.addIgnoredUser({
-                      user,
-                      date: new Date().getTime(),
-                    });
-                  }}
-                >
-                  add
-                </Button>
-                <Button
-                  onClick={() => {
-                    actions.clearIgnoredUsers();
-                  }}
-                >
-                  delete
-                </Button>
-              </fieldset>
-
-              <hr />
-              <fieldset>
-                <p>asldkalskd</p>
-                <input id="whiteListUsers" type="text" />
-
-                <Button onClick={async () => {}}>get</Button>
-              </fieldset>
-              <hr />
-              <fieldset>
-                <p>Must follow users</p>
-                <input id="mustFollowUser" type="text" />
-
-                <Button
-                  onClick={async () => {
-                    const $mustFollow =
-                      document.querySelector(`#mustFollowUser`);
-                    const user = $mustFollow.value;
-
-                    actions.addMustFollowUsers([user]);
-                  }}
-                >
-                  add
-                </Button>
-                <Button
-                  onClick={() => {
-                    actions.clearMustFollowUsers();
-                  }}
-                >
-                  delete
-                </Button>
-              </fieldset>
-              <hr />
-              <fieldset>
-                <p>
-                  Following List Loop{' '}
-                  {!isObject(state.followingListLoop) &&
-                    state.followingListLoop}
-                </p>
-                <input id="followingListLoop" type="text" />
-
-                <Button
-                  onClick={async () => {
-                    const $mustFollow =
-                      document.querySelector(`#followingListLoop`);
-                    const num = parseInt($mustFollow.value);
-
-                    actions.updateFollowingListLoop(num);
-                  }}
-                >
-                  add
-                </Button>
-                <Button
-                  onClick={() => {
-                    actions.clearFollowingListLoop();
-                  }}
-                >
-                  delete
-                </Button>
-              </fieldset>
-            </Tab>
-
-            <Tab eventKey={3} className="Homepage-tab" label="Database">
-              <Data></Data>
-            </Tab>
-
-            <Tab eventKey={3} className="Homepage-tab" label="Cache">
-              <Button
-                onClick={async () => {
-                  setInteractingWithUser('');
-                  await _sleep(100);
-                  window.location.reload();
-                }}
+                {isMinimized ? 'Open' : 'Minimize'}
+              </button>
+            </div>
+          </header>
+          <div
+            className={`Homepage-body ${
+              isMinimized && `Homepage-body--minimized`
+            }`}
+          >
+            <Tabs
+              defaultActiveKey={2}
+              className="Homepage-tabs"
+              onSelect={(index, label) => console.log(label + ' selected')}
+            >
+              <Tab
+                disabled={localState.isExecuting}
+                eventKey={0}
+                className="Homepage-tab"
+                label="Follow"
               >
-                Refresh
-              </Button>
-            </Tab>
-          </Tabs>
+                <Follow></Follow>
+              </Tab>
+              <Tab
+                disabled={localState.isExecuting}
+                eventKey={1}
+                className="Homepage-tab"
+                label="Unfollow"
+              >
+                <Unfollow></Unfollow>
+              </Tab>
+              <Tab
+                disabled={localState.isExecuting}
+                eventKey={1}
+                className="Homepage-tab Homepage-tab--whitelist"
+                label="Whitelist"
+              >
+                <Whitelist />
+              </Tab>
+              <Tab eventKey={0} className="Homepage-tab" label="List">
+                <List></List>
+              </Tab>
+              <Tab
+                disabled={localState.isExecuting}
+                eventKey={2}
+                className="Homepage-tab"
+                label="Testing"
+              >
+                <Button
+                  onClick={() => {
+                    console.log(state);
+                  }}
+                >
+                  Testing
+                </Button>
+                <fieldset>
+                  <p>Ignored users</p>
+                  <input id="okok" type="text" />
 
-          <div className="Homepage-debug">
-            <div className="Homepage-log" readOnly={true} id="log"></div>
-            <div className="Homepage-database" id="ezgramDatabase">
-              <div className="Homepage-stats Homepage-stats--ignored-users">
-                <p>Interacted users:</p>
-                <span>
-                  {state.ignoredUsers.hasOwnProperty('ignoredUsers')
-                    ? state.ignoredUsers.ignoredUsers.length
-                    : state.ignoredUsers.length}
-                </span>
+                  <Button
+                    onClick={async () => {
+                      const $okok = document.querySelector(`#okok`);
+                      const user = $okok.value;
+
+                      actions.addIgnoredUser({
+                        user,
+                        date: new Date().getTime(),
+                      });
+                    }}
+                  >
+                    add
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      actions.clearIgnoredUsers();
+                    }}
+                  >
+                    delete
+                  </Button>
+                </fieldset>
+
                 <hr />
-                <p>To-follow list:</p>
-                <span>
-                  {state.mustFollowUsers.hasOwnProperty('mustFollowUsers')
-                    ? state.mustFollowUsers.mustFollowUsers.length
-                    : state.mustFollowUsers.length}
-                </span>
+                <fieldset>
+                  <p>asldkalskd</p>
+                  <input id="whiteListUsers" type="text" />
+
+                  <Button onClick={async () => {}}>get</Button>
+                </fieldset>
+                <hr />
+                <fieldset>
+                  <p>Must follow users</p>
+                  <input id="mustFollowUser" type="text" />
+
+                  <Button
+                    onClick={async () => {
+                      const $mustFollow =
+                        document.querySelector(`#mustFollowUser`);
+                      const user = $mustFollow.value;
+
+                      actions.addMustFollowUsers([user]);
+                    }}
+                  >
+                    add
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      actions.clearMustFollowUsers();
+                    }}
+                  >
+                    delete
+                  </Button>
+                </fieldset>
+                <hr />
+                <fieldset>
+                  <p>
+                    Following List Loop{' '}
+                    {!isObject(state.followingListLoop) &&
+                      state.followingListLoop}
+                  </p>
+                  <input id="followingListLoop" type="text" />
+
+                  <Button
+                    onClick={async () => {
+                      const $mustFollow =
+                        document.querySelector(`#followingListLoop`);
+                      const num = parseInt($mustFollow.value);
+
+                      actions.updateFollowingListLoop(num);
+                    }}
+                  >
+                    add
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      actions.clearFollowingListLoop();
+                    }}
+                  >
+                    delete
+                  </Button>
+                </fieldset>
+              </Tab>
+
+              <Tab eventKey={3} className="Homepage-tab" label="Database">
+                <Data></Data>
+              </Tab>
+
+              <Tab eventKey={3} className="Homepage-tab" label="Cache">
+                <Button
+                  onClick={async () => {
+                    setInteractingWithUser('');
+                    await _sleep(100);
+                    window.location.reload();
+                  }}
+                >
+                  Refresh
+                </Button>
+              </Tab>
+            </Tabs>
+
+            <div className="Homepage-debug">
+              <div className="Homepage-log" readOnly={true} id="log"></div>
+              <div className="Homepage-database" id="ezgramDatabase">
+                <div className="Homepage-stats Homepage-stats--ignored-users">
+                  <p>Interacted users:</p>
+                  <span>
+                    {state.ignoredUsers.hasOwnProperty('ignoredUsers')
+                      ? state.ignoredUsers.ignoredUsers.length
+                      : state.ignoredUsers.length}
+                  </span>
+                  <hr />
+                  <p>To-follow list:</p>
+                  <span>
+                    {state.mustFollowUsers.hasOwnProperty('mustFollowUsers')
+                      ? state.mustFollowUsers.mustFollowUsers.length
+                      : state.mustFollowUsers.length}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </Draggable>
+      </Draggable>
+      <ToastContainer />
+    </>
   );
 };
 
