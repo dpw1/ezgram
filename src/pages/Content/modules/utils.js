@@ -238,9 +238,9 @@ export function createBackupFile() {
       .replace(' ', '');
 
     /* Download file */
-    downloadFile(`ezgram_${date}_${hours}.json`, JSON.stringify(data));
+    downloadFile(`igdroid_backup_${date}_${hours}.json`, JSON.stringify(data));
 
-    updateLog(`Downloading ignored users' file...`);
+    updateLog(`Downloading backup...`);
 
     resolve();
   });

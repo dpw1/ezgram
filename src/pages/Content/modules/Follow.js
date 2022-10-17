@@ -157,7 +157,7 @@ const Follow = () => {
   ); //if user does not meet the limits (followings, followers, etc) store it in the database
 
   const [downloadBackupFile, setDownloadBackupFIle] = useStickyState(
-    '@downloadBackupFile',
+    '@downloadBackupFileFollow',
     'yes'
   );
 
@@ -850,14 +850,6 @@ const Follow = () => {
         resolve(true);
         return;
       }
-
-      /* Limit set by user reached. Stop */
-      // if (loop >= limit) {
-      //   console.log(`LIMIT: ${limit} --- Loop ${loop}`);
-      //   finishInteraction('stop');
-      //   resolve(true);
-      //   return;
-      // }
 
       updateLog(`<b>Waiting ${delay / 1000} seconds</b> before moving on.`);
 

@@ -61,6 +61,11 @@ const Unfollow = () => {
     'yes'
   );
 
+  const [downloadBackupFile, setDownloadBackupFIle] = useStickyState(
+    '@downloadBackupFileUnfollow',
+    'yes'
+  );
+
   useEffect(() => {
     (async () => {
       const users = await actions.getWhiteListUsers();
@@ -171,7 +176,9 @@ const Unfollow = () => {
           `<br /><b>Please press F5 to refresh the page before using this app again.</b>`
         );
 
-        await createBackupFile();
+        if (downloadBackupFile === 'yes') {
+          await createBackupFile();
+        }
 
         localActions.setIsExecuting(false);
         return;
@@ -249,14 +256,6 @@ const Unfollow = () => {
     handleClickOnUnfollowButton();
   }
 
-  const Message = () => {
-    return (
-      <p>
-        asdkjas <b>aksjdkj</b>
-      </p>
-    );
-  };
-
   return (
     <div className="Unfollow">
       <h3 className="Unfollow-title">Unfollow</h3>
@@ -323,6 +322,15 @@ const Unfollow = () => {
               setUnfollowNonFollowers(e.target.checked ? 'yes' : 'no');
             }}
             label="Unfollow only who is not following me back. (this process can take a long time if you have too many followers)"
+          />
+          <Form.Check
+            type="switch"
+            id="downloadBackupFile"
+            checked={downloadBackupFile === 'yes' ? true : false}
+            onChange={(e) => {
+              setDownloadBackupFIle(e.target.checked ? 'yes' : 'no');
+            }}
+            label={`Download backup file after completion`}
           />
 
           <hr />
