@@ -226,6 +226,9 @@ export default function List() {
 
   return (
     <div className="List">
+      <h3 className="List-title">List</h3>
+      <h4 className="h6">List of users to follow and/or like posts.</h4>
+      <hr />
       <p>You have {state.mustFollowUsers.length} users in your list.</p>
       <InputGroup className="mb-3">
         <Form.Label style={{ display: 'block' }}></Form.Label>

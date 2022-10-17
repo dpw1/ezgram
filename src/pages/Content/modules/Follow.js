@@ -650,6 +650,11 @@ const Follow = () => {
 
       if (stopFollowingLimit >= mustFollowUsers.length) {
         updateLog(`Limit reached! Stopping at user ${stopFollowingLimit}`);
+        toastMessage(
+          <p>Limit reached! Stopping automatic following.</p>,
+          5000,
+          'success'
+        );
         setIsFollowingList('no');
 
         /* Reset limit */
@@ -924,7 +929,10 @@ const Follow = () => {
 
   return (
     <div className="Follow">
-      <h4 className="Follow-label h6">Follow a list of users</h4>
+      <h3 className="Follow-title">Follow</h3>
+      <h4 className="h6">
+        Automatically follow and/or like posts from a list of users.
+      </h4>
 
       <hr />
       <p>

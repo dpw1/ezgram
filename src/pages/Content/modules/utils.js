@@ -201,6 +201,7 @@ export function downloadFile(filename, content) {
   document.body.removeChild(element);
 }
 
+/* Create and download a backup file with all current data on the database. */
 export function createBackupFile() {
   return new Promise(async (resolve, reject) => {
     const data = await getChromeStorageData();

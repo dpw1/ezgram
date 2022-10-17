@@ -307,7 +307,7 @@ const Unfollow = () => {
                     />
                   }
                 </b>
-                <span>seconds before closing each user's page.</span>
+                <span>seconds before unfollowing each user.</span>
               </Form.Label>
             </div>
             <Form.Text className="text-muted">

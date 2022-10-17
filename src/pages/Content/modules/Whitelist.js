@@ -231,9 +231,12 @@ const Whitelist = () => {
 
   return (
     <div className="Whitelist">
+      <h3 className="Whitelist-title">Whitelist</h3>
+      <h4 className="h6">List of users that you do not want to unfollow.</h4>
+      <hr />
       <Form.Label style={{ display: 'block' }}>
-        You have {whiteListUsers && whiteListUsers.length} users in your white
-        list.
+        You have {whiteListUsers && whiteListUsers.split('\n').length} users in
+        your white list.
       </Form.Label>
 
       <Form.Control
