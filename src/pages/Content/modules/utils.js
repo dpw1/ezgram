@@ -67,7 +67,7 @@ export const CSS_SELECTORS = {
 
   /* There are script tags containing the current user data in each page. 
   This CSS selector finds all of them. */
-  scriptTagWithUserData: `body > script:not([src]):not([type]):not([data-content-len]):not([data-sjs])`,
+  scriptTagWithUserData: `body > link ~ script`,
 };
 
 export function toastMessage(Text = <p></p>, autoClose = 5000, type = 'light') {
