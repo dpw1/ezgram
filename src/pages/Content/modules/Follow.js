@@ -186,6 +186,12 @@ const Follow = () => {
   //   0
   // );
 
+  /**
+   * TODO
+   * - do not allow to put a limit greater than the list
+   *
+   */
+
   //checks what user the bot is currently following
 
   /* === */

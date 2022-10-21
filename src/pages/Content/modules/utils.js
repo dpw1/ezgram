@@ -627,7 +627,7 @@ export async function getUserName() {
         continue;
       }
 
-      const regex = /username\\\":\\\"(.+?)"/gm;
+      const regex = /username\\":\\"(.+?)"/gm;
 
       let m;
       while ((m = regex.exec(script)) !== null) {

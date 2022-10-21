@@ -1,5 +1,3 @@
-import './List.css';
-
 import React, { useEffect, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
@@ -8,6 +6,7 @@ import { useStatePersist as useStickyState } from 'use-state-persist';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/css/bootstrap.css'; // or include from a CDN
 import 'react-bootstrap-range-slider/dist/react-bootstrap-range-slider.css';
+import './List.css';
 
 // import getWindow from './modules/getWindow';
 import {
@@ -45,6 +44,14 @@ export default function List() {
     0
   ); //checks what user the bot is currently following
 
+  /**
+   * TODO
+   * - update list in real time after extraction. It should be like this:
+   * extracted 1 user
+   * extracted 2 user
+   * (textarea updated dynamically)
+   *
+   */
   useEffect(() => {
     (async () => {
       syncFollowingListTextareWithDatabase();
