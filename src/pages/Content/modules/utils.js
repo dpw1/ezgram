@@ -58,7 +58,7 @@ export const CSS_SELECTORS = {
   userPageActionBlocked: `div > div > div > div > div  + div > button + button`,
   userPagePrivateAccountMessage: `section main article > div > div > h2`,
   userPageProfileImage: `main > div > header canvas + span > img[alt][src], main > div > header button > img[src]`,
-  userPageUsername: `main header section > * > h2, main header section > * > h1,main header section a>h2`,
+  userPageUsername: `main header section > * > h2, main header section > * > h1,main header section a>h2, section header a > h1`,
   userPageDoesNotExist404: `main [style*='height'][style*='100'] > div > h2 + div a[href='/']`,
 
   postPageLikeButton: `section > span:nth-child(1) > button`,
@@ -619,7 +619,7 @@ export async function getUserName() {
       CSS_SELECTORS.scriptTagWithUserData
     );
 
-    for (var each of $scripts) {
+    for (var [index, each] of $scripts.entries()) {
       const script = each.innerHTML.toLowerCase().trim();
       const hasUsername = script.includes(`username\\":\\"`);
 
@@ -637,13 +637,22 @@ export async function getUserName() {
 
         const _username = m[1];
 
-        const username = _username.replace('/', '').replace('\\', '');
-        window.ezfyCurrentUser = username;
-        resolve(username);
-      }
-    }
+        const username = _username.replace('/', '').replace('\\', '').trim();
 
-    resolve(null);
+        /* Checks if the username found is the same as the alt tag */
+        if (username && username !== '' && username.length >= 3) {
+          const $element = await _waitForElement(`nav [alt*='${username}']`);
+
+          if ($element) {
+            window.ezfyCurrentUser = username;
+            resolve(username);
+            break;
+          }
+        }
+      }
+
+      resolve('');
+    }
   });
 }
 

@@ -49,6 +49,8 @@ import {
   isUserPage,
   toastMessage,
   isCurrentPageMyUserPage,
+  updateLogError,
+  getUserName,
 } from './utils';
 
 import { resolveConfig } from 'prettier';
@@ -556,6 +558,11 @@ const Follow = () => {
     return new Promise(async (resolve, reject) => {
       const users = await actions.getMustFollowUsers();
 
+      if (!users) {
+        updateLogError(`No users found.`);
+        return;
+      }
+
       if (users.length <= 0) {
         updateLog(`Interacted with all users!`);
         setIsFollowingList('no');
@@ -643,17 +650,6 @@ const Follow = () => {
         }`
       );
 
-      if (isFollowingList === 'yes') {
-        toastMessage(
-          <p>
-            Automatic following is <b>on</b>.{' '}
-            <b>Please don't change tabs or interact with the page.</b>
-          </p>,
-          3000,
-          'info'
-        );
-      }
-
       if (stopFollowingLimit >= mustFollowUsers.length) {
         updateLog(`Limit reached! Stopping at user ${stopFollowingLimit}`);
         toastMessage(
@@ -683,11 +679,23 @@ const Follow = () => {
       }
 
       /* Checks whether is currently set to follow */
+
       const $currentUser = await _waitForElement(
         CSS_SELECTORS.userPageUsername,
         100,
         20
       );
+
+      if (isFollowingList === 'yes') {
+        toastMessage(
+          <p>
+            Automatic following is <b>on</b>.{' '}
+            <b>Please don't change tabs or interact with the page.</b>
+          </p>,
+          3000,
+          'info'
+        );
+      }
 
       /* Checks whether is on a user page */
       if (!$currentUser) {
@@ -698,7 +706,7 @@ const Follow = () => {
         );
 
         if ($inexistent) {
-          updateLog(`This user does not exist.`);
+          updateLogError(`This user does not exist.`);
           await finishInteraction('fail');
           resolve();
           return;
@@ -794,6 +802,8 @@ const Follow = () => {
         resolve(true);
         return;
       }
+
+      updateLog(`Checking if following is enough...`);
 
       if (!(await isFollowingEnough(following))) {
         updateLog(

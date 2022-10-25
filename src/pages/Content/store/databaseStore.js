@@ -188,6 +188,7 @@ const Store = createStore({
       async ({ setState, getState }) => {
         return new Promise(async (resolve, reject) => {
           const _users = await getChromeStorageData('mustFollowUsers');
+          debugger;
 
           if (!_users || isObjectEmpty(_users)) {
             resolve(null);
