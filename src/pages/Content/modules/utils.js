@@ -641,7 +641,9 @@ export async function getUserName() {
 
         /* Checks if the username found is the same as the alt tag */
         if (username && username !== '' && username.length >= 3) {
-          const $element = await _waitForElement(`nav [alt*='${username}']`);
+          const $element = await _waitForElement(
+            `nav [alt*='${username}'], a span>[alt*='${username}']`
+          );
 
           if ($element) {
             window.ezfyCurrentUser = username;

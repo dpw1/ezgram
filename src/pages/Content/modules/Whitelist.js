@@ -102,8 +102,6 @@ const Whitelist = () => {
       return;
     }
 
-    debugger;
-
     window.isExtractingUser = false;
 
     $list.setAttribute(`style`, `min-width:500px;`);

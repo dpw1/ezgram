@@ -188,7 +188,6 @@ const Store = createStore({
       async ({ setState, getState }) => {
         return new Promise(async (resolve, reject) => {
           const _users = await getChromeStorageData('mustFollowUsers');
-          debugger;
 
           if (!_users || isObjectEmpty(_users)) {
             resolve(null);
@@ -377,8 +376,6 @@ const Store = createStore({
 
           const _previous = await getChromeStorageData('whiteListUsers');
           const previous = _previous && _previous.length >= 1 ? _previous : [];
-
-          debugger;
 
           const updated = [...new Set([...previous, user])];
 
