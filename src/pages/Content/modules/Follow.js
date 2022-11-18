@@ -51,6 +51,7 @@ import {
   isCurrentPageMyUserPage,
   updateLogError,
   getUserName,
+  isHomePage,
 } from './utils';
 
 import { resolveConfig } from 'prettier';
@@ -296,15 +297,21 @@ const Follow = () => {
           await scrollDownUserPage();
         }
 
-        var $post = await _waitForElement(
-          `main div >article > div > div > div:nth-child(${postY}) > div:nth-child(${postX}) a[href*='/p']`,
-          250,
-          10
-        );
+        let $post = null;
+        try {
+          $post = await _waitForElement(
+            `main div >article > div > div > div:nth-child(${postY}) > div:nth-child(${postX}) a[href*='/p']`,
+            250,
+            10
+          );
 
-        await _sleep(randomIntFromInterval(900, 3000));
+          await _sleep(randomIntFromInterval(900, 3000));
 
-        $post.click();
+          $post.click();
+        } catch (err) {
+          updateLogError(`No clickable post found.`);
+          throw new Error(`No clickable post found.`);
+        }
 
         updateLog(
           `<b>Post ${each} opened.</b> Waiting <b>${
@@ -642,6 +649,11 @@ const Follow = () => {
     return new Promise(async (resolve, reject) => {
       const mustFollowUsers = await actions.getMustFollowUsers();
 
+      if (isHomePage()) {
+        setIsFollowingList('no');
+        return;
+      }
+
       updateLog(
         `${
           isFollowingList === 'yes'
@@ -650,7 +662,11 @@ const Follow = () => {
         }`
       );
 
-      if (stopFollowingLimit >= mustFollowUsers.length) {
+      updateLog(
+        `stopFollowingLimit: ${stopFollowingLimit} || mustFollowUsers.length: ${mustFollowUsers.length}`
+      );
+
+      if (stopFollowingLimit > mustFollowUsers.length) {
         updateLog(`Limit reached! Stopping at user ${stopFollowingLimit}`);
         toastMessage(
           <p>Limit reached! Stopping automatic following.</p>,
@@ -956,7 +972,11 @@ const Follow = () => {
       <Form.Group className="Follow-option mb-3">
         <Form.Label>
           Limit (stop following once you reach the user number{' '}
-          <span>{getStopFollowingNumber()} </span>)
+          <span>{getStopFollowingNumber()} </span>). You have{' '}
+          {state.mustFollowUsers.hasOwnProperty('mustFollowUsers')
+            ? state.mustFollowUsers.mustFollowUsers.length
+            : state.mustFollowUsers.length}{' '}
+          user(s) in your list.
         </Form.Label>
         <Form.Control
           type="number"

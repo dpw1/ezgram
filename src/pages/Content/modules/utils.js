@@ -466,6 +466,10 @@ export async function isPrivateAccount($html) {
   });
 }
 
+export function isHomePage() {
+  return window.location.pathname === '/';
+}
+
 /* Checks within an iframe whether how many posts there are */
 export async function getPostsNumber() {
   return new Promise(async (resolve, reject) => {
