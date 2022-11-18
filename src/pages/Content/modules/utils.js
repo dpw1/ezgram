@@ -205,6 +205,7 @@ export function downloadFile(filename, content) {
 export function createBackupFile() {
   return new Promise(async (resolve, reject) => {
     const data = await getChromeStorageData();
+    const user = await getUserName();
 
     /* Format date */
     const months = [
@@ -230,7 +231,6 @@ export function createBackupFile() {
 
     const hours = _date
       .toLocaleTimeString('en-US', {
-        // en-US can be set to 'default' to use user's browser settings
         hour: '2-digit',
         minute: '2-digit',
       })
@@ -238,7 +238,10 @@ export function createBackupFile() {
       .replace(' ', '');
 
     /* Download file */
-    downloadFile(`igdroid_backup_${date}_${hours}.json`, JSON.stringify(data));
+    downloadFile(
+      `igdroid_backup_${user}_${date}_${hours}.json`,
+      JSON.stringify(data)
+    );
 
     updateLog(`Downloading backup...`);
 
