@@ -113,7 +113,13 @@ const Unfollow = () => {
       const $user = $parent.querySelector(`a[href]`);
       const user = $user.getAttribute(`href`).replaceAll(`/`, '').trim(); //@username_123
 
-      const isWhiteListed = whiteListUsers.filter((e) => e === user);
+      let isWhiteListed = [];
+
+      try {
+        isWhiteListed = whiteListUsers.filter((e) => e === user);
+      } catch (err) {
+        isWhiteListed = [];
+      }
 
       if (isWhiteListed.length > 0) {
         updateLog(`<b>${user}</b> is white listed. Skipping...`);
@@ -121,8 +127,13 @@ const Unfollow = () => {
         await _sleep(randomIntFromInterval(95, 300));
         continue;
       }
-
-      const found = followers.filter((e) => e === user);
+      
+      let found = [];
+      try {
+        found = followers.filter((e) => e === user);
+      } catch (err) {
+        found = [];
+      }
 
       if (found.length > 0 && unfollowNonFollowers === 'yes') {
         updateLog(`<b>${user}</b> is following you back. Skipping...`);

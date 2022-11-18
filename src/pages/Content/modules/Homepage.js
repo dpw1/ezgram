@@ -176,7 +176,7 @@ const Homepage = () => {
           <header className="Homepage-header">
             <p>
               <b>
-                IGDroid 0.4.1 - Instagram Automation |{' '}
+                IGDroid 0.4.2 - Instagram Automation |{' '}
                 {state.username !== ''
                   ? `Welcome, ${state.username}`
                   : `No user detected. Please refresh the page.`}
