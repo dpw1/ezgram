@@ -194,7 +194,7 @@ const Store = createStore({
             return;
           }
 
-          const users = _users;
+          const users = _users.filter((e) => e !== '');
 
           const obj = {
             mustFollowUsers: users,

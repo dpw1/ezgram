@@ -577,6 +577,8 @@ const Follow = () => {
         return;
       }
 
+      debugger;
+
       const url = getInstagramURL(users[0]);
 
       /* No more users to interact with */
