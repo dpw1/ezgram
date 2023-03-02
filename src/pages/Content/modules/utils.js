@@ -85,6 +85,38 @@ export function toastMessage(Text = <p></p>, autoClose = 5000, type = 'light') {
   });
 }
 
+/* Double checks if the user to be unfollowed is whitelisted */
+export function isUserAboutToBeUnfollowedWhitelisted(whitelist) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      var $button = document.querySelector(
+        `[role='dialog'] [role='dialog'] button + button`
+      );
+
+      var _$parent = $button.closest(`div[style]`);
+      var $user = _$parent.querySelector(`div > *:nth-child(2) > *`);
+
+      var user = $user.textContent.trim().split('@')[1].replaceAll('?', '');
+
+      if (!user || whitelist.filter((e) => e === user).length >= 1) {
+        updateLogError(`ERROR please check console`);
+        throw new Error(
+          `"Something went wrong in the function isUserAboutToBeUnfollowedWhitelisted"`
+        );
+        return;
+        resolve();
+      }
+
+      resolve(false);
+    } catch (err) {
+      updateLogError(`ERROR please check console`);
+      throw new Error(
+        `"Something went wrong in the function isUserAboutToBeUnfollowedWhitelisted"`
+      );
+    }
+  });
+}
+
 export const LOCAL_STORAGE = {
   followersList: 'ezgram_followers_list',
   interactingWithUserInNewTab: `ezgram_currently_interacting`,

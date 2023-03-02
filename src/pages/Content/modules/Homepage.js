@@ -172,9 +172,9 @@ const Homepage = () => {
         handle={'.Homepage-header'}
         bounds="body[class]"
       >
-        <div className="Homepage">
+        <div className={`Homepage ${isMinimized ? `Homepage--minimized` : ''}`}>
           <header className="Homepage-header">
-            <p>
+            <p className="Homepage-header-text">
               <b>
                 IGDroid 0.4.2 - Instagram Automation |{' '}
                 {state.username !== ''
@@ -196,7 +196,7 @@ const Homepage = () => {
           </header>
           <div
             className={`Homepage-body ${
-              isMinimized && `Homepage-body--minimized`
+              isMinimized ? `Homepage-body--minimized` : ''
             }`}
           >
             <Tabs
