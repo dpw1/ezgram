@@ -35,7 +35,7 @@ export const CSS_SELECTORS = {
   [style*='signup'] div[style] > div[role]+ div button
   `,
   followingListUnfollowButtonNthChild: `div[role="tablist"] + div > ul li:nth-child(xx) button,
-  [style*='signup'] div[style] > div[role]+ div [aria-labelledby]:nth-child(xx) button`,
+  [style*='signup'] div[style] > div[role]+ div [aria-labelledby]:nth-child(xx) button, [style*='signup'] div[style] > div[role]+ div > * > * > *:nth-child(xx) button`,
   followingListUnfollowConfirmationButton: `div[style] > div > div > button[tabindex]:nth-child(1)`,
   followingListActionBlocked: `body div > div > div > div > div  + div > button + button`,
 
