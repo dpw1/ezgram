@@ -114,7 +114,7 @@ const Unfollow = () => {
       const $parent = $button.closest(`li, [aria-labelledby], div[role]`);
       const $user = $parent.querySelector(`a[href]`);
       const user = $user.getAttribute(`href`).replaceAll(`/`, '').trim(); //@username_123
-      debugger;
+
       let isWhiteListed = [];
 
       try {

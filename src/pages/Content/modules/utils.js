@@ -909,7 +909,7 @@ export async function openFollowingList() {
 export async function getUnfollowConfirmationButton() {
   return new Promise(async (resolve, reject) => {
     const $buttons = await _waitForElement(
-      `[style] > div > div > button + button`,
+      `[style] > div > div > button + button, [role='dialog'] div > div > div + button + button`,
       100,
       50
     );
@@ -920,7 +920,11 @@ export async function getUnfollowConfirmationButton() {
     }
 
     const $parent = $buttons.closest('div');
-    const $button = $parent.querySelector(`button:nth-child(1)`);
+    const $button = $parent.querySelector(`button:first-of-type`);
+
+    debugger;
+
+    console.log('first button', $button);
 
     resolve($button);
   });
