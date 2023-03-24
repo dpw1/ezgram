@@ -157,7 +157,6 @@ const Unfollow = () => {
 
       const $unfollow = await getUnfollowConfirmationButton();
 
-      /*
       const isActuallyWhitelisted = await isUserAboutToBeUnfollowedWhitelisted(
         whiteListUsers
       );
@@ -171,7 +170,6 @@ const Unfollow = () => {
 
         return;
       }
-      */
 
       const unfollowDelay = randomIntFromInterval(1003, 3808);
       await _sleep(unfollowDelay);

@@ -89,12 +89,13 @@ export function toastMessage(Text = <p></p>, autoClose = 5000, type = 'light') {
 export function isUserAboutToBeUnfollowedWhitelisted(whitelist) {
   return new Promise(async (resolve, reject) => {
     try {
+      debugger;
       var $button = document.querySelector(
         `[role='dialog'] [role='dialog'] button + button`
       );
 
-      var _$parent = $button.closest(`div[style]`);
-      var $user = _$parent.querySelector(`div > *:nth-child(2) > *`);
+      var _$parent = $button.closest(`div[role]`);
+      var $user = _$parent.querySelector(`div + span`);
 
       var user = $user.textContent.trim().split('@')[1].replaceAll('?', '');
 
@@ -921,8 +922,6 @@ export async function getUnfollowConfirmationButton() {
 
     const $parent = $buttons.closest('div');
     const $button = $parent.querySelector(`button:first-of-type`);
-
-    debugger;
 
     console.log('first button', $button);
 
