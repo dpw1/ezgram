@@ -41,13 +41,13 @@ export default function List() {
   const [state, actions] = useDatabase();
   const [localState, localActions] = useLocalStore();
   const [usersList, setUsersList] = useState('');
+  const [extractionList, setExtractionList] = useState('');
 
   const [limit, setLimit] = useStickyState('@listLimit', 50);
   const [followingListLoop, setFollowingListLoop] = useStickyState(
     '@followingListLoop',
     0
   ); //checks what user the bot is currently following
-  const [saveType, setSaveType] = useStickyState('@saveType', 'saveToList'); //save stored users to database or copy to clipboard
 
   /**
    * TODO
@@ -144,6 +144,7 @@ export default function List() {
         list = [...list, user];
 
         updateLog(`Extracted ${list.length} users.`);
+        setExtractionList(list);
 
         // console.log('visible: ', visible);
 
@@ -217,25 +218,11 @@ export default function List() {
 
     const list = await extractUsernamesFromFollowersList(limit);
 
-    if (saveType === 'saveToList') {
-      await storeMustFollowUsersListToDatabase(list);
-    } else {
-      copyToClipboard(list.split(',').join('\n\n'));
-    }
+    await storeMustFollowUsersListToDatabase(list);
 
     await actions.getMustFollowUsers();
 
-    toastMessage(
-      <p>
-        Refreshing the page in <b>3</b> seconds.
-      </p>,
-      3000,
-      'light'
-    );
-
-    await _sleep(3000);
-
-    window.location.reload();
+    toastMessage(<p>Completed!</p>, 'light');
   }
 
   function syncFollowingListTextareWithDatabase() {
@@ -286,6 +273,7 @@ export default function List() {
       </InputGroup>
 
       <Form.Group className="List-option mb-3">
+        <hr />
         <Form.Label>Extract limit:</Form.Label>
         <Form.Control
           type="number"
@@ -297,30 +285,22 @@ export default function List() {
           }}
           placeholder="Stop extracting after reaching this number."
         />
-        <div className="mb-3">
-          <Form.Check
-            inline
-            label="Save to list"
-            name="group1"
-            type={'radio'}
-            id={`saveToList`}
-            checked={saveType === 'saveToList'}
-            onChange={() => {
-              setSaveType('saveToList');
-            }}
-          />
-          <Form.Check
-            inline
-            label="Copy to clipboard"
-            name="group1"
-            type={'radio'}
-            id={`copyToClipboard`}
-            checked={saveType === 'copyToClipboard'}
-            onChange={() => {
-              setSaveType('copyToClipboard');
-            }}
-          />
-        </div>
+
+        <Form.Control
+          value={extractionList ? extractionList.join('\n') : ''}
+          id="extractionResults"
+          as="textarea"
+          placeholder={'Extraction results'}
+          rows={3}
+        />
+
+        <Button
+          onClick={async () => {
+            copyToClipboard(extractionList.join('\n'));
+          }}
+        >
+          Copy to clipboard
+        </Button>
       </Form.Group>
 
       <Button

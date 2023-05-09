@@ -215,7 +215,7 @@ export async function injectUpdateButton() {
 export function toastMessage(Text = <p></p>, autoClose = 5000, type = 'light') {
   return toast(Text, {
     position: 'bottom-right',
-    autoClose,
+    autoClose: autoClose === 0 || null ? false : autoClose,
     hideProgressBar: false,
     closeOnClick: false,
     pauseOnHover: false,
