@@ -27,6 +27,10 @@ import {
   updateLogError,
   toastMessage,
   refreshState,
+  isFollowingPage,
+  isFollowersPage,
+  copyToClipboard,
+  scrollDownFollowingList,
 } from './utils';
 
 import { useDatabase } from '../store/databaseStore';
@@ -43,6 +47,7 @@ export default function List() {
     '@followingListLoop',
     0
   ); //checks what user the bot is currently following
+  const [saveType, setSaveType] = useStickyState('@saveType', 'saveToList'); //save stored users to database or copy to clipboard
 
   /**
    * TODO
@@ -73,7 +78,7 @@ export default function List() {
       updateLog(`Preparing to extract ${limit} users...`);
 
       const $list = await _waitForElement(
-        CSS_SELECTORS.followersListUsernames,
+        `${CSS_SELECTORS.followersListUsernames}, ${CSS_SELECTORS.followingListUsernames}`,
         250,
         20
       );
@@ -89,18 +94,19 @@ export default function List() {
         /* Scroll down, check if must end */
 
         const $visibleUsers = document.querySelectorAll(
-          CSS_SELECTORS.followersListUsernames
+          `${CSS_SELECTORS.followersListUsernames}, ${CSS_SELECTORS.followingListUsernames}`
         );
 
         const visible = $visibleUsers.length;
 
         if (i % EXTRACT_EVERY_X_USERS === 1 && visible <= followers) {
           await scrollDownFollowersList();
+          await scrollDownFollowingList();
         }
 
         /* Get current user */
         const $user = await _waitForElement(
-          `${CSS_SELECTORS.followersListItem}:nth-child(${index})`,
+          `${CSS_SELECTORS.followersAndFollowingListItem}:nth-child(${index})`,
           100,
           10
         );
@@ -197,11 +203,26 @@ export default function List() {
       return;
     }
 
-    await openFollowersList();
+    if (!isFollowingPage() && !isFollowersPage()) {
+      updateLog(`ERROR: Please open the user's followers or following page.`);
+
+      toastMessage(
+        <p>Please open the user's followers or following page.</p>,
+        5000,
+        'error'
+      );
+
+      return;
+    }
 
     const list = await extractUsernamesFromFollowersList(limit);
 
-    await storeMustFollowUsersListToDatabase(list);
+    if (saveType === 'saveToList') {
+      await storeMustFollowUsersListToDatabase(list);
+    } else {
+      copyToClipboard(list.split(',').join('\n\n'));
+    }
+
     await actions.getMustFollowUsers();
 
     toastMessage(
@@ -263,6 +284,7 @@ export default function List() {
           Update
         </Button>
       </InputGroup>
+
       <Form.Group className="List-option mb-3">
         <Form.Label>Extract limit:</Form.Label>
         <Form.Control
@@ -275,6 +297,30 @@ export default function List() {
           }}
           placeholder="Stop extracting after reaching this number."
         />
+        <div className="mb-3">
+          <Form.Check
+            inline
+            label="Save to list"
+            name="group1"
+            type={'radio'}
+            id={`saveToList`}
+            checked={saveType === 'saveToList'}
+            onChange={() => {
+              setSaveType('saveToList');
+            }}
+          />
+          <Form.Check
+            inline
+            label="Copy to clipboard"
+            name="group1"
+            type={'radio'}
+            id={`copyToClipboard`}
+            checked={saveType === 'copyToClipboard'}
+            onChange={() => {
+              setSaveType('copyToClipboard');
+            }}
+          />
+        </div>
       </Form.Group>
 
       <Button

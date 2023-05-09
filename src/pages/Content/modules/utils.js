@@ -32,18 +32,19 @@ export const CSS_SELECTORS = {
   followingList: `[style*='signup'] div[style] > div[role]+ div`,
   followingListUnfollowButton: `div[role="presentation"] ul li button, 
   div[role="tablist"] + div > ul > div > li button,
-  [style*='signup'] div[style] > div[role]+ div button
-  `,
+  [style*='signup'] div[style] > div[role]+ div button`,
   followingListUnfollowButtonNthChild: `div[role="tablist"] + div > ul li:nth-child(xx) button,
   [style*='signup'] div[style] > div[role]+ div [aria-labelledby]:nth-child(xx) button, [style*='signup'] div[style] > div[role]+ div > * > * > *:nth-child(xx) button`,
   followingListUnfollowConfirmationButton: `div[style] > div > div > button[tabindex]:nth-child(1)`,
   followingListActionBlocked: `body div > div > div > div > div  + div > button + button`,
+  followingListUsernames: `span[style*='clamp'] div > div > div > div:nth-child(2) li a[href] > span, div[style*='min-height'] > div[class] > div[style*='auto'] a[href] > span >*`,
 
   followersList: `[style*='min-height'] div[style] > div + div`,
-  followersListItem: `div[style] > div[style] > div + div li,  div[style*='min-height'] > div[class] > div[style*='auto'] > div > div`,
   followersNumber: `ul li [href*='followers'] > *`,
-  followersListUsernames: `div > div > div > div:nth-child(2) li a[href] > span, div[style*='min-height'] > div[class] > div[style*='auto'] a[href] > span >*`,
+  followersListUsernames: `span[style*='clamp'] div > div > div > div:nth-child(2) li a[href] > span, div[style*='min-height'] > div[class] > div[style*='auto'] a[href] > span >*`,
   followersListButton: `div > div > div > div:nth-child(2) ul li button, div[style*='min-height'] > div[class] > div[style*='auto'] button`,
+
+  followersAndFollowingListItem: `div[style] > div[style] > div + div li,  div[style*='min-height'] > div[class] > div[style*='auto'] > div > div`,
 
   userPageFollowButtons: `header > div + section > * button`,
   userPageFollowerstListOpenButton: `header > section  ul li:nth-child(2) a`,
@@ -767,6 +768,34 @@ function resetAutomaticFollowing() {
 
 export function isFollowingPage() {
   return /following\/?$/gim.test(window.location.pathname);
+}
+
+export function isFollowersPage() {
+  return /followers\/?$/gim.test(window.location.pathname);
+}
+
+export function copyToClipboard(text) {
+  if (window.clipboardData && window.clipboardData.setData) {
+    // IE specific code path to prevent textarea being shown while dialog is visible.
+    return clipboardData.setData('Text', text);
+  } else if (
+    document.queryCommandSupported &&
+    document.queryCommandSupported('copy')
+  ) {
+    var textarea = document.createElement('textarea');
+    textarea.textContent = text;
+    textarea.style.position = 'fixed'; // Prevent scrolling to bottom of page in MS Edge.
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      return document.execCommand('copy'); // Security exception may be thrown by some browsers.
+    } catch (ex) {
+      console.warn('Copy to clipboard failed.', ex);
+      return false;
+    } finally {
+      document.body.removeChild(textarea);
+    }
+  }
 }
 
 /* Gets the name of the currently logged user
