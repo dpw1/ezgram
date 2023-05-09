@@ -28,7 +28,7 @@ export const CSS_SELECTORS = {
   profileDropdownImage: 'nav div > div > div > div:nth-child(3) img[alt]',
   profileDropdownLink: `div[aria-hidden] > div[style] + * a[href]:nth-child(1)`,
 
-  followingListParent: `[role='dialog'] > div:not([style])`,
+  followingListParent: `[role='dialog'] > div:not([style]), div[style='height: auto; overflow: hidden auto;']>*`,
   followingList: `[style*='signup'] div[style] > div[role]+ div`,
   followingListUnfollowButton: `div[role="presentation"] ul li button, 
   div[role="tablist"] + div > ul > div > li button,
@@ -69,6 +69,147 @@ export const CSS_SELECTORS = {
   This CSS selector finds all of them. */
   scriptTagWithUserData: `body > link ~ script`,
 };
+
+export async function addWhiteListButtonToFollowingListUsers(actions) {
+  /* Enlarge list 
+    ============================= */
+  const $list = await _waitForElement(`${CSS_SELECTORS.followingListParent}`);
+
+  if (!$list) {
+    return;
+  }
+
+  window.isExtractingUser = false;
+
+  $list.setAttribute(`style`, `min-width:500px;`);
+  $list.classList.add(`followingList`);
+
+  /* Add buttons 
+    ============================= */
+
+  await _sleep(100);
+
+  const $users = document.querySelectorAll(
+    `${CSS_SELECTORS.followingListParent} > *:not([data-has-button])`
+  );
+
+  async function _addButtons(_$users) {
+    for (var [index, each] of _$users.entries()) {
+      window.isExtractingUser = true;
+      const $button = each.querySelector(`button`);
+
+      const $hasButton = each.querySelector(`[data-whitelist]`);
+
+      if ($hasButton) {
+        return;
+      }
+
+      const $user = each.querySelector(`a[href]`);
+      const user = $user.getAttribute(`href`).replaceAll(`/`, ``).trim();
+
+      const isWhitelisted = await actions.getWhiteListUser(user);
+
+      const text = isWhitelisted ? `Whitelisted ✔️` : `Add to white list`;
+
+      const html = `<span data-whitelist="${user}">${text}</span>`;
+
+      $button.insertAdjacentHTML(`beforebegin`, html);
+
+      each.setAttribute(`data-has-button`, `true`);
+      each.setAttribute(`data-is-whitelisted`, isWhitelisted ? true : false);
+
+      /* Handle click on white list buttons 
+        ============================= */
+
+      const $whitelist = document.querySelector(`[data-whitelist="${user}"]`);
+
+      $whitelist.addEventListener(`click`, async function (e) {
+        const user = e.target.getAttribute(`data-whitelist`);
+
+        const exists = await actions.getWhiteListUser(user);
+        const $parent = e.target.closest(`[data-has-button]`);
+
+        if (exists) {
+          await actions.removeOneWhiteListUser(user);
+          toastMessage(
+            <p>
+              Removed <b>{user}</b> from white list successfully.
+            </p>,
+            3000,
+            'success'
+          );
+
+          e.target.textContent = `Add to white list`;
+
+          $parent.setAttribute(`data-is-whitelisted`, false);
+        } else {
+          await actions.addWhiteListUser(user);
+          toastMessage(
+            <p>
+              Added <b>{user}</b> to the white list successfully.
+            </p>,
+            3000,
+            'success'
+          );
+
+          e.target.textContent = `Whitelisted ✔️`;
+          $parent.setAttribute(`data-is-whitelisted`, true);
+        }
+
+        await actions.getWhiteListUsers();
+      });
+    }
+
+    window.isExtractingUser = false;
+  }
+
+  _addButtons($users);
+
+  /* Handle scrolling
+    ============================= */
+  const $scrollable = document.querySelector(
+    `${CSS_SELECTORS.followingList} > *`
+  );
+
+  function outputsize() {
+    if (window.isExtractingUser) {
+      return;
+    }
+    console.log(`SCROLLABLE`, $scrollable.offsetHeight);
+
+    var $newUsers = document.querySelectorAll(
+      `${CSS_SELECTORS.followingListParent} > *:not([data-has-button])`
+    );
+
+    _addButtons($newUsers);
+  }
+  outputsize();
+
+  new ResizeObserver(outputsize).observe($scrollable);
+}
+
+export async function injectUpdateButton() {
+  const $header = await _waitForElement(`div[style*='height'] > h1`);
+
+  if (!$header) {
+    return;
+  }
+
+  if (!$header.getAttribute(`style`)) {
+    $header.setAttribute(`style`, `display: flex;flex-direction: row;`);
+  }
+
+  const html = `<button id="updateWhiteListButton" class="ig-button">Update Buttons</button>`;
+
+  $header.insertAdjacentHTML(`beforeend`, html);
+
+  const $button = document.querySelector(`#updateWhiteListButton`);
+
+  $button.addEventListener(`click`, function (e) {
+    e.preventDefault();
+    addWhiteListButtonToFollowingListUsers();
+  });
+}
 
 export function toastMessage(Text = <p></p>, autoClose = 5000, type = 'light') {
   return toast(Text, {

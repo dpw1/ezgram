@@ -33,6 +33,8 @@ import {
   isCurrentPageMyUserPage,
   isUserAboutToBeUnfollowedWhitelisted,
   updateLogError,
+  addWhiteListButtonToFollowingListUsers,
+  injectUpdateButton,
 } from './utils';
 
 import { useDatabase } from '../store/databaseStore';
@@ -99,6 +101,7 @@ const Unfollow = () => {
 
       if (i % 4 === 1) {
         await scrollDownFollowingList();
+        removeWhiteListedUsersFromList();
       }
 
       const delay = randomIntFromInterval(
@@ -269,6 +272,20 @@ const Unfollow = () => {
     });
   }
 
+  function removeWhiteListedUsersFromList() {
+    const $whitelisted = document.querySelectorAll(
+      `[data-is-whitelisted='true']`
+    );
+
+    if (!$whitelisted) {
+      return;
+    }
+
+    for (var each of $whitelisted) {
+      each.remove();
+    }
+  }
+
   async function start() {
     await goToProfilePage(state.username);
 
@@ -281,7 +298,10 @@ const Unfollow = () => {
 
     /* Unfollow everyone */
     await openFollowingPage(state.username);
+    await addWhiteListButtonToFollowingListUsers(actions);
+    injectUpdateButton();
     await scrollDownFollowingList();
+    removeWhiteListedUsersFromList();
     handleClickOnUnfollowButton();
   }
 

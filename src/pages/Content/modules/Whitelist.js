@@ -17,6 +17,8 @@ import {
   isFollowingPage,
   isCurrentPageMyUserPage,
   toastMessage,
+  addWhiteListButtonToFollowingListUsers,
+  injectUpdateButton,
 } from './utils';
 
 import Unfollow from './Unfollow';
@@ -91,142 +93,6 @@ const Whitelist = () => {
     });
   }
 
-  async function addWhiteListButtonToFollowingListUsers() {
-    /* Enlarge list 
-      ============================= */
-    const $list = await _waitForElement(
-      `${CSS_SELECTORS.followingListParent}, .followingList`
-    );
-
-    if (!$list) {
-      return;
-    }
-
-    window.isExtractingUser = false;
-
-    $list.setAttribute(`style`, `min-width:500px;`);
-    $list.classList.add(`followingList`);
-
-    /* Add buttons 
-      ============================= */
-
-    await _sleep(100);
-
-    const selector = `[aria-labelledby]:not([data-has-button])`;
-
-    const $users = $list.querySelectorAll(selector);
-
-    async function _addButtons(_$users) {
-      for (var [index, each] of _$users.entries()) {
-        window.isExtractingUser = true;
-        const $button = each.querySelector(`button`);
-
-        const $hasButton = each.querySelector(`[data-whitelist]`);
-
-        if ($hasButton) {
-          return;
-        }
-
-        const $user = each.querySelector(`a[href]`);
-        const user = $user.getAttribute(`href`).replaceAll(`/`, ``).trim();
-
-        const text = (await actions.getWhiteListUser(user))
-          ? `Whitelisted ✔️`
-          : `Add to white list`;
-
-        const html = `<span data-whitelist="${user}">${text}</span>`;
-
-        $button.insertAdjacentHTML(`beforebegin`, html);
-
-        each.setAttribute(`data-has-button`, `true`);
-
-        /* Handle click on white list buttons 
-          ============================= */
-
-        const $whitelist = document.querySelector(`[data-whitelist="${user}"]`);
-
-        $whitelist.addEventListener(`click`, async function (e) {
-          const user = e.target.getAttribute(`data-whitelist`);
-
-          const exists = await actions.getWhiteListUser(user);
-
-          if (exists) {
-            await actions.removeOneWhiteListUser(user);
-            toastMessage(
-              <p>
-                Removed <b>{user}</b> from white list successfully.
-              </p>,
-              3000,
-              'success'
-            );
-
-            e.target.textContent = `Add to white list`;
-          } else {
-            await actions.addWhiteListUser(user);
-            toastMessage(
-              <p>
-                Added <b>{user}</b> to the white list successfully.
-              </p>,
-              3000,
-              'success'
-            );
-
-            e.target.textContent = `Whitelisted ✔️`;
-          }
-
-          await actions.getWhiteListUsers();
-        });
-      }
-
-      window.isExtractingUser = false;
-    }
-
-    _addButtons($users);
-
-    /* Handle scrolling
-      ============================= */
-    const $scrollable = document.querySelector(
-      `${CSS_SELECTORS.followingList} > *`
-    );
-
-    function outputsize() {
-      if (window.isExtractingUser) {
-        return;
-      }
-      console.log(`SCROLLABLE`, $scrollable.offsetHeight);
-
-      var $newUsers = document.querySelectorAll(selector);
-
-      _addButtons($newUsers);
-    }
-    outputsize();
-
-    new ResizeObserver(outputsize).observe($scrollable);
-  }
-
-  async function injectUpdateButton() {
-    const $header = await _waitForElement(`div[style*='height'] > h1`);
-
-    if (!$header) {
-      return;
-    }
-
-    if (!$header.getAttribute(`style`)) {
-      $header.setAttribute(`style`, `display: flex;flex-direction: row;`);
-    }
-
-    const html = `<button id="updateWhiteListButton" class="ig-button">Update Buttons</button>`;
-
-    $header.insertAdjacentHTML(`beforeend`, html);
-
-    const $button = document.querySelector(`#updateWhiteListButton`);
-
-    $button.addEventListener(`click`, function (e) {
-      e.preventDefault();
-      addWhiteListButtonToFollowingListUsers();
-    });
-  }
-
   return (
     <div className="Whitelist">
       <h3 className="Whitelist-title">Whitelist</h3>
@@ -293,7 +159,7 @@ const Whitelist = () => {
           }
 
           await openFollowingList();
-          addWhiteListButtonToFollowingListUsers();
+          addWhiteListButtonToFollowingListUsers(actions);
           injectUpdateButton();
         }}
       >
