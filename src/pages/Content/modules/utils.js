@@ -281,6 +281,34 @@ export function randomUniqueIntegers(total, quantity) {
     .slice(0, quantity);
 }
 
+export function getUsernameGender(name) {
+  return new Promise(async (resolve, reject) => {
+    const url = 'http://localhost:4501/';
+    const data = {
+      name,
+    };
+
+    const requestOptions = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    };
+
+    try {
+      const response = await fetch(url, requestOptions);
+      const responseData = await response.json();
+      console.log('Response:', responseData);
+      resolve(responseData);
+      // Do something with the response data
+    } catch (error) {
+      alert('Gender detection server is offline.');
+      console.error('Error:', error);
+    }
+  });
+}
+
 /**
  * Checks whether the current URL is a profile page of the logged in user.
  *

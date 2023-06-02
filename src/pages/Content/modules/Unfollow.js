@@ -160,26 +160,10 @@ const Unfollow = () => {
 
       const $unfollow = await getUnfollowConfirmationButton();
 
-      const isActuallyWhitelisted = await isUserAboutToBeUnfollowedWhitelisted(
-        whiteListUsers
-      );
-
-      if (isActuallyWhitelisted) {
-        updateLogError(`User is whitelisted. Canceling in 5 seconds...`);
-
-        setTimeout(() => {
-          window.location.reload();
-        }, 5000);
-
-        return;
-      }
-
       const unfollowDelay = randomIntFromInterval(1003, 3808);
       await _sleep(unfollowDelay);
 
       $unfollow.click();
-
-      debugger;
 
       /* 
       

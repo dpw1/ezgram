@@ -31,6 +31,7 @@ import {
   isFollowersPage,
   copyToClipboard,
   scrollDownFollowingList,
+  getUsernameGender,
 } from './utils';
 
 import { useDatabase } from '../store/databaseStore';
@@ -105,6 +106,7 @@ export default function List() {
         }
 
         /* Get current user */
+
         const $user = await _waitForElement(
           `${CSS_SELECTORS.followersAndFollowingListItem}:nth-child(${index})`,
           100,
@@ -117,7 +119,29 @@ export default function List() {
         }
 
         const $username = $user.querySelector(`a[href] > span`);
+        const $name = $user.querySelector(
+          `div div:nth-child(2) span + span > span`
+        );
+        const $verified = $user.querySelector(
+          `[title="Verificado"], [title="Verified"]`
+        );
+
+        if ($verified) {
+          ignored += 1;
+          continue;
+        }
+
+        const name = $name.textContent.split(' ')[0].trim();
         const user = $username.textContent.trim();
+
+        const { result: gender } = await getUsernameGender(name);
+
+        console.log('the gender is:', gender);
+
+        if (gender === 'male') {
+          ignored += 1;
+          continue;
+        }
 
         if (ignoredUsers && ignoredUsers.length > 0) {
           const isIgnored =

@@ -174,7 +174,7 @@ const Follow = () => {
 
   const [skipPrivateAccounts, setSkipPrivateAccounts] = useStickyState(
     '@skipPrivateAccounts',
-    false
+    'no'
   );
 
   /* Following user automation
@@ -183,6 +183,8 @@ const Follow = () => {
     '@isFollowingList',
     'no'
   ); //checks whether the bot is currently following a list of users
+
+  const SKIP_PRIVATE_ACCOUNT = false;
 
   // const [followingListLoop, setFollowingListLoop] = useStickyState(
   //   '@followingListLoop',
@@ -203,7 +205,6 @@ const Follow = () => {
 
   const SKIP_USER_WITHOUT_PROFILE_IMAGE = true;
   const SKIP_ACCOUNTS_WITH_NO_POSTS = false;
-  const SKIP_PRIVATE_ACCOUNT = false;
 
   const CLICK_ON_FOLLOW_DELAY_MIN = 3000;
   const CLICK_ON_FOLLOW_DELAY_MAX = 4500;
@@ -793,7 +794,7 @@ const Follow = () => {
 
       const isPrivate = await isPrivateAccount();
 
-      if (SKIP_PRIVATE_ACCOUNT) {
+      if (skipPrivateAccounts === 'yes') {
         if (isPrivate) {
           updateLog(`This is a private account. Skipping...`);
 
@@ -1102,7 +1103,17 @@ const Follow = () => {
           onChange={(e) => {
             setStoreSkippedUser(e.target.checked ? 'yes' : 'no');
           }}
-          label={`Add users that do not match the current settings to the ignore list.`}
+          label={`Add users that do not match the current settings to the ignore list`}
+        />
+        <Form.Check
+          className="Follow-"
+          type="switch"
+          id="skipPrivateUsers"
+          checked={skipPrivateAccounts === 'yes' ? true : false}
+          onChange={(e) => {
+            setSkipPrivateAccounts(e.target.checked ? 'yes' : 'no');
+          }}
+          label={`Skip private accounts`}
         />
         <p className="h6" style={{ marginTop: 20 }}>
           Liking
