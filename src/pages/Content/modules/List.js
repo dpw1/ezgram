@@ -44,6 +44,8 @@ export default function List() {
   const [usersList, setUsersList] = useState('');
   const [extractionList, setExtractionList] = useState('');
 
+  const [ignoreMales, setIgnoreMales] = useStickyState('@ignoreMales', 'yes');
+
   const [limit, setLimit] = useStickyState('@listLimit', 50);
   const [followingListLoop, setFollowingListLoop] = useStickyState(
     '@followingListLoop',
@@ -138,7 +140,7 @@ export default function List() {
 
         console.log('the gender is:', gender);
 
-        if (gender === 'male') {
+        if (ignoreMales === 'yes' && gender === 'male') {
           ignored += 1;
           continue;
         }
@@ -298,6 +300,20 @@ export default function List() {
 
       <Form.Group className="List-option mb-3">
         <hr />
+
+        <Form.Label>
+          <Form.Check
+            className="Follow-"
+            type="switch"
+            id="ignoreMales"
+            checked={ignoreMales === 'yes' ? true : false}
+            onChange={(e) => {
+              setIgnoreMales(e.target.checked ? 'yes' : 'no');
+            }}
+            label={`Enable gender extraction`}
+          />
+        </Form.Label>
+
         <Form.Label>Extract limit:</Form.Label>
         <Form.Control
           type="number"
