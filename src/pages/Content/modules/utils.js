@@ -39,7 +39,7 @@ export const CSS_SELECTORS = {
   followingListActionBlocked: `body div > div > div > div > div  + div > button + button`,
   followingListUsernames: `span[style*='clamp'] div > div > div > div:nth-child(2) li a[href] > span, div[style*='min-height'] > div[class] > div[style*='auto'] a[href] > span >*`,
 
-  followersList: `[style*='min-height'] div[style] > div + div`,
+  followersList: `[style*='min-height'] div[style] > div[style*='height'] > div+ div`,
   followersNumber: `ul li [href*='followers'] > *`,
   followersListUsernames: `span[style*='clamp'] div > div > div > div:nth-child(2) li a[href] > span, div[style*='min-height'] > div[class] > div[style*='auto'] a[href] > span >*`,
   followersListButton: `div > div > div > div:nth-child(2) ul li button, div[style*='min-height'] > div[class] > div[style*='auto'] button`,
@@ -564,6 +564,7 @@ type = 'once' or 'all';
 
 */
 export async function scrollDownFollowersList(type = 'once') {
+  window.followers_list_height = 0;
   return new Promise(async (resolve, reject) => {
     const limit = type === 'once' ? 1 : await getFollowersNumber();
 
@@ -755,8 +756,10 @@ export async function getFollowersNumber() {
       .trim()
       .replace('.', '')
       .replace(',', '')
-      .replace('m', '000000')
-      .replace('k', '000');
+      .replace(/M/, '000000')
+      .replace('mil', '000')
+      .replace('k', '000')
+      .replace(/\s/g, '');
 
     const followers = parseInt(_followers);
 

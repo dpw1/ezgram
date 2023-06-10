@@ -103,8 +103,11 @@ export default function List() {
         const visible = $visibleUsers.length;
 
         if (i % EXTRACT_EVERY_X_USERS === 1 && visible <= followers) {
-          await scrollDownFollowersList();
-          await scrollDownFollowingList();
+          if (isFollowingPage()) {
+            await scrollDownFollowingList();
+          } else {
+            await scrollDownFollowersList();
+          }
         }
 
         /* Get current user */
@@ -136,13 +139,12 @@ export default function List() {
         const name = $name.textContent.split(' ')[0].trim();
         const user = $username.textContent.trim();
 
-        const { result: gender } = await getUsernameGender(name);
-
-        console.log('the gender is:', gender);
-
-        if (ignoreMales === 'yes' && gender === 'male') {
-          ignored += 1;
-          continue;
+        if (ignoreMales === 'yes') {
+          const { result: gender } = await getUsernameGender(name);
+          if (gender === 'male') {
+            ignored += 1;
+            continue;
+          }
         }
 
         if (ignoredUsers && ignoredUsers.length > 0) {
@@ -162,6 +164,7 @@ export default function List() {
 
           if (isIgnored || isInList) {
             ignored += 1;
+            updateLog(`Ignored users: ${ignored}`);
             continue;
           }
         }
