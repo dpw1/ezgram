@@ -60,7 +60,7 @@ export const CSS_SELECTORS = {
   userPagePrivateAccountMessage: `section main article > div > div > h2`,
   userPageProfileImage: `main > div > header canvas + span > img[alt][src], main > div > header button > img[src]`,
   userPageUsername: `main header section > * > h2, main header section > * > h1,main header section a>h2, section header a > h1`,
-  userPageDoesNotExist404: `main [style*='height'][style*='100'] > div > h2 + div a[href='/']`,
+  userPageDoesNotExist404: `main [style*='height'][style*='100'] > div > h2 + div a[href='/'], main [style*='height'][style*='clamp'] + * [style*='clamp'] a[href='/'] `,
 
   postPageLikeButton: `section > span:nth-child(1) > button`,
   postPageCloseButton: `div[role="presentation"] > div > button[type], div[style] > div > div > div > div[role='button']`,

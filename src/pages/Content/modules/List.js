@@ -115,21 +115,31 @@ export default function List() {
         const $user = await _waitForElement(
           `${CSS_SELECTORS.followersAndFollowingListItem}:nth-child(${index})`,
           100,
-          10
+          25
         );
 
-        if (!$user) {
+        if (!$user && !window.user_found) {
           alert(`no user found. ${index} -- `);
           break;
+        } else {
+          window.user_found = true;
         }
 
-        const $username = $user.querySelector(`a[href] > span`);
-        const $name = $user.querySelector(
-          `div div:nth-child(2) span + span > span`
-        );
-        const $verified = $user.querySelector(
-          `[title="Verificado"], [title="Verified"]`
-        );
+        let $username;
+        let $name;
+        let $verified;
+
+        try {
+          $username = $user.querySelector(`a[href] > span`);
+          $name = $user.querySelector(
+            `div div:nth-child(2) span + span > span`
+          );
+          $verified = $user.querySelector(
+            `[title="Verificado"], [title="Verified"]`
+          );
+        } catch (err) {
+          updateLogError(`No user found at the index ${index}.`);
+        }
 
         if ($verified) {
           ignored += 1;
@@ -146,6 +156,12 @@ export default function List() {
             continue;
           }
         }
+
+        console.log(
+          `Index: ${index} -- visible: ${visible} --  limit: ${
+            limit + ignored
+          } -- i: ${i}`
+        );
 
         if (ignoredUsers && ignoredUsers.length > 0) {
           const isIgnored =
@@ -177,7 +193,7 @@ export default function List() {
 
         // console.log('visible: ', visible);
 
-        if (index >= visible || i >= limit + ignored) {
+        if (i >= limit + ignored) {
           updateLog(
             `Complete. ${list.length} users were extracted, ${ignored} users skipped.`
           );
