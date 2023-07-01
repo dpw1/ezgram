@@ -62,7 +62,7 @@ export const CSS_SELECTORS = {
   userPageUsername: `main header section > * > h2, main header section > * > h1,main header section a>h2, section header a > h1`,
   userPageDoesNotExist404: `main [style*='height'][style*='100'] > div > h2 + div a[href='/'], main [style*='height'][style*='clamp'] + * [style*='clamp'] a[href='/'] `,
 
-  postPageLikeButton: `section > span:nth-child(1) > button`,
+  postPageLikeButton: `section > span:nth-child(1) > button, section > span:nth-child(1) > *[role='button']`,
   postPageCloseButton: `div[role="presentation"] > div > button[type], div[style] > div > div > div > div[role='button']`,
   postPageUnlikeButton: `section > span:nth-child(1) > button [color*='#ed4956'], section > span:nth-child(1) > button [aria-label*='Unlike']`,
 
