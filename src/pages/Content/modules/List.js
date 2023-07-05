@@ -45,6 +45,10 @@ export default function List() {
   const [extractionList, setExtractionList] = useState('');
 
   const [ignoreMales, setIgnoreMales] = useStickyState('@ignoreMales', 'yes');
+  const [ignorePrivate, setIgnorePrivate] = useStickyState(
+    '@ignorePrivateAccounts',
+    'yes'
+  );
 
   const [limit, setLimit] = useStickyState('@listLimit', 50);
   const [followingListLoop, setFollowingListLoop] = useStickyState(
@@ -146,6 +150,16 @@ export default function List() {
           continue;
         }
 
+        if (ignorePrivate === 'yes') {
+          const isPrivate = await isProfilePrivate($user);
+
+          if (isPrivate) {
+            updateLog(`Skipping private.`);
+            ignored += 1;
+            continue;
+          }
+        }
+
         const name = $name.textContent.split(' ')[0].trim();
         const user = $username.textContent.trim();
 
@@ -230,6 +244,62 @@ export default function List() {
       await actions.getMustFollowUsers();
 
       resolve(res);
+    });
+  }
+
+  function isProfilePrivate($user) {
+    return new Promise(async (resolve, reject) => {
+      const $canva = $user.querySelector(`[role="button"] > canvas`);
+
+      const $hover = $canva.closest(`[role="button"]`);
+
+      const _hasClickableStory = $hover.getAttribute(`aria-disabled`);
+
+      const hasClickableStory = _hasClickableStory === 'false' ? true : false;
+
+      if (hasClickableStory) {
+        resolve(false);
+        return;
+      }
+
+      let event;
+
+      event = new MouseEvent('mouseover', {
+        view: window,
+        bubbles: true,
+        cancelable: true,
+      });
+
+      $hover.dispatchEvent(event);
+
+      await _waitForElement(
+        `[style*='alpha'] > [style*='transform'][style*='translate']`,
+        100,
+        15
+      );
+
+      const $private = await _waitForElement(
+        `[style*='alpha'] > [style*='transform'][style*='translate'] > * > * > div:not([class]) + div:not([class]) + div:not([class]) > * i[data-visualcompletion]`,
+        100,
+        15
+      );
+
+      event = new MouseEvent('mouseout', {
+        view: window,
+        bubbles: true,
+        cancelable: true,
+      });
+
+      $hover.dispatchEvent(event);
+
+      await _sleep(randomIntFromInterval(100, 250));
+
+      if ($private) {
+        resolve(true);
+        return;
+      }
+
+      resolve(false);
     });
   }
 
@@ -331,8 +401,20 @@ export default function List() {
             }}
             label={`Enable gender extraction`}
           />
+
+          <Form.Check
+            className="Follow-"
+            type="switch"
+            id="ignorePrivate"
+            checked={ignorePrivate === 'yes' ? true : false}
+            onChange={(e) => {
+              setIgnorePrivate(e.target.checked ? 'yes' : 'no');
+            }}
+            label={`Skip private accounts`}
+          />
         </Form.Label>
 
+        <br />
         <Form.Label>Extract limit:</Form.Label>
         <Form.Control
           type="number"
