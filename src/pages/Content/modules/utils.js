@@ -29,7 +29,7 @@ export const CSS_SELECTORS = {
   profileDropdownLink: `div[aria-hidden] > div[style] + * a[href]:nth-child(1)`,
 
   followingListParent: `[role='dialog'] > div:not([style]), div[style='height: auto; overflow: hidden auto;']>*`,
-  followingList: `[style*='signup'] div[style] > div[role]+ div`,
+  followingList: `[style*='signup'] div[style] > div[role]+ div + div, [style*='flex'] > * > [role="tablist"] + *[class] > * > *`,
   followingListUnfollowButton: `div[role="presentation"] ul li button, 
   div[role="tablist"] + div > ul > div > li button,
   [style*='signup'] div[style] > div[role]+ div button`,
@@ -39,7 +39,7 @@ export const CSS_SELECTORS = {
   followingListActionBlocked: `body div > div > div > div > div  + div > button + button`,
   followingListUsernames: `span[style*='clamp'] div > div > div > div:nth-child(2) li a[href] > span, div[style*='min-height'] > div[class] > div[style*='auto'] a[href] > span >*`,
 
-  followersList: `[style*='min-height'] div[style] > div[style*='height'] > div+ div`,
+  followersList: `[style*='min-height'] div[style] > div[style*='height'] > div+ div + div`,
   followersNumber: `ul li [href*='followers'] > *`,
   followersListUsernames: `span[style*='clamp'] div > div > div > div:nth-child(2) li a[href] > span, div[style*='min-height'] > div[class] > div[style*='auto'] a[href] > span >*`,
   followersListButton: `div > div > div > div:nth-child(2) ul li button, div[style*='min-height'] > div[class] > div[style*='auto'] button`,
@@ -168,9 +168,9 @@ export async function addWhiteListButtonToFollowingListUsers(actions) {
 
   /* Handle scrolling
     ============================= */
-  const $scrollable = document.querySelector(
-    `${CSS_SELECTORS.followingList} > *`
-  );
+
+  const $scrollable = document.querySelector(`${CSS_SELECTORS.followingList}`);
+  debugger;
 
   function outputsize() {
     if (window.isExtractingUser) {

@@ -154,7 +154,7 @@ export default function List() {
           const isPrivate = await isProfilePrivate($user);
 
           if (isPrivate) {
-            updateLog(`Skipping private.`);
+            updateLog(`Skipping private. (${index})`);
             ignored += 1;
             continue;
           }
@@ -165,7 +165,7 @@ export default function List() {
 
         if (ignoreMales === 'yes') {
           const { result: gender } = await getUsernameGender(name);
-          if (gender === 'male') {
+          if (gender !== 'female') {
             ignored += 1;
             continue;
           }
