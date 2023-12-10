@@ -66,6 +66,12 @@ export const CSS_SELECTORS = {
   postPageCloseButton: `div[role="presentation"] > div > button[type], div[style] > div > div > div > div[role='button']`,
   postPageUnlikeButton: `section > span:nth-child(1) > button [color*='#ed4956'], section > span:nth-child(1) > button [aria-label*='Unlike']`,
 
+  likesList: `[role="dialog"] > * > * >[style*='max-height']`,
+  likesListUsername: `[role="dialog"] > * > * >[style*='max-height'] a[role='link']:not([style])`,
+  likesListItem: `[role="dialog"] > * > * >[style*='max-height'] > * > * > *`,
+
+  likesOfPost: `article[role="presentation"] a > [style*='line'] > span, section[class] a > [style*='line'] > span`,
+
   /* There are script tags containing the current user data in each page. 
   This CSS selector finds all of them. */
   scriptTagWithUserData: `body > link ~ script`,
@@ -281,6 +287,24 @@ export function randomUniqueIntegers(total, quantity) {
     .slice(0, quantity);
 }
 
+export function removeDuplicatesFromArrayOfObjects(arr, prop) {
+  const seen = new Set();
+  return arr.filter((obj) => {
+    const value = obj[prop];
+    if (!seen.has(value)) {
+      seen.add(value);
+      return true;
+    }
+    return false;
+  });
+}
+
+/* This file can be found in:
+
+D:\Web Dev\JavaScript\InstagramDatabase\backend
+
+node index.js
+*/
 export function getUsernameGender(name) {
   return new Promise(async (resolve, reject) => {
     const url = 'http://localhost:4501/';
@@ -299,7 +323,7 @@ export function getUsernameGender(name) {
     try {
       const response = await fetch(url, requestOptions);
       const responseData = await response.json();
-      console.log('Response:', responseData);
+      // console.log('Response:', responseData);
       resolve(responseData);
       // Do something with the response data
     } catch (error) {
@@ -472,6 +496,19 @@ export async function updateLogError() {
   );
 }
 
+/* Check if 'likes' pop up is open */
+export async function isThereLikesPopup() {
+  return new Promise((resolve, reject) => {
+    const $popup = document.querySelector(CSS_SELECTORS.likesList);
+
+    if (!$popup) {
+      resolve(false);
+      return;
+    }
+    resolve(true);
+  });
+}
+
 export async function isUserPage() {
   return new Promise(async (resolve, reject) => {
     const $buttons = _waitForElement(
@@ -513,6 +550,41 @@ export async function getFollowButton() {
     }
 
     resolve(null);
+  });
+}
+
+export async function scrollDownLikesList() {
+  return new Promise(async (resolve, reject) => {
+    updateLog(`<br />Scrolling down likes list... `);
+
+    let amount = 550;
+
+    if (!window.hasOwnProperty('scrollDownLikesListIncrementor')) {
+      window.scrollDownLikesListIncrementor = amount;
+    }
+
+    let $list = await _waitForElement(CSS_SELECTORS.likesList, 100, 50);
+
+    await _sleep(50);
+
+    if (!$list) {
+      alert(`"Likes" list not found.`);
+    }
+
+    const delay = randomIntFromInterval(901, 2641);
+
+    await _sleep(randomIntFromInterval(200, 500));
+
+    $list = document.querySelector(`${CSS_SELECTORS.likesList} > *`);
+
+    $list.scrollTop = window.scrollDownLikesListIncrementor;
+
+    window.scrollDownLikesListIncrementor =
+      window.scrollDownLikesListIncrementor + amount;
+
+    await _sleep(delay);
+
+    resolve(true);
   });
 }
 
@@ -731,6 +803,21 @@ export async function getFollowingNumber() {
     const following = parseInt(_following);
 
     resolve(following);
+  });
+}
+
+export async function getNumberOfLikesOfCurrentlyOpenPost() {
+  return new Promise((resolve, reject) => {
+    const $likes = document.querySelector(CSS_SELECTORS.likesOfPost);
+
+    if (!$likes) {
+      resolve(null);
+      return;
+    }
+
+    const likes = parseInt($likes.textContent.trim());
+
+    resolve(likes);
   });
 }
 

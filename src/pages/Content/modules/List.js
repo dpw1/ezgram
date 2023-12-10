@@ -32,6 +32,10 @@ import {
   copyToClipboard,
   scrollDownFollowingList,
   getUsernameGender,
+  isThereLikesPopup,
+  getNumberOfLikesOfCurrentlyOpenPost,
+  scrollDownLikesList,
+  removeDuplicatesFromArrayOfObjects,
 } from './utils';
 
 import { useDatabase } from '../store/databaseStore';
@@ -123,7 +127,7 @@ export default function List() {
         );
 
         if (!$user && !window.user_found) {
-          alert(`no user found. ${index} -- `);
+          updateLog(`No user found with index ${index}`);
           break;
         } else {
           window.user_found = true;
@@ -304,6 +308,13 @@ export default function List() {
   }
 
   async function start() {
+    if (await isThereLikesPopup()) {
+      await extractUsernamesFromLikesList();
+
+      toastMessage(<p>Completed!</p>, 'light');
+      return;
+    }
+
     if (!(await isUserPage())) {
       updateLog(`ERROR: Please go to a user page.`);
 
@@ -338,6 +349,172 @@ export default function List() {
     await actions.getMustFollowUsers();
 
     toastMessage(<p>Completed!</p>, 'light');
+  }
+
+  async function extractUsernamesFromLikesList() {
+    return new Promise(async (resolve, reject) => {
+      const stopIfListIsStuckForXTimes = 5;
+      let ignored = 0;
+      let previousList = [];
+
+      const ignoredUsers = await actions.loadIgnoredUsers();
+      const mustFollowUsers = await actions.getMustFollowUsers();
+
+      updateLog(`Likes list: preparing to extract ${limit} users...`);
+
+      const $list = await _waitForElement(CSS_SELECTORS.likesList, 250, 20);
+
+      if (!$list) {
+        updateLogError(`No list was found.`);
+        resolve(false);
+        return;
+      }
+
+      window.repeated = 0;
+      window.list = [];
+      window.result = [];
+
+      while (window.result.length <= limit) {
+        const $users = document.querySelectorAll(
+          `${CSS_SELECTORS.likesListItem}`
+        );
+
+        for (var $user of $users) {
+          let $username;
+          let $name;
+          let $verified;
+          let $following;
+
+          try {
+            $username = $user.querySelector(`a[href]`);
+            $name = $user.querySelector(`span[dir="auto"] > span`);
+            $verified = $user.querySelector(
+              `[title="Verificado"], [title="Verified"]`
+            );
+            $following = $user.querySelector(`button [style]`);
+          } catch (err) {
+            updateLogError(`No user found at the index.`);
+          }
+
+          const name = $name.textContent.split(' ')[0].trim();
+          const user = $username.getAttribute(`href`).replaceAll(`/`, ``);
+
+          const result = {
+            name,
+            user,
+          };
+
+          if ($verified) {
+            ignored += 1;
+
+            window.list.push(result);
+            continue;
+          }
+
+          if ($following) {
+            const text = $following.textContent.trim().toLowerCase();
+            if (text.includes('following')) {
+              ignored += 1;
+
+              window.list.push(result);
+              continue;
+            }
+          }
+
+          if (window.list.filter((e) => e.user === user).length >= 1) {
+            // console.log(user, 'is repeated');
+            ignored += 1;
+            continue;
+          }
+
+          if (ignoreMales === 'yes') {
+            const { result: gender } = await getUsernameGender(name);
+            if (gender !== 'female') {
+              ignored += 1;
+
+              window.list.push(result);
+              continue;
+            }
+          }
+
+          window.list.push(result);
+
+          if (ignoredUsers && ignoredUsers.length > 0) {
+            const isIgnored =
+              ignoredUsers && ignoredUsers.length >= 1
+                ? ignoredUsers.filter((e) => e.user === user).length >= 1
+                  ? true
+                  : false
+                : false;
+
+            const isInList =
+              mustFollowUsers && mustFollowUsers.length >= 1
+                ? mustFollowUsers.filter((e) => e === user).length >= 1
+                  ? true
+                  : false
+                : false;
+
+            if (isIgnored || isInList) {
+              ignored += 1;
+
+              continue;
+            }
+          }
+
+          window.result.push(result);
+
+          console.log('list', window.list, '\n\nresult', window.result);
+
+          if (window.result.length >= limit + ignored) {
+            updateLog(
+              `Complete. ${window.result.length} users were extracted, ${ignored} users skipped.`
+            );
+
+            toastMessage(
+              <p>
+                {window.result.length} users were extracted, {ignored} users
+                were skiped.
+              </p>
+            );
+            resolve(window.result);
+            break;
+          }
+        }
+
+        await scrollDownLikesList();
+
+        if (window.result.length >= 1) {
+          const list = removeDuplicatesFromArrayOfObjects(
+            window.result,
+            'user'
+          ).map((e) => e.user);
+          await storeMustFollowUsersListToDatabase(list);
+          await actions.getMustFollowUsers();
+        }
+
+        updateLog(
+          `Found: ${window.result.length} | Total checked: ${window.list.length} | Previous list: ${previousList.length} | Repeated: ${window.repeated}`
+        );
+
+        if (JSON.stringify(window.list) === JSON.stringify(previousList)) {
+          window.repeated += 1;
+          updateLog(`Repeated users count: ${window.repeated}`);
+        } else {
+          window.repeated = 0;
+        }
+
+        if (window.repeated >= stopIfListIsStuckForXTimes) {
+          updateLog(`No new users`);
+          break;
+        }
+
+        previousList = JSON.parse(JSON.stringify(window.list));
+        await _sleep(randomIntFromInterval(500, 600));
+      }
+
+      updateLog(`Completed! Extracted ${window.result.length} user(s)`);
+      resolve(window.result.map((e) => e.user));
+    });
   }
 
   function syncFollowingListTextareWithDatabase() {

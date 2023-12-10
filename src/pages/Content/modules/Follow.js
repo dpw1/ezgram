@@ -301,10 +301,12 @@ const Follow = () => {
         let $post = null;
         try {
           $post = await _waitForElement(
-            `main div >article > div > div > div:nth-child(${postY}) > div:nth-child(${postX}) a[href*='/p']`,
+            `main div >article > div > div > div:nth-child(${postY}) > div:nth-child(${postX}) a[href*='/']`,
             250,
             10
           );
+
+          debugger;
 
           await _sleep(randomIntFromInterval(900, 3000));
 
