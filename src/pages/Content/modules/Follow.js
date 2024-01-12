@@ -120,8 +120,6 @@ const Follow = () => {
     5
   );
 
-  const [usersList, setUsersList] = useState('');
-
   /* Loading user error
   ===================================== */
   const [iframeRestartTime, setIframeRestartTime] = useStickyState(
@@ -305,8 +303,6 @@ const Follow = () => {
             250,
             10
           );
-
-          debugger;
 
           await _sleep(randomIntFromInterval(900, 3000));
 
@@ -579,8 +575,6 @@ const Follow = () => {
         resolve();
         return;
       }
-
-      debugger;
 
       const url = getInstagramURL(users[0]);
 
@@ -1117,6 +1111,7 @@ const Follow = () => {
           }}
           label={`Skip private accounts`}
         />
+
         <p className="h6" style={{ marginTop: 20 }}>
           Liking
         </p>

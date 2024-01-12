@@ -27,6 +27,7 @@ export function getInstagramURL(username) {
 export const CSS_SELECTORS = {
   profileDropdownImage: 'nav div > div > div > div:nth-child(3) img[alt]',
   profileDropdownLink: `div[aria-hidden] > div[style] + * a[href]:nth-child(1)`,
+  profileImage: `[tabindex="-1"] [style*='transform'] a[href^='/'] img[alt]`,
 
   followingListParent: `[role='dialog'] > div:not([style]), div[style='height: auto; overflow: hidden auto;']>*`,
   followingList: `[style*='signup'] div[style] > div[role]+ div + div, [style*='flex'] > * > [role="tablist"] + *[class] > * > *`,
@@ -57,7 +58,7 @@ export const CSS_SELECTORS = {
   userPageUnfollowButton: `main header section div span > span:nth-child(1) > button svg`,
   userPagePosts: `main div >article a[href*='/p']`,
   userPageActionBlocked: `div > div > div > div > div  + div > button + button`,
-  userPagePrivateAccountMessage: `section main article > div > div > h2`,
+  userPagePrivateAccountMessage: `section main hr + div h2`,
   userPageProfileImage: `main > div > header canvas + span > img[alt][src], main > div > header button > img[src]`,
   userPageUsername: `main header section > * > h2, main header section > * > h1,main header section a>h2, section header a > h1`,
   userPageDoesNotExist404: `main [style*='height'][style*='100'] > div > h2 + div a[href='/'], main [style*='height'][style*='clamp'] + * [style*='clamp'] a[href='/'] `,
@@ -176,7 +177,6 @@ export async function addWhiteListButtonToFollowingListUsers(actions) {
     ============================= */
 
   const $scrollable = document.querySelector(`${CSS_SELECTORS.followingList}`);
-  debugger;
 
   function outputsize() {
     if (window.isExtractingUser) {
@@ -237,7 +237,6 @@ export function toastMessage(Text = <p></p>, autoClose = 5000, type = 'light') {
 export function isUserAboutToBeUnfollowedWhitelisted(whitelist) {
   return new Promise(async (resolve, reject) => {
     try {
-      debugger;
       var $button = document.querySelector(
         `[role='dialog'] [role='dialog'] button + button`
       );
@@ -736,7 +735,14 @@ export async function isPrivateAccount($html) {
       10
     );
 
-    if ($title) {
+    if (!$title) {
+      resolve(false);
+      return;
+    }
+
+    const text = $title.textContent.trim().toLowerCase();
+
+    if (text.includes('account is private')) {
       resolve(true);
       return;
     } else {
@@ -928,61 +934,73 @@ export async function getUserName() {
       return;
     }
 
-    /* Trying to get username from window's script */
+    /* Get username from profile image */
 
-    const $script = await _waitForElement(
-      CSS_SELECTORS.scriptTagWithUserData,
-      50,
-      50
-    );
+    const $image = await _waitForElement(CSS_SELECTORS.profileImage, 50, 50);
 
-    if (!$script) {
-      updateLog(`ERROR: This user does not exist.`);
-
-      resetAutomaticFollowing();
-      return;
-    }
-
-    const $scripts = document.querySelectorAll(
-      CSS_SELECTORS.scriptTagWithUserData
-    );
-
-    for (var [index, each] of $scripts.entries()) {
-      const script = each.innerHTML.toLowerCase().trim();
-      const hasUsername = script.includes(`username\\":\\"`);
-
-      if (!hasUsername) {
-        continue;
-      }
-
-      const regex = /username\\":\\"(.+?)"/gm;
-
-      let m;
-      while ((m = regex.exec(script)) !== null) {
-        if (m.index === regex.lastIndex) {
-          regex.lastIndex++;
-        }
-
-        const _username = m[1];
-
-        const username = _username.replace('/', '').replace('\\', '').trim();
-
-        /* Checks if the username found is the same as the alt tag */
-        if (username && username !== '' && username.length >= 3) {
-          const $element = await _waitForElement(
-            `nav [alt*='${username}'], a span>[alt*='${username}']`
-          );
-
-          if ($element) {
-            window.ezfyCurrentUser = username;
-            resolve(username);
-            break;
-          }
-        }
-      }
-
+    if (!$image) {
       resolve('');
     }
+
+    const $parent = $image.closest(`a`);
+    const id = $parent.getAttribute('href').replaceAll(`/`, '');
+
+    resolve(id);
+    /* Trying to get username from window's script */
+
+    // const $script = await _waitForElement(
+    //   CSS_SELECTORS.scriptTagWithUserData,
+    //   50,
+    //   50
+    // );
+
+    // if (!$script) {
+    //   updateLog(`ERROR: This user does not exist.`);
+
+    //   resetAutomaticFollowing();
+    //   return;
+    // }
+
+    // const $scripts = document.querySelectorAll(
+    //   CSS_SELECTORS.scriptTagWithUserData
+    // );
+
+    // for (var [index, each] of $scripts.entries()) {
+    //   const script = each.innerHTML.toLowerCase().trim();
+    //   const hasUsername = script.includes(`username\\":\\"`);
+
+    //   if (!hasUsername) {
+    //     continue;
+    //   }
+
+    //   const regex = /username\\":\\"(.+?)"/gm;
+
+    //   let m;
+    //   while ((m = regex.exec(script)) !== null) {
+    //     if (m.index === regex.lastIndex) {
+    //       regex.lastIndex++;
+    //     }
+
+    //     const _username = m[1];
+
+    //     const username = _username.replace('/', '').replace('\\', '').trim();
+
+    //     /* Checks if the username found is the same as the alt tag */
+    //     if (username && username !== '' && username.length >= 3) {
+    //       const $element = await _waitForElement(
+    //         `nav [alt*='${username}'], a span>[alt*='${username}']`
+    //       );
+
+    //       if ($element) {
+    //         window.ezfyCurrentUser = username;
+    //         resolve(username);
+    //         break;
+    //       }
+    //     }
+    //   }
+
+    //   resolve('');
+    // }
   });
 }
 

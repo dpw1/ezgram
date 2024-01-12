@@ -353,7 +353,7 @@ export default function List() {
 
   async function extractUsernamesFromLikesList() {
     return new Promise(async (resolve, reject) => {
-      const stopIfListIsStuckForXTimes = 5;
+      const stopIfListIsStuckForXTimes = 3;
       let ignored = 0;
       let previousList = [];
 
@@ -498,7 +498,7 @@ export default function List() {
 
         if (JSON.stringify(window.list) === JSON.stringify(previousList)) {
           window.repeated += 1;
-          updateLog(`Repeated users count: ${window.repeated}`);
+          updateLog(`Repeated count: ${window.repeated}`);
         } else {
           window.repeated = 0;
         }
@@ -509,7 +509,7 @@ export default function List() {
         }
 
         previousList = JSON.parse(JSON.stringify(window.list));
-        await _sleep(randomIntFromInterval(500, 600));
+        await _sleep(randomIntFromInterval(250, 300));
       }
 
       updateLog(`Completed! Extracted ${window.result.length} user(s)`);
