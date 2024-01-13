@@ -27,7 +27,7 @@ export function getInstagramURL(username) {
 export const CSS_SELECTORS = {
   profileDropdownImage: 'nav div > div > div > div:nth-child(3) img[alt]',
   profileDropdownLink: `div[aria-hidden] > div[style] + * a[href]:nth-child(1)`,
-  profileImage: `[tabindex="-1"] [style*='transform'] a[href^='/'] img[alt]`,
+  profileImage: `[tabindex="-1"] [style*='transform'] a[href^='/']:has(img)`,
 
   followingListParent: `[role='dialog'] > div:not([style]), div[style='height: auto; overflow: hidden auto;']>*`,
   followingList: `[style*='signup'] div[style] > div[role]+ div + div, [style*='flex'] > * > [role="tablist"] + *[class] > * > *`,
@@ -936,14 +936,16 @@ export async function getUserName() {
 
     /* Get username from profile image */
 
-    const $image = await _waitForElement(CSS_SELECTORS.profileImage, 50, 50);
+    const $link = await _waitForElement(CSS_SELECTORS.profileImage, 100, 100);
 
-    if (!$image) {
+    if (!$link) {
       resolve('');
     }
 
-    const $parent = $image.closest(`a`);
-    const id = $parent.getAttribute('href').replaceAll(`/`, '');
+    const id = $link.getAttribute('href').replaceAll(`/`, '');
+    window.ezfyCurrentUser = id;
+
+    console.log('id:', id);
 
     resolve(id);
     /* Trying to get username from window's script */
