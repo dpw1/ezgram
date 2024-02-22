@@ -133,15 +133,11 @@ export default function List() {
           window.user_found = true;
         }
 
-        let $username;
         let $name;
         let $verified;
 
         try {
-          $username = $user.querySelector(`a[href] > span`);
-          $name = $user.querySelector(
-            `div div:nth-child(2) span + span > span`
-          );
+          $name = $user.querySelector(`a[href] span[dir="auto"]`);
           $verified = $user.querySelector(
             `[title="Verificado"], [title="Verified"]`
           );
@@ -151,6 +147,7 @@ export default function List() {
 
         if ($verified) {
           ignored += 1;
+          updateLog(`Skipping verified. (${index})`);
           continue;
         }
 
@@ -165,17 +162,29 @@ export default function List() {
         }
 
         const name = $name.textContent.split(' ')[0].trim();
-        const user = $username.textContent.trim();
+        const $link = $user.querySelector(`canvas + a`);
+        const user =
+          $link && $link.hasAttribute('href')
+            ? $link.getAttribute(`href`).replaceAll(`/`, '')
+            : '';
+
+        if (user === '') {
+          updateLog(`No username detected`);
+          ignored += 1;
+
+          continue;
+        }
 
         if (ignoreMales === 'yes') {
           const { result: gender } = await getUsernameGender(name);
-          if (gender !== 'female') {
+          if (gender === 'male') {
+            updateLog(`Skipping male - ${user} (${index})`);
             ignored += 1;
             continue;
           }
         }
 
-        console.log(
+        updateLog(
           `Index: ${index} -- visible: ${visible} --  limit: ${
             limit + ignored
           } -- i: ${i}`
@@ -255,6 +264,8 @@ export default function List() {
     return new Promise(async (resolve, reject) => {
       const $canva = $user.querySelector(`[role="button"] > canvas`);
 
+      debugger;
+
       const $hover = $canva.closest(`[role="button"]`);
 
       const _hasClickableStory = $hover.getAttribute(`aria-disabled`);
@@ -283,7 +294,7 @@ export default function List() {
       );
 
       const $private = await _waitForElement(
-        `[style*='alpha'] > [style*='transform'][style*='translate'] > * > * > div:not([class]) + div:not([class]) + div:not([class]) > * i[data-visualcompletion]`,
+        `[style*='alpha'] > [style*='transform'][style*='translate'] > * > * > * > div:not([class]) + div:not([class]) + div:not([class]) > * i[data-visualcompletion]`,
         100,
         15
       );

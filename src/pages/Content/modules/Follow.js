@@ -299,7 +299,7 @@ const Follow = () => {
         let $post = null;
         try {
           $post = await _waitForElement(
-            `main div >article > div > div > div:nth-child(${postY}) > div:nth-child(${postX}) a[href*='/']`,
+            `main div > header ~ div:not([class]) > div  > div:nth-child(${postY}) > div:nth-child(${postX}) a[href*='/']`,
             250,
             10
           );

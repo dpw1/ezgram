@@ -90,6 +90,8 @@ const Unfollow = () => {
       return;
     }
 
+    updateLog(`Unfollow button found.`);
+
     const followers =
       JSON.parse(localStorage.getItem(LOCAL_STORAGE.followersList)) || [];
 
@@ -109,10 +111,14 @@ const Unfollow = () => {
         delayBetweenUnfollowMax * 1000
       );
 
+      debugger;
+
       const selector =
         CSS_SELECTORS.followingListUnfollowButtonNthChild.replaceAll('xx', i);
 
       const $button = await _waitForElement(selector);
+
+      debugger;
 
       const $parent = $button.closest(`li, [aria-labelledby], div[role]`);
       const $user = $parent.querySelector(`a[href]`);
