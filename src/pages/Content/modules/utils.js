@@ -61,7 +61,7 @@ export const CSS_SELECTORS = {
   userPageUnfollowButton: `main header section div span > span:nth-child(1) > button svg`,
   userPagePosts: `main div > header ~ div:not([class]) a[href]`,
   userPageActionBlocked: `div > div > div > div > div  + div > button + button`,
-  userPagePrivateAccountMessage: `section main hr + div h2`,
+  userPagePrivateAccountMessage: `section main hr + div h2, section header + hr + div div > span:nth-child(1)`,
   userPageProfileImage: `main > div > header canvas + span > img[alt][src], main > div > header button > img[src]`,
   userPageUsername: `main header section > * > h2, main header section > * > h1,main header section a>h2, section header a > h1`,
   userPageDoesNotExist404: `main [style*='height'][style*='100'] > div > h2 + div a[href='/'], main [style*='height'][style*='clamp'] + * [style*='clamp'] a[href='/'] `,

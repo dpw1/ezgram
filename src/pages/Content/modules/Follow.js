@@ -661,9 +661,16 @@ const Follow = () => {
         }`
       );
 
+      const leftToFollow =
+        mustFollowUsers.length - parseInt(stopFollowingLimit);
+
       updateLog(
-        `stopFollowingLimit: ${stopFollowingLimit} || mustFollowUsers.length: ${mustFollowUsers.length}`
+        `Users left to follow: ${leftToFollow} || (stopFollowingLimit: ${stopFollowingLimit} || mustFollowUsers.length: ${mustFollowUsers.length} )`
       );
+
+      if (leftToFollow !== 10) {
+        debugger;
+      }
 
       if (stopFollowingLimit > mustFollowUsers.length) {
         updateLog(`Limit reached! Stopping at user ${stopFollowingLimit}`);
@@ -794,8 +801,13 @@ const Follow = () => {
         if (isPrivate) {
           updateLog(`This is a private account. Skipping...`);
 
+          const lim = stopFollowingLimit - 1;
+
           await _sleep(randomIntFromInterval(100, 200));
           await finishInteraction('fail');
+          await _sleep(randomIntFromInterval(100, 200));
+          setStopFollowingLimit(lim);
+
           resolve(true);
           return;
         }
