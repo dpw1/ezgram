@@ -134,10 +134,12 @@ export default function List() {
         }
 
         let $name;
+
         let $verified;
 
         try {
-          $name = $user.querySelector(`a[href] span[dir="auto"]`);
+          $name = $user.querySelector(`span[style*='18']`);
+
           $verified = $user.querySelector(
             `[title="Verificado"], [title="Verified"]`
           );
@@ -162,7 +164,7 @@ export default function List() {
         }
 
         const name = $name.textContent.split(' ')[0].trim();
-        const $link = $user.querySelector(`canvas + a`);
+        const $link = $user.querySelector(`a`);
         const user =
           $link && $link.hasAttribute('href')
             ? $link.getAttribute(`href`).replaceAll(`/`, '')
@@ -178,7 +180,7 @@ export default function List() {
         if (ignoreMales === 'yes') {
           const { result: gender } = await getUsernameGender(name);
           if (gender === 'male') {
-            updateLog(`Skipping male - ${user} (${index})`);
+            updateLog(`Skipping male - ${name} - ${user} - (${index})`);
             ignored += 1;
             continue;
           }
@@ -264,8 +266,6 @@ export default function List() {
     return new Promise(async (resolve, reject) => {
       const $canva = $user.querySelector(`[role="button"] > canvas`);
 
-      debugger;
-
       const $hover = $canva.closest(`[role="button"]`);
 
       const _hasClickableStory = $hover.getAttribute(`aria-disabled`);
@@ -276,6 +276,8 @@ export default function List() {
         resolve(false);
         return;
       }
+
+      debugger;
 
       let event;
 
@@ -587,7 +589,7 @@ export default function List() {
             onChange={(e) => {
               setIgnoreMales(e.target.checked ? 'yes' : 'no');
             }}
-            label={`Enable gender extraction`}
+            label={`Ignore males`}
           />
 
           <Form.Check

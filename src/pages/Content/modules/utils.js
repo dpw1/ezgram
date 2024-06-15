@@ -50,7 +50,7 @@ export const CSS_SELECTORS = {
 
   followersAndFollowingListItem: `div[style] > div[style] > div + div li,  div[style*='min-height'] > div[class] > div[style*='auto'] > div > div`,
 
-  userPageFollowButtons: `header > div + section > * button`,
+  userPageFollowButtons: `header > div + section > * button, header > section + section button`,
   userPageFollowerstListOpenButton: `header > section  ul li:nth-child(2) a`,
   userPageFollowingtListOpenButton: `header > section  ul li:nth-child(3) a`,
 

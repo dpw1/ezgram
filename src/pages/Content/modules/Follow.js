@@ -728,8 +728,12 @@ const Follow = () => {
         );
 
         if ($inexistent) {
+          const lim = stopFollowingLimit - 1;
+
           updateLogError(`This user does not exist.`);
           await finishInteraction('fail');
+          await _sleep(randomIntFromInterval(100, 200));
+          setStopFollowingLimit(lim);
           resolve();
           return;
         } else {
