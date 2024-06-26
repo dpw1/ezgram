@@ -100,7 +100,7 @@ export default function List() {
         return;
       }
 
-      for (let i = 1; i <= limit + ignored; i++) {
+      for (let i = 0; i <= limit + ignored; i++) {
         const index = i + 1;
         /* Scroll down, check if must end */
 
@@ -147,22 +147,6 @@ export default function List() {
           updateLogError(`No user found at the index ${index}.`);
         }
 
-        if ($verified) {
-          ignored += 1;
-          updateLog(`Skipping verified. (${index})`);
-          continue;
-        }
-
-        if (ignorePrivate === 'yes') {
-          const isPrivate = await isProfilePrivate($user);
-
-          if (isPrivate) {
-            updateLog(`Skipping private. (${index})`);
-            ignored += 1;
-            continue;
-          }
-        }
-
         const name = $name.textContent.split(' ')[0].trim();
         const $link = $user.querySelector(`a`);
         const user =
@@ -175,6 +159,22 @@ export default function List() {
           ignored += 1;
 
           continue;
+        }
+
+        if ($verified) {
+          ignored += 1;
+          updateLog(`Skipping verified. (${user} - ${index})`);
+          continue;
+        }
+
+        if (ignorePrivate === 'yes') {
+          const isPrivate = await isProfilePrivateOrHasNoPosts($user);
+
+          if (isPrivate) {
+            updateLog(`Skipping private. (${user} - ${index})`);
+            ignored += 1;
+            continue;
+          }
         }
 
         if (ignoreMales === 'yes') {
@@ -262,7 +262,13 @@ export default function List() {
     });
   }
 
-  function isProfilePrivate($user) {
+  /* 
+  
+  This function aims to filter private profiles and/or with no posts whatsoever. 
+  Not functioning perfectly but good enough
+
+  */
+  function isProfilePrivateOrHasNoPosts($user) {
     return new Promise(async (resolve, reject) => {
       const $canva = $user.querySelector(`[role="button"] > canvas`);
 
@@ -277,8 +283,6 @@ export default function List() {
         return;
       }
 
-      debugger;
-
       let event;
 
       event = new MouseEvent('mouseover', {
@@ -290,16 +294,43 @@ export default function List() {
       $hover.dispatchEvent(event);
 
       await _waitForElement(
-        `[style*='alpha'] > [style*='transform'][style*='translate']`,
+        `[style*='--fds-black'] > [style*='translate'] > * > [class] [role='status']:not([data-visualcompletion*='loading'])`,
         100,
         15
       );
 
-      const $private = await _waitForElement(
-        `[style*='alpha'] > [style*='transform'][style*='translate'] > * > * > * > div:not([class]) + div:not([class]) + div:not([class]) > * i[data-visualcompletion]`,
+      const $profile = await _waitForElement(
+        `[style*='--fds-black'] > [style*='translate'] > * > [class]`,
         100,
         15
       );
+
+      if ($profile === null) {
+        alert(`Unable to identify if private.`);
+      }
+
+      const isPrivate = $profile.innerHTML
+        .toLowerCase()
+        .includes('account is private');
+
+      const hasNoPosts = $profile.innerHTML
+        .toLowerCase()
+        .includes('no posts yet');
+
+      function get_average_rgb(img) {
+        var context = document.createElement('canvas').getContext('2d');
+        if (typeof img == 'string') {
+          var src = img;
+          img = new Image();
+          img.setAttribute('crossOrigin', '');
+          img.src = src;
+        }
+        context.imageSmoothingEnabled = true;
+        context.drawImage(img, 0, 0, 1, 1);
+        return context.getImageData(0, 0, 1, 1).data.slice(0, 3);
+      }
+
+      debugger;
 
       event = new MouseEvent('mouseout', {
         view: window,
@@ -309,9 +340,7 @@ export default function List() {
 
       $hover.dispatchEvent(event);
 
-      await _sleep(randomIntFromInterval(100, 250));
-
-      if ($private) {
+      if (isPrivate || hasNoPosts) {
         resolve(true);
         return;
       }

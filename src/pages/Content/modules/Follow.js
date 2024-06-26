@@ -668,10 +668,6 @@ const Follow = () => {
         `Users left to follow: ${leftToFollow} || (stopFollowingLimit: ${stopFollowingLimit} || mustFollowUsers.length: ${mustFollowUsers.length} )`
       );
 
-      if (leftToFollow !== 10) {
-        debugger;
-      }
-
       if (stopFollowingLimit > mustFollowUsers.length) {
         updateLog(`Limit reached! Stopping at user ${stopFollowingLimit}`);
         toastMessage(
